@@ -10,6 +10,7 @@
   python -m ueic params                    # print the assumptions register
   python -m ueic log "message"             # append to the research log
   python -m ueic hash                      # code SHA-256 (compare with a bundle's REPRODUCE.md)
+  python -m ueic serve                     # Phase 2: API + 3-D lab at http://127.0.0.1:8765/lab/
   python -m ueic telemetry devices         # Phase 4: list NVIDIA GPUs (read-only)
   python -m ueic calib plan --clocks 900,1200,1500   # print a calibration procedure to review and run
   python -m ueic calib run --kind compute --seconds 60 --label clk=1200
@@ -58,6 +59,9 @@ def main(argv: list[str] | None = None) -> int:
     cr.add_argument("--out", default=str(ROOT / "data" / "calibration"))
     cf = csub.add_parser("fit"); cf.add_argument("sessions", nargs="+"); cf.add_argument("--out", required=True)
     ci = csub.add_parser("ingest"); ci.add_argument("calibration"); ci.add_argument("--key", default="M001")
+    sv = sub.add_parser("serve", help="Phase 2: local API + 3-D lab at http://127.0.0.1:8765/lab/")
+    sv.add_argument("--host", default="127.0.0.1"); sv.add_argument("--port", type=int, default=8765)
+    sv.add_argument("--workers", type=int, default=None)
     a = ap.parse_args(argv)
 
     from .store import Store, code_hash, core_hash
@@ -72,6 +76,12 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{p['evidence']}  {p['name']:<22} {p['value']:<12g} {p['unit']:<22} {rng:<18} {p['source']}")
         return 0
 
+    if a.cmd == "serve":
+        from .api import serve
+        if a.host not in ("127.0.0.1", "localhost", "::1"):
+            print("warning: serving beyond localhost exposes the experiment API to your network")
+        serve(a.host, a.port, a.db, a.workers)
+        return 0
     if a.cmd == "telemetry":
         from .telemetry import Logger, Nvml
         if a.tcmd == "devices":

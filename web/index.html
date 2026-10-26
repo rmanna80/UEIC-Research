@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UEIC 3-D Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="lab.css">
+<script type="importmap">{"imports": {"three": "./vendor/three/three.module.min.js"}}</script>
+</head>
+<body>
+<header class="bar">
+  <div class="brand"><h1>UEIC 3-D Lab</h1><span id="health" class="stamp">connecting…</span></div>
+  <nav id="tabs" role="tablist"></nav>
+</header>
+<main id="main">
+  <section id="view3d" class="workspace">
+    <div class="viewport" id="viewport">
+      <div class="badge" id="badge"></div>
+      <div class="legend3d" id="legend3d"></div>
+      <div class="hint">Drag to orbit · scroll to zoom · right-drag to pan · click a part to inspect</div>
+    </div>
+    <aside class="side">
+      <div id="controls" class="panel"></div>
+      <div id="inspector" class="panel"><h3>Inspector</h3><p class="muted">Click a component in the scene.</p></div>
+    </aside>
+  </section>
+  <section id="view2d" class="page" hidden></section>
+</main>
+<div id="tip" class="tip" hidden></div>
+<script type="module" src="lab.js"></script>
+</body>
+</html>

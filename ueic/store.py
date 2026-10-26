@@ -177,7 +177,7 @@ class Store:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.ts_dir = self.path.parent / "timeseries"
         self.ts_dir.mkdir(exist_ok=True)
-        self.db = sqlite3.connect(str(self.path))
+        self.db = sqlite3.connect(str(self.path), timeout=30)
         self.db.execute("PRAGMA foreign_keys = ON")
         self.db.executescript(SCHEMA)
         self.db.commit()

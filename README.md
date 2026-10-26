@@ -14,6 +14,8 @@ This package covers **Phase 0** (problem definition, evaluation criteria, archit
 | Every assumption, with its evidence class | `docs/04_assumptions_register.md` |
 | Whether a custom chip is justified | `docs/08_hardware_feasibility.md` |
 | What happened, in order, including bugs | `docs/research_log.md` |
+| The interactive 3-D lab (API + Three.js) | run `python -m ueic serve`, open http://127.0.0.1:8765/lab/ |
+| How to measure your own GPU | `docs/09_calibration_protocol.md` |
 
 ## Run it (Windows PowerShell)
 
@@ -39,6 +41,14 @@ python -m ueic dashboard                           # regenerates results\dashboa
 start results\dashboard.html
 python -m ueic export E001                         # CSV, JSON and a reproducible bundle (.zip)
 ```
+
+Phase 2 lab and API (local only, binds to 127.0.0.1):
+
+```powershell
+python -m ueic serve                               # then open http://127.0.0.1:8765/lab/
+```
+
+The lab has six views: a cooling system bound to the physics model, facility playback of stored runs with before/after comparison, an exploded accelerator package, a conceptual photonic accelerator, an energy-flow diagram per run, and an experiment manager that registers and runs new experiments through the same append-only store. Three.js r185.1 is vendored in `web/vendor/three/` (MIT licence), so the lab works offline; fonts fall back to system fonts without a connection.
 
 To test your own idea, copy a spec in `experiments\`, change the `design` block (scenarios, policies, seeds, `param_overrides`, `variants`), give it a new `key`, and run it. The hypothesis and evaluation criteria are frozen in the database when the run starts. On macOS/Linux, use `/` paths and `source .venv/bin/activate`.
 
