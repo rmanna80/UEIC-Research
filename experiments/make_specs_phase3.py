@@ -15,6 +15,7 @@ HERE = Path(__file__).resolve().parent
 QS = {"loop_mass_kg": 0.0, "tsup_ramp_K_per_min": 0.0}
 DYN_FAST = {"loop_mass_kg": 40.0, "tsup_ramp_K_per_min": 1.0}
 DYN_SLOW = {"loop_mass_kg": 150.0, "tsup_ramp_K_per_min": 0.25}
+WARM = {"warm_start": 1.0}   # E006 v2: every policy starts in its own steady state (see disclosure)
 
 E006 = {
     "key": "E006",
@@ -33,7 +34,8 @@ E006 = {
     "independent_variables": ["plant model (quasi-steady, 40 kg + 1 K/min, 150 kg + 0.25 K/min)",
                               "policy (4 levels)", "scenario (3 levels)"],
     "dependent_variables": ["E_per_success_kJ (primary)", "chip_s_over_target", "chip_s_throttled", "peak_T_j_C",
-                            "slo_violations", "E_loop_storage_kWh", "action_changes"],
+                            "slo_violations", "E_loop_storage_kWh (must stay below 0.5% of grid energy)",
+                            "action_changes"],
     "controlled_variables": ["workload per seed", "registry defaults", "4 h window + drain", "dt = 1 s"],
     "baseline": "quasi-steady plant (identical to E001) within each policy; independent within each plant",
     "configuration": "Loop mass and ramp values are class F placeholders (CDU tank + piping), not measurements.",
@@ -41,14 +43,19 @@ E006 = {
                            "H2/H4 judged on seed means of chip-seconds above target.",
     "known_limitations": "Single well-mixed tank; no pipe transport delay; ramp limit is symmetric; controllers "
                          "still plan with a steady-state twin.",
-    "disclosure": "Before registration, only unit tests ran on the dynamic plant (energy closure, ramp bound, "
-                  "steady state, pass-through); none compared policies.",
+    "disclosure": "v1 (E006-20261026T184900-8dd0d3) ran with a cold start: the joint controller's first decision, "
+                  "made at zero demand, chose 12 C, and the dynamic plant used that setpoint as the initial tank "
+                  "temperature. The joint runs then drew down that stored coldness (up to 4.9 kWh of heat absorbed "
+                  "and never rejected), which overstated joint's advantage under dynamic plants. Found by examining "
+                  "v1's energy breakdown. v2 adds warm_start to every variant so each policy starts in its own steady "
+                  "state; hypotheses are unchanged. v1 results were seen before v2 was registered. Before v1, only "
+                  "unit tests ran on the dynamic plant.",
     "design": {"scenarios": ["S1_moderate", "S3_hot", "S6_degraded_cooling"],
                "policies": ["fixed", "independent", "joint", "joint_robust"], "seeds": list(range(10)),
                "timeseries_seeds": [0],
-               "variants": [{"label": "quasi_steady", "param_overrides": QS},
-                            {"label": "dyn_40kg_1Kmin", "param_overrides": DYN_FAST},
-                            {"label": "dyn_150kg_0.25Kmin", "param_overrides": DYN_SLOW}]},
+               "variants": [{"label": "quasi_steady", "param_overrides": {**QS, **WARM}},
+                            {"label": "dyn_40kg_1Kmin", "param_overrides": {**DYN_FAST, **WARM}},
+                            {"label": "dyn_150kg_0.25Kmin", "param_overrides": {**DYN_SLOW, **WARM}}]},
     **COMMON,
 }
 

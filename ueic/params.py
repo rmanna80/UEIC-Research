@@ -135,6 +135,11 @@ _REGISTRY: list[Param] = [
     _P("loop_mass_kg", 0.0, "kg water", "G",
        "0 selects the quasi-steady plant of E001-E005 (no loop thermal mass). E006 uses 40 kg and 150 kg; "
        "those values are placeholders (class F) for a CDU tank + piping, not measurements", group="loop"),
+    _P("warm_start", 0.0, "0/1", "G",
+       "1 = controllers start with the demand estimate and chip-heat estimate of the initial offered load, as if "
+       "the system had been running, so each policy starts in its own steady state. 0 = cold start with zero "
+       "demand estimate (E001-E005, E006 v1). Needed with a loop thermal mass: in E006 v1 a cold start let the "
+       "first (zero-demand) decision set the initial tank temperature, a confound found in analysis", group="loop"),
     _P("tsup_ramp_K_per_min", 0.0, "K/min", "G",
        "Max rate at which the plant can move its outlet temperature. 0 = instantaneous (E001-E005). "
        "E006 uses 1.0 and 0.25 (class F placeholders)", group="loop"),
@@ -214,6 +219,8 @@ def validate(cfg: Mapping[str, Any]) -> None:
     for k in ("loop_mass_kg", "tsup_ramp_K_per_min", "joint_switch_rel"):
         if cfg[k] < 0:
             raise ValueError(f"{k} must be >= 0")
+    if cfg["warm_start"] not in (0, 0.0, 1, 1.0):
+        raise ValueError("warm_start must be 0 or 1")
     if not 0.0 <= cfg["joint_bias_gain"] <= 1.0:
         raise ValueError("joint_bias_gain must be in [0,1]")
 

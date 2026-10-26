@@ -15,7 +15,7 @@
     "chip_s_throttled",
     "peak_T_j_C",
     "slo_violations",
-    "E_loop_storage_kWh",
+    "E_loop_storage_kWh (must stay below 0.5% of grid energy)",
     "action_changes"
   ],
   "controlled_variables": [
@@ -28,7 +28,7 @@
   "configuration": "Loop mass and ramp values are class F placeholders (CDU tank + piping), not measurements.",
   "evaluation_criteria": "Paired relative differences with 95% t-CI; practical threshold 1%. H2/H4 judged on seed means of chip-seconds above target.",
   "known_limitations": "Single well-mixed tank; no pipe transport delay; ramp limit is symmetric; controllers still plan with a steady-state twin.",
-  "disclosure": "Before registration, only unit tests ran on the dynamic plant (energy closure, ramp bound, steady state, pass-through); none compared policies.",
+  "disclosure": "v1 (E006-20261026T184900-8dd0d3) ran with a cold start: the joint controller's first decision, made at zero demand, chose 12 C, and the dynamic plant used that setpoint as the initial tank temperature. The joint runs then drew down that stored coldness (up to 4.9 kWh of heat absorbed and never rejected), which overstated joint's advantage under dynamic plants. Found by examining v1's energy breakdown. v2 adds warm_start to every variant so each policy starts in its own steady state; hypotheses are unchanged. v1 results were seen before v2 was registered. Before v1, only unit tests ran on the dynamic plant.",
   "design": {
     "scenarios": [
       "S1_moderate",
@@ -61,21 +61,24 @@
         "label": "quasi_steady",
         "param_overrides": {
           "loop_mass_kg": 0.0,
-          "tsup_ramp_K_per_min": 0.0
+          "tsup_ramp_K_per_min": 0.0,
+          "warm_start": 1.0
         }
       },
       {
         "label": "dyn_40kg_1Kmin",
         "param_overrides": {
           "loop_mass_kg": 40.0,
-          "tsup_ramp_K_per_min": 1.0
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
         }
       },
       {
         "label": "dyn_150kg_0.25Kmin",
         "param_overrides": {
           "loop_mass_kg": 150.0,
-          "tsup_ramp_K_per_min": 0.25
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
         }
       }
     ]

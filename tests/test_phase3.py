@@ -139,3 +139,18 @@ def test_tank_step_is_exact_first_order_response():
     for _ in range(100):
         T = float(ph.tank_step(T, 18.0, Cdot, M_cp, 1.0))
     assert T == pytest.approx(18.0 + 12.0 * np.exp(-Cdot * 100 / M_cp), abs=1e-9)
+
+
+def test_warm_start_removes_initial_condition_artifact_in_dynamic_loop():
+    """Regression (E006 v1): with a cold start, the joint controller's zero-demand first decision set
+    a 12 C initial tank, whose stored 'coldness' it then used up during the run. With a warm start each
+    policy starts in its own steady state; the load cycle ends where it began, so storage change is small."""
+    sc = replace(SCENARIOS["S3_hot"], duration_s=7200.0, load_period_s=7200.0)
+    cold = make_config({"loop_mass_kg": 150.0, "tsup_ramp_K_per_min": 0.25})
+    warm = make_config({"loop_mass_kg": 150.0, "tsup_ramp_K_per_min": 0.25, "warm_start": 1.0})
+    rc = simulate(cold, sc, POLICIES["joint"](cold), seed=0, record_timeseries=False)
+    rw = simulate(warm, sc, POLICIES["joint"](warm), seed=0, record_timeseries=False)
+    assert abs(rc.m("E_loop_storage_kWh")) > 0.02 * rc.m("E_grid_kWh")      # the artifact
+    for name in ("joint", "independent", "fixed"):
+        r = rw if name == "joint" else simulate(warm, sc, POLICIES[name](warm), seed=0, record_timeseries=False)
+        assert abs(r.m("E_loop_storage_kWh")) < 0.005 * r.m("E_grid_kWh"), name

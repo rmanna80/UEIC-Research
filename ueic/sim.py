@@ -101,6 +101,14 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
     tsup_travel = 0.0
     T_peak_int = float("nan")
 
+    if float(cfg.warm_start) > 0:
+        # As if the node had been running at the initial offered load: the controller's demand
+        # estimate and chip-heat estimate start at their steady values for that load.
+        u0 = float(offered_load(0.0, scenario))
+        work_per_task = rs_rv if routing else 1.0
+        D_est = np.array([1.0 - cfg.frac_memory, cfg.frac_memory]) * u0 * N * work_per_task
+        q_last = float(N * (min(u0, 1.0) * p_design_peak + (1.0 - min(u0, 1.0)) * ph.idle_power(cfg.t_leak_ref, cfg)))
+
     # ---- loop state (Phase 3 dynamic plant; unused when loop_mass_kg == 0)
     dyn = float(cfg.loop_mass_kg) > 0.0
     M_cp = float(cfg.loop_mass_kg) * cfg.water_cp
@@ -325,6 +333,9 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
     rel_resid = abs(balance_resid) / max(E_grid, 1e-9)
     if rel_resid > 1e-9:
         warnings.append(f"energy balance residual {rel_resid:.2e}")
+    if dyn and abs(E["loop"]) > 0.005 * E_grid:
+        warnings.append(f"loop storage change {E['loop'] / 3.6e6:.3f} kWh exceeds 0.5% of grid energy; "
+                        "initial and final loop states differ (check warm_start)")
 
     completed = ~np.isnan(done_t)
     lat = done_t[completed] - wl.arrival[completed]
