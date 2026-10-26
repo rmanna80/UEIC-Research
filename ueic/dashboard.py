@@ -114,6 +114,9 @@ def _slim(R: dict) -> dict:
                                      "thermal", "n_runs", "n_failed", "H1", "H2", "H3", "H4")}
                  | {"disclosure": e9["spec"].get("disclosure", ""),
                     "source": e9["spec"].get("measurement_source", {})}) if e9 else None
+    e10 = R.get("E010")
+    D["E010"] = ({k: e10[k] for k in ("id", "conditions", "n_runs", "n_failed", "H1", "H2", "H3", "H4", "H5")}
+                 | {"disclosure": e10["spec"].get("disclosure", "")}) if e10 else None
     D["verdicts"] = sorted(verdicts(R), key=lambda v: v["key"])
     D["policy_order"] = POLICY_ORDER
     D["explorer"] = explorer_grid()
@@ -332,7 +335,7 @@ function lineChart(host, {series, yLabel, xLabel, h = 200, refs = [], yMin, yMax
 
 /* ---------------- tabs ---------------- */
 const TABS = [['overview', 'Overview'], ['energy', 'Energy'], ['thermal', 'Thermal'], ['sensitivity', 'Sensitivity'], ['routing', 'Model routing'],
-  ['robustness', 'Twin mismatch'], ['phase3', 'Phase 3'], ['hardware', 'Hardware (M001)'], ['explorer', 'Cold-plate explorer'], ['assumptions', 'Assumptions'], ['log', 'Experiments & log']];
+  ['robustness', 'Twin mismatch'], ['phase3', 'Phase 3'], ['hardware', 'Hardware & calibrated runs'], ['explorer', 'Cold-plate explorer'], ['assumptions', 'Assumptions'], ['log', 'Experiments & log']];
 const nav = $('#tabs'), main = $('#main'), renderers = {}, sections = {};
 TABS.forEach(([id, name]) => { const b = el('button', {role: 'tab', id: 'tab-' + id, 'aria-controls': id, 'aria-selected': 'false', type: 'button'}, name);
   b.addEventListener('click', () => show(id)); nav.appendChild(b); const sec = el('section', {class: 'tab', id, role: 'tabpanel', 'aria-labelledby': 'tab-' + id}); sec.hidden = true; main.appendChild(sec); sections[id] = sec; });
@@ -572,7 +575,24 @@ renderers.hardware = sec => { sec.innerHTML = ''; const M = D.M001, C = D.E001C;
     p.appendChild(legend(names.map((l, i) => ({label: l, color: cols[i]})))); const h = el('div', {class: 'scroll'}); p.appendChild(h);
     p.appendChild(el('p', {class: 'note'}, 'Pre-registered; 5 seeds. Disclosure: ' + E9.disclosure.replace(/</g, '&lt;')));
     sec.appendChild(p);
-    requestAnimationFrame(() => ciDots(h, E9.joint_vs_independent.filter(r => show.includes(r.variant)).map(r => ({g: r.scenario, s: r.variant, mean: r.mean, lo: r.lo, hi: r.hi})), E9.scenarios, show, cols, names, 'Joint vs independent')); } };
+    requestAnimationFrame(() => ciDots(h, E9.joint_vs_independent.filter(r => show.includes(r.variant)).map(r => ({g: r.scenario, s: r.variant, mean: r.mean, lo: r.lo, hi: r.hi})), E9.scenarios, show, cols, names, 'Joint vs independent')); }
+  const E10 = D.E010;
+  if (E10) { const pols = ['fixed', 'independent', 'joint'];
+    const p = el('div', {class: 'panel'}); p.appendChild(el('h3', {}, 'E010 · Thermal safety under cooling degradation and heat (measured leakage and clock sensitivity)'));
+    p.appendChild(el('p', {class: 'note'}, 'If coordination saves little energy on real chips, does it still keep them safe? Time above the 80 °C target for each policy, by cold-plate state and outside temperature, with an instant plant and a slow coolant loop. Seed means over 5 seeds; the controllers know the true cold-plate state.'));
+    p.appendChild(legend(pols.map(k => ({label: LABEL[k], color: PCOL[k]}))));
+    const hosts = {}; [['quasi', 'Quasi-steady plant'], ['dyn40', '40 kg loop, 1 K/min ramp']].forEach(([pl, t]) => { p.appendChild(el('h3', {}, t)); hosts[pl] = el('div', {class: 'scroll'}); p.appendChild(hosts[pl]); });
+    const cl = c => `${c.degradation} · ${c.t_amb} °C`;
+    p.appendChild(el('div', {class: 'scroll'}, `<table><thead><tr><th>Plant</th><th>Cold plate</th><th class="n">Ambient</th><th class="n">chip·s &gt; 80 °C (F / I / J)</th><th class="n">throttled (F / I / J)</th><th class="n">Joint vs independent</th><th class="n">Joint vs fixed</th></tr></thead><tbody>${
+      E10.conditions.map(c => { const b = c.by_policy, t3 = m => pols.map(k => fmt((b[k] || {})[m], 0)).join(' / '); const ji = c.joint_vs_independent, jf = c.joint_vs_fixed;
+        const bad = ((b.independent || {}).chip_s_throttled || 0) > 0 ? 'crit' : ((b.independent || {}).chip_s_over_target || 0) > 0 ? 'warn' : 'good';
+        return `<tr><td class="mono">${c.plant}</td><td>${c.degradation}</td><td class="n">${c.t_amb} °C</td><td class="n"><span class="pill ${bad}">${t3('chip_s_over_target')}</span></td><td class="n">${t3('chip_s_throttled')}</td><td class="n">${ji ? pct(ji.mean, 2) : '–'}</td><td class="n">${jf ? pct(jf.mean, 1) : '–'}</td></tr>`; }).join('')}</tbody></table>`));
+    p.appendChild(el('p', {class: 'note'}, 'Pre-registered. Disclosure: ' + E10.disclosure.replace(/</g, '&lt;')));
+    sec.appendChild(p);
+    requestAnimationFrame(() => Object.entries(hosts).forEach(([pl, h]) => { const cs = E10.conditions.filter(c => c.plant === pl);
+      groupedBars(h, {groups: cs.map(cl), series: pols, get: (g, k) => { const c = cs.find(x => cl(x) === g); return c ? {mean: (c.by_policy[k] || {}).chip_s_over_target || 0, lo: null, hi: null} : null; },
+        yLabel: 'chip·s above 80 °C', groupLabel: g => g, minW: 760, h: 230,
+        extra: (g, k, v) => { const c = cs.find(x => cl(x) === g); const b = c.by_policy[k] || {}; return [['above target', fmt(v.mean, 0) + ' chip·s'], ['throttled', fmt(b.chip_s_throttled, 0) + ' chip·s'], ['peak', fmt(b.peak_T_j_C, 1) + ' °C']]; }}); })); } };
 
 /* Explorer */
 const X = D.explorer; const xs = {s: X.s.indexOf(1) >= 0 ? X.s.indexOf(1) : X.s.length - 1, a: X.t_amb.indexOf(20), t: null, f: null};

@@ -233,7 +233,7 @@ def compute_all(store: Store, threshold: float = 0.01) -> dict[str, Any]:
         "E001": e001(store, threshold), "E002": e002(store, threshold), "E003": e003(store, threshold),
         "E004": e004(store), "E005": e005(store, threshold),
         "E006": e006(store, threshold), "E007": e007(store, threshold), "E008": e008(store, threshold),
-        "M001": m001(store), "E001C": e001c(store, threshold), "E009": e009(store, threshold),
+        "M001": m001(store), "E001C": e001c(store, threshold), "E009": e009(store, threshold), "E010": e010(store, threshold),
         "assumptions": assumptions_table(),
         "research_log": store.research_log(),
         "experiments": [{"id": x["id"], "key": x["key"], "status": x["status"], "title": x["spec"]["title"],
@@ -321,6 +321,7 @@ def verdicts(R: dict[str, Any]) -> list[dict[str, Any]]:
     out += verdicts_phase3(R)
     out += verdicts_calibrated(R)
     out += verdicts_e009(R)
+    out += verdicts_e010(R)
     return out
 
 
@@ -644,3 +645,80 @@ def verdicts_e009(R: dict[str, Any]) -> list[dict[str, Any]]:
                      f"{len(e['H4']['cases'])} scenarios where it had any." if e["H4"]["cases"] else
                      "Independent never exceeded the target with registry leakage; nothing to test.")}]
     return out
+
+
+E010_METRICS = ("chip_s_over_target", "chip_s_throttled", "peak_T_j_C", "slo_violations", "success_rate",
+                "E_per_success_kJ")
+
+
+def e010(store: Store, threshold: float) -> dict[str, Any] | None:
+    eid = store.latest_experiment("E010")
+    if not eid:
+        return None
+    exp = store.experiment(eid)
+    runs = store.runs(eid)
+    labels = [v["label"] for v in exp["spec"]["design"]["variants"]]
+    means: dict = defaultdict(dict)
+    for m in E010_METRICS:
+        for r in A.summary(runs, m):
+            means[r["group"][1]].setdefault(r["policy"], {})[m] = _f(r["mean"])
+    energy = {}
+    for a, b in (("joint", "independent"), ("joint", "fixed"), ("independent", "fixed")):
+        for r in A.paired(runs, "E_per_success_kJ", a, b):
+            energy[(r["group"][1], a, b)] = _row(r)
+    conds = []
+    for lab in labels:
+        dg, amb, pl = lab.split("|")
+        conds.append({"label": lab, "degradation": dg, "t_amb": float(amb[3:]), "plant": pl,
+                      "by_policy": means.get(lab, {}),
+                      "joint_vs_independent": energy.get((lab, "joint", "independent")),
+                      "joint_vs_fixed": energy.get((lab, "joint", "fixed")),
+                      "independent_vs_fixed": energy.get((lab, "independent", "fixed"))})
+    g = lambda c, pol, m: (c["by_policy"].get(pol, {}).get(m) or 0.0)
+    quasi = [c for c in conds if c["plant"] == "quasi"]
+    dyn = [c for c in conds if c["plant"] == "dyn40"]
+    h1_thr = [c["label"] for c in quasi if g(c, "joint", "chip_s_throttled") > 0]
+    h1_over = [c["label"] for c in quasi if g(c, "joint", "chip_s_over_target") > 0]
+    h2 = [c for c in quasi if g(c, "independent", "chip_s_throttled") > 0]
+    h3 = [c["label"] for c in dyn if c["degradation"] == "severe" and g(c, "joint", "chip_s_over_target") > 0]
+    h4_fail = [c["label"] for c in conds if not (c["joint_vs_independent"] and c["joint_vs_independent"]["hi"] is not None
+                                                 and c["joint_vs_independent"]["hi"] < threshold)]
+    h5_fail = [c["label"] for c in conds if not (c["joint_vs_fixed"] and c["joint_vs_fixed"]["hi"] is not None
+                                                 and c["joint_vs_fixed"]["hi"] < -0.10)]
+    return {"id": eid, "spec": exp["spec"], "conditions": conds, "n_runs": len(runs),
+            "n_failed": sum(r["status"] != "completed" for r in runs),
+            "H1": {"supported": not h1_thr and len(h1_over) <= 1, "throttled": h1_thr, "over": h1_over},
+            "H2": {"supported": len(h2) >= 3 and all(c["degradation"] in ("moderate", "severe") for c in h2),
+                   "conditions": [c["label"] for c in h2]},
+            "H3": {"supported": bool(h3), "conditions": h3},
+            "H4": {"supported": not h4_fail, "failures": h4_fail},
+            "H5": {"supported": not h5_fail, "failures": h5_fail}}
+
+
+def verdicts_e010(R: dict[str, Any]) -> list[dict[str, Any]]:
+    e = R.get("E010")
+    if not e:
+        return []
+    st = lambda ok: "supported" if ok else "not supported"
+    q = [c for c in e["conditions"] if c["plant"] == "quasi"]
+    g = lambda c, pol, m: (c["by_policy"].get(pol, {}).get(m) or 0.0)
+    ji = [c["joint_vs_independent"] for c in e["conditions"] if c["joint_vs_independent"]]
+    jf = [c["joint_vs_fixed"] for c in e["conditions"] if c["joint_vs_fixed"]]
+    return [
+        {"key": "E010 H1", "state": st(e["H1"]["supported"]),
+         "text": f"Quasi-steady plant: joint throttled in {len(e['H1']['throttled'])}/9 conditions and exceeded 80 C in "
+                 f"{len(e['H1']['over'])}/9" + (f" ({', '.join(e['H1']['over'])})" if e["H1"]["over"] else "") + "."},
+        {"key": "E010 H2", "state": st(e["H2"]["supported"]),
+         "text": f"Quasi-steady plant: independent throttled in {len(e['H2']['conditions'])}/9 conditions"
+                 + (f": {', '.join(e['H2']['conditions'])}" if e["H2"]["conditions"] else "")
+                 + f"; worst {max(g(c, 'independent', 'chip_s_throttled') for c in q):.0f} chip-s throttled."},
+        {"key": "E010 H3", "state": st(e["H3"]["supported"]),
+         "text": "Dynamic loop, severe degradation: joint exceeded 80 C in "
+                 + (", ".join(e["H3"]["conditions"]) if e["H3"]["conditions"] else "no condition") + "."},
+        {"key": "E010 H4", "state": st(e["H4"]["supported"]),
+         "text": f"Joint vs independent energy {100 * min(r['mean'] for r in ji):+.2f}% to {100 * max(r['mean'] for r in ji):+.2f}%; "
+                 + ("CI upper bound below +1% in all 18 conditions." if e["H4"]["supported"] else f"not below +1% in {', '.join(e['H4']['failures'])}.")},
+        {"key": "E010 H5", "state": st(e["H5"]["supported"]),
+         "text": f"Joint vs fixed energy {100 * max(r['mean'] for r in jf):+.1f}% to {100 * min(r['mean'] for r in jf):+.1f}%; "
+                 + ("at least 10% below fixed in every condition." if e["H5"]["supported"] else f"not confirmed in {', '.join(e['H5']['failures'])}.")},
+    ]

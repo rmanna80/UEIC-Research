@@ -295,6 +295,33 @@ def fig_e009(R, out):
     plt.close(fig)
 
 
+def fig_e010(R, out):
+    e = R["E010"]
+    pols = [("fixed", "Fixed baseline"), ("independent", "Independent"), ("joint", "Joint")]
+    fig, axes = plt.subplots(2, 1, figsize=(10, 6.2), dpi=150, sharey=True)
+    fig.patch.set_facecolor(SURF)
+    for ax, (pl, ttl) in zip(axes, (("quasi", "Quasi-steady plant"), ("dyn40", "40 kg loop, 1 K/min ramp"))):
+        _style(ax)
+        conds = [c for c in e["conditions"] if c["plant"] == pl]
+        for j, (pol, name) in enumerate(pols):
+            xs = [i + (j - 1) * 0.26 for i in range(len(conds))]
+            ys = [c["by_policy"].get(pol, {}).get("chip_s_over_target") or 0 for c in conds]
+            thr = [c["by_policy"].get(pol, {}).get("chip_s_throttled") or 0 for c in conds]
+            ax.bar(xs, ys, width=0.24, color=POLICY_COLOR.get(pol, SLOTS[j]), label=name if pl == "quasi" else None)
+            for x, y, t in zip(xs, ys, thr):
+                if t > 0:
+                    ax.text(x, y, f"{t:.0f}", ha="center", va="bottom", fontsize=7, color=INK2)
+        ax.set_xticks(range(len(conds)), [f"{c['degradation']}\n{c['t_amb']:.0f} C" for c in conds], fontsize=8)
+        ax.set_ylabel("chip-s above 80 C", color=INK2, fontsize=9)
+        ax.set_title(ttl, fontsize=10, color=INK, loc="left")
+    axes[0].legend(frameon=False, fontsize=8, loc="upper left", labelcolor=INK, ncol=3)
+    fig.suptitle("E010 · Time above the 80 C target by cold-plate state and ambient (seed means; labels: chip-s throttled)",
+                 fontsize=10, color=INK, x=0.01, ha="left")
+    fig.tight_layout(rect=(0, 0, 1, 0.96))
+    fig.savefig(out / "e010_thermal_safety.png", facecolor=SURF)
+    plt.close(fig)
+
+
 # ------------------------------------------------------------------------ markdown
 def md_assumptions(R) -> str:
     L = ["# 04 · Assumptions register", "",
@@ -551,6 +578,25 @@ def md_results(R) -> str:
                 for v in e9["variants"]) + " |")
         L.append("")
 
+    e10 = R.get("E010")
+    if e10:
+        L += ["## E010 · Thermal safety under cooling degradation and heat", "",
+              f"Experiment `{e10['id']}`: {e10['n_runs']} runs, {e10['n_failed']} failed. S6 load profile; leakage matched "
+              "to the measured slope and clock sensitivity from M001 in every cell; the twin knows the true cold-plate "
+              "state. Thermal values are seed means over 5 seeds; energy is paired.", "",
+              "![E010](../results/figures/e010_thermal_safety.png)", "",
+              "| Plant | Cold plate | Ambient | chip·s > 80 °C (F / I / J) | throttled (F / I / J) | peak °C (F / I / J) | Joint vs independent | Joint vs fixed |",
+              "|---|---|---|---|---|---|---|---|"]
+        for c in e10["conditions"]:
+            b = c["by_policy"]
+            t3 = lambda m, d: " / ".join(num(b.get(p_, {}).get(m), d) for p_ in ("fixed", "independent", "joint"))
+            ji, jf = c["joint_vs_independent"], c["joint_vs_fixed"]
+            L.append(f"| {c['plant']} | {c['degradation']} | {c['t_amb']:.0f} °C | {t3('chip_s_over_target', 0)} | "
+                     f"{t3('chip_s_throttled', 0)} | {t3('peak_T_j_C', 1)} | "
+                     + (f"{pct(ji['mean'], 2)} [{pct(ji['lo'], 2)}, {pct(ji['hi'], 2)}]" if ji else "n/a") + " | "
+                     + (f"{pct(jf['mean'], 1)} [{pct(jf['lo'], 1)}, {pct(jf['hi'], 1)}]" if jf else "n/a") + " |")
+        L.append("")
+
     L += ["## Experiment register (including superseded and failed)", "",
           "| Id | Status | Runs | Title |", "|---|---|---|---|"]
     for x in R["experiments"]:
@@ -588,6 +634,8 @@ def build_report(store, root: Path) -> str:
         fig_e001c(R, figs)
     if R.get("E009"):
         fig_e009(R, figs)
+    if R.get("E010"):
+        fig_e010(R, figs)
     docs = root / "docs"
     (docs / "RESULTS.md").write_text(md_results(R))
     (docs / "04_assumptions_register.md").write_text(md_assumptions(R))
