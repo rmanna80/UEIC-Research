@@ -406,16 +406,31 @@ def _leak_model(T, c, L, kappa):
     return c + L * np.exp(kappa * (np.asarray(T) - T_REF))
 
 
-def fit_leakage(sess: Session, clock_tol_MHz: float = 15.0, load_tol: float = 0.02) -> dict[str, Any]:
-    """Constant clock AND constant load are both required: telemetry samples are kept only when the
-    clock is within clock_tol_MHz of its median and the workload throughput at that moment is within
-    load_tol of its median. (The load rule was added on 2026-10-26 after the first desktop warm-up
-    showed a 4-10% throughput drop for several minutes, with power falling with it.)"""
+def _slope(T, P) -> dict[str, Any] | None:
+    if len(T) < 30 or T.max() - T.min() < 2.0:
+        return None
+    (b, a), se, _ = _linfit(T, P)
+    return {"dPdT_W_per_K": float(b), "se": float(se[0]), "T_range_C": [float(T.min()), float(T.max())],
+            "P_mean_W": float(P.mean()), "rel_per_K": float(b / P.mean()), "n": int(len(T))}
+
+
+def fit_leakage(sess: Session, clock_tol_MHz: float = 3.0, load_tol: float = 0.02) -> dict[str, Any]:
+    """Leakage from a warm-up at constant clock, load and (where recorded) fan speed.
+
+    Samples are kept only at ONE reported clock step (within clock_tol_MHz of the most common clock;
+    both RTX 5070 warm-ups dropped one 7-8 MHz step as they warmed, with a 4 W power step) and while
+    workload throughput is within load_tol of its median (rule added after the first desktop warm-up
+    showed a 4-10% throughput drop). The exponential model needs a wide temperature range to separate
+    leakage power from its temperature coefficient; over a few kelvin only the local slope dP/dT is
+    identified, so the slope is always reported, also with the fan held at its most common speed."""
     tel, work = steady(sess, skip_s=2.0)
     if len(tel) < 30:
         return {"ok": False, "reason": "too few samples in warm-up session"}
     clk = np.array([r["sm_clock_MHz"] for r in tel], dtype=float)
-    keep = np.abs(clk - np.median(clk)) <= clock_tol_MHz
+    vals, counts = np.unique(np.round(clk), return_counts=True)
+    clk_mode = float(vals[np.argmax(counts)])
+    keep = np.abs(clk - clk_mode) <= clock_tol_MHz
+    n_clock_excluded = int((~keep).sum())
     n_load_excluded = 0
     if len(work) >= 3:
         ts = np.array([r["t_unix"] for r in tel])
@@ -426,12 +441,20 @@ def fit_leakage(sess: Session, clock_tol_MHz: float = 15.0, load_tol: float = 0.
         keep &= steady_load
     T = np.array([r["temp_C"] for r in tel], dtype=float)[keep]
     P = np.array([r["power_W"] for r in tel], dtype=float)[keep]
+    F = np.array([np.nan if r.get("fan_pct") is None else r["fan_pct"] for r in tel], dtype=float)[keep]
+    base = {"clock_MHz": clk_mode, "n_clock_excluded": n_clock_excluded, "n_load_excluded": n_load_excluded,
+            "temp_resolution_C": 1.0 if len(T) and np.all(T == np.round(T)) else None,
+            "slope": _slope(T, P), "fan_pct_range": _range_or_none(list(F[np.isfinite(F)])) if len(F) else None}
+    if np.isfinite(F).any():
+        fv, fc = np.unique(F[np.isfinite(F)], return_counts=True)
+        fm = np.abs(F - fv[np.argmax(fc)]) <= 1.0
+        base["slope_const_fan"] = _slope(T[fm], P[fm])
     if len(T) < 30:
-        return {"ok": False, "reason": f"too few samples at constant clock and load ({len(T)})",
-                "n_load_excluded": n_load_excluded}
+        return {**base, "ok": False, "reason": f"too few samples at constant clock and load ({len(T)})"}
     if T.max() - T.min() < 8.0:
-        return {"ok": False, "reason": f"temperature rose only {T.max() - T.min():.1f} K at constant clock; "
-                                       "need >= 8 K (start from a cold GPU)"}
+        return {**base, "ok": False, "reason": f"temperature rose only {T.max() - T.min():.1f} K at constant clock "
+                                               "and load; need >= 8 K, and far more to separate leakage from its "
+                                               "temperature coefficient"}
     p0 = (np.min(P) * 0.8, np.min(P) * 0.2, 0.02)
     lo, hi = [0, 0, 0], [np.inf, np.inf, 0.2]
     popt, pcov = curve_fit(_leak_model, T, P, p0=p0, bounds=(lo, hi), maxfev=20000)
@@ -439,19 +462,14 @@ def fit_leakage(sess: Session, clock_tol_MHz: float = 15.0, load_tol: float = 0.
     c, L, k = popt
     resid = P - _leak_model(T, *popt)
     at_bound = _at_bounds(popt, lo, hi, ["c_W", "L_ref_W", "kappa"], float(P.max()))
-    slope, slope_se, _ = _linfit(T, P)
-    r2 = _r2(P, _leak_model(T, *popt))
-    return {"ok": True, "kappa": float(k), "kappa_se": float(se[2]), "L_ref_W": float(L), "L_ref_se": float(se[1]),
-            "c_W": float(c), "leak_fraction_at_ref": float(L / (c + L)), "n": int(keep.sum()),
-            "T_range_C": [float(T.min()), float(T.max())], "clock_MHz": float(np.median(clk[keep])),
-            "resid_std_W": float(resid.std()), "at_bound": at_bound, "r2": r2,
-            "n_load_excluded": n_load_excluded,
-            # identifiable over any temperature range: the local slope of board power with temperature
-            "dPdT_W_per_K": float(slope[0]), "dPdT_se": float(slope_se[0]),
-            "P_range_W": [float(P.min()), float(P.max())],
-            "fan_pct_range": _range_or_none([r.get("fan_pct") for r, k in zip(tel, keep) if k]),
-            "method": "P(T) = c + L*exp(kappa*(T-60)) at constant clock and load during warm-up; assumes the "
-                      "temperature-dependent part of board power is leakage (fan and VR losses are not separated)"}
+    sl = base["slope"] or {"dPdT_W_per_K": float("nan"), "se": float("nan")}
+    return {**base, "ok": True, "kappa": float(k), "kappa_se": float(se[2]), "L_ref_W": float(L),
+            "L_ref_se": float(se[1]), "c_W": float(c), "leak_fraction_at_ref": float(L / (c + L)), "n": int(len(T)),
+            "T_range_C": [float(T.min()), float(T.max())], "P_range_W": [float(P.min()), float(P.max())],
+            "resid_std_W": float(resid.std()), "at_bound": at_bound, "r2": _r2(P, _leak_model(T, *popt)),
+            "dPdT_W_per_K": sl["dPdT_W_per_K"], "dPdT_se": sl["se"],
+            "method": "P(T) = c + L*exp(kappa*(T-60)) at one clock step and constant load during warm-up; assumes "
+                      "the temperature-dependent part of board power is leakage (fan and VR losses not separated)"}
 
 
 def select_device(sessions: list[Session], device: str | None = None) -> tuple[list[Session], list[str]]:
@@ -687,10 +705,10 @@ def apply_calibration(spec: dict[str, Any], calib: dict[str, Any], calib_sha256:
     return spec
 
 
-def ingest(store, calib: dict[str, Any], calib_sha256: str, key: str = "M001") -> str:
+def ingest(store, calib: dict[str, Any], calib_sha256: str, key: str = "M001", title: str | None = None) -> str:
     """Record a calibration as a measurement experiment in the append-only store."""
     spec = {
-        "key": key, "title": f"GPU calibration measurement ({(calib.get('device') or {}).get('name', 'unknown GPU')})",
+        "key": key, "title": title or f"GPU calibration measurement ({(calib.get('device') or {}).get('name', 'unknown GPU')})",
         "research_question": "What are the clock-throughput, clock-power and leakage-temperature parameters of a real GPU?",
         "hypothesis": "Measurement, not a test: no hypothesis. Values are compared with the registry ranges.",
         "independent_variables": ["SM clock (set by the user)", "workload kind", "die temperature during warm-up"],
@@ -717,6 +735,16 @@ def ingest(store, calib: dict[str, Any], calib_sha256: str, key: str = "M001") -
         if "measured" in v:
             metrics[k + "_measured"] = (float(v["measured"]), "-", prov)
             notes.append(f"{k}: {v['note']}")
+    fl = (calib.get("fits") or {}).get("leakage") or {}
+    for tag, key in (("", "slope"), ("_const_fan", "slope_const_fan")):
+        sl = fl.get(key)
+        if sl:
+            metrics[f"leak_dPdT{tag}_W_per_K"] = (sl["dPdT_W_per_K"], "W/K", "physical_measurement")
+            metrics[f"leak_dPdT{tag}_se"] = (sl["se"], "W/K", "physical_measurement")
+            metrics[f"leak_dPdT{tag}_rel_per_K"] = (sl["rel_per_K"], "1/K", "physical_measurement")
+            notes.append(f"leakage slope{tag.replace('_', ' ')}: {sl['dPdT_W_per_K']:.3f} +/- {1.96 * sl['se']:.3f} W/K "
+                         f"over {sl['T_range_C'][0]:.0f}-{sl['T_range_C'][1]:.0f} C at {fl.get('clock_MHz', float('nan')):.0f} MHz, "
+                         f"{sl['P_mean_W']:.0f} W")
     # failures are preserved: rejected estimates are recorded, labelled, with the reason
     for k, v in calib.get("rejected", {}).items():
         prov = "physical_measurement" if v["evidence"] == "B" else "engineering_assumption"

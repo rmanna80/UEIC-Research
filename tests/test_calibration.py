@@ -117,7 +117,7 @@ def _power(s, T, floor=False):
 
 def _write_session(root, kind, clk, rng, seconds=60.0, warm=False, f_top=MAXCLK, nvml_max=MAXCLK,
                    label_clk=None, floor=False, reasons=0, power=None, temp=62.0, power_limit=None,
-                   name="Synthetic", uuid=None, folder=None, fan_ramp=False, dip=None):
+                   name="Synthetic", uuid=None, folder=None, fan_ramp=False, dip=None, clk_step=None):
     """`clk` is the clock the GPU actually ran at; `label_clk` the clock the user locked (default: same);
     `f_top` the highest clock the GPU sustains (s = 1 in the truth model); `nvml_max` what NVML reports."""
     d = Path(root) / (folder or f"{kind}_{clk}")
@@ -128,11 +128,15 @@ def _write_session(root, kind, clk, rng, seconds=60.0, warm=False, f_top=MAXCLK,
     P = (_power(s, T, floor) if power is None else np.full_like(t, power)) + rng.normal(0, 0.8, t.size)
     if dip:                                    # (t_start, t_end, fraction): load drops, power falls with it
         P[(t >= dip[0]) & (t < dip[1])] -= 8.0
+    clks = np.full(t.size, float(clk))
+    if clk_step:                               # (t_at, new_clock, power_drop): driver drops one clock step
+        clks[t >= clk_step[0]] = clk_step[1]
+        P[t >= clk_step[0]] -= clk_step[2]
     with open(d / "telemetry.csv", "w") as f:
         f.write(",".join(telemetry.FIELDS) + "\n")
-        for ti, Ti, Pi in zip(t, T, P):
+        for ti, Ti, Pi, ci in zip(t, T, P, clks):
             fan = f"{30 + 50 * (1 - np.exp(-ti / 150.0)):.0f}" if fan_ramp else ""
-            f.write(f"{1000 + ti},0,{Pi},,{Ti},{clk},9000,99,50,0,{reasons},{fan},{kind}\n")   # pre-power_limit format
+            f.write(f"{1000 + ti},0,{Pi},,{Ti},{ci:g},9000,99,50,0,{reasons},{fan},{kind}\n")   # pre-power_limit format
     beta = TRUE["beta_memory"] if kind == "memory" else TRUE["beta_compute"]
     tw = np.arange(0, seconds, 0.5)
     thr = 100.0 * s ** beta * (1 + rng.normal(0, 0.003, tw.size))
@@ -453,3 +457,37 @@ def test_energy_per_work_curve_finds_the_most_efficient_clock(tmp_path):
     ds = [_write_session(tmp_path, "compute", c, rng, power=p, f_top=2670.0) for c, p in pts]
     e = cal.calibrate(ds)["energy_per_work"]["compute"]
     assert e["min_at_clock_MHz"] == 1657.0 and e["saving_vs_top"] == pytest.approx(0.32, abs=0.02)
+
+
+
+# ------------------------------------------------------------- second warm-up (RTX 5070, 2347 MHz)
+def test_clock_step_during_warmup_is_left_out(tmp_path):
+    """Both RTX 5070 warm-ups dropped one clock step (2340 -> 2332 MHz) as they warmed, with power
+    falling ~4 W. Keeping both steps made power appear to FALL with temperature (-0.22 W/K)."""
+    rng = np.random.default_rng(18)
+    d = _write_session(tmp_path, "warmup", 1400, rng, seconds=900, warm=True, clk_step=(60.0, 1392, 4.0))
+    good = cal.fit_leakage(cal.load_session(d))
+    loose = cal.fit_leakage(cal.load_session(d), clock_tol_MHz=15.0)
+    assert good["clock_MHz"] == 1392.0 and good["n_clock_excluded"] > 500
+    true_slope = TRUE["kappa"] * TRUE["L"] * np.exp(TRUE["kappa"] * (np.mean([60, 70]) - 60))
+    assert abs(good["slope"]["dPdT_W_per_K"] - true_slope) < abs(loose["slope"]["dPdT_W_per_K"] - true_slope)
+
+
+def test_slope_is_kept_when_the_range_is_too_narrow_for_a_fit(tmp_path):
+    rng = np.random.default_rng(19)
+    d = _write_session(tmp_path, "warmup", 1400, rng, seconds=120, warm=True)    # first 120 s of the warm-up only
+    r = cal.fit_leakage(cal.load_session(d))
+    narrow = _write_session(tmp_path, "warmup", 1500, rng, seconds=600, warm=False, folder="flat")
+    rn = cal.fit_leakage(cal.load_session(narrow))
+    assert not rn["ok"] and rn["slope"] is None                                   # flat 62 C: nothing to fit
+    assert r["slope"] is not None and r["slope"]["dPdT_W_per_K"] > 0
+
+
+def test_ingest_records_leakage_slopes(tmp_path):
+    rng = np.random.default_rng(20)
+    out = cal.calibrate([_write_session(tmp_path, "warmup", 1400, rng, seconds=900, warm=True)])
+    st = Store(tmp_path / "m.sqlite")
+    out["overrides"] = out["overrides"] or {}
+    run = st.runs(cal.ingest(st, out, "abc", key="M002"))[0]
+    assert run["metrics"]["leak_dPdT_W_per_K"] > 0 and "leak_dPdT_rel_per_K" in run["metrics"]
+    st.close()

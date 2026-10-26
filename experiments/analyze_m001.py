@@ -54,24 +54,17 @@ def model_curves(comp, cfg, beta_c):
     return rows
 
 
-def leak_slopes(sess):
-    """Board-power slope with temperature at constant clock and load; also with the fan held constant."""
+def warmup_trace(sess, fl):
+    """Time series of a warm-up with the samples the leakage rules keep (one clock step, steady load)."""
     tel, work = cal.steady(sess, skip_s=2.0)
     ts = np.array([r["t_unix"] for r in tel])
-    T = np.array([r["temp_C"] for r in tel], float)
-    P = np.array([r["power_W"] for r in tel], float)
-    F = np.array([np.nan if r["fan_pct"] is None else r["fan_pct"] for r in tel], float)
     clk = np.array([r["sm_clock_MHz"] for r in tel], float)
     idx = np.clip(np.searchsorted(work[:, 0], ts), 0, len(work) - 1)
     load = np.abs(work[idx, 1] / np.median(work[:, 1]) - 1) <= 0.02
-    ck = np.abs(clk - np.median(clk)) <= 15
-    fan_mode = float(np.nanmedian(F))
-    out = {}
-    for name, m in (("steady_load", load & ck), ("steady_load_const_fan", load & ck & (np.abs(F - fan_mode) <= 1))):
-        (b, a), se, _ = cal._linfit(T[m], P[m])
-        out[name] = {"n": int(m.sum()), "T": [float(T[m].min()), float(T[m].max())], "slope": float(b),
-                     "ci95": float(1.96 * se[0]), "P55": float(a + 55 * b)}
-    return out, {"t": ts - ts[0], "T": T, "P": P, "F": F, "load_ok": load, "clk": float(np.median(clk))}
+    return {"t": ts - ts[0], "T": np.array([r["temp_C"] for r in tel], float),
+            "P": np.array([r["power_W"] for r in tel], float),
+            "F": np.array([np.nan if r["fan_pct"] is None else r["fan_pct"] for r in tel], float),
+            "kept": load & (np.abs(clk - fl["clock_MHz"]) <= 3.0), "clk": fl["clock_MHz"]}
 
 
 def fig_power_energy(comp, mem, model, model_cal, path):
@@ -107,30 +100,28 @@ def fig_power_energy(comp, mem, model, model_cal, path):
     plt.close(fig)
 
 
-def fig_warmup(tr, path):
-    fig, ax = plt.subplots(figsize=(10, 3.6), dpi=150)
+def fig_warmup(traces, path):
+    fig, axes = plt.subplots(len(traces), 1, figsize=(10, 3.2 * len(traces)), dpi=150)
+    axes = np.atleast_1d(axes)
     fig.patch.set_facecolor(SURF)
-    _style(ax)
-    t = tr["t"]
-    bad = ~tr["load_ok"]
-    if bad.any():
-        ax.fill_between(t, 0, 1, where=bad, color=GRID, alpha=0.9, transform=ax.get_xaxis_transform(),
-                        label="left out: throughput off by > 2%")
-    ax.plot(t, tr["P"], color=SLOTS[0], lw=0.8, label="Board power (W)")
-    ax.set_ylabel("Board power (W)", color=INK2, fontsize=9)
-    ax.set_xlabel("Seconds into the load (first 2 s skipped)", color=INK2, fontsize=9)
-    ax2 = ax.twinx()
-    ax2.plot(t, tr["T"], color=SLOTS[1], lw=1.4, label="GPU temperature (C)")
-    ax2.plot(t, tr["F"], color=SLOTS[2], lw=1.4, label="Fan (%)")
-    ax2.set_ylabel("Temperature (C) / fan (%)", color=INK2, fontsize=9)
-    for s_ in ("top",):
-        ax2.spines[s_].set_visible(False)
-    h1, l1 = ax.get_legend_handles_labels()
-    h2, l2 = ax2.get_legend_handles_labels()
-    ax.legend(h1 + h2, l1 + l2, frameon=False, fontsize=8, loc="lower right", labelcolor=INK)
-    ax.set_title(f"M001 warm-up at {tr['clk']:.0f} MHz: the fan held the GPU at 53-57 C, too narrow to identify leakage",
-                 fontsize=10, color=INK, loc="left")
-    fig.tight_layout()
+    for ax, (title, tr) in zip(axes, traces):
+        _style(ax)
+        t = tr["t"]
+        ax.fill_between(t, 0, 1, where=~tr["kept"], color=GRID, alpha=0.9, transform=ax.get_xaxis_transform(),
+                        label="left out: other clock step or unsteady load")
+        ax.plot(t, tr["P"], color=SLOTS[0], lw=0.8, label="Board power (W)")
+        ax.set_ylabel("Board power (W)", color=INK2, fontsize=9)
+        ax2 = ax.twinx()
+        ax2.plot(t, tr["T"], color=SLOTS[1], lw=1.4, label="GPU temperature (C)")
+        ax2.plot(t, tr["F"], color=SLOTS[2], lw=1.4, label="Fan (%)")
+        ax2.set_ylabel("Temperature (C) / fan (%)", color=INK2, fontsize=9)
+        ax2.spines["top"].set_visible(False)
+        h1, l1 = ax.get_legend_handles_labels()
+        h2, l2 = ax2.get_legend_handles_labels()
+        ax.set_title(title, fontsize=10, color=INK, loc="left")
+    axes[-1].set_xlabel("Seconds into the load (first 2 s skipped)", color=INK2, fontsize=9)
+    fig.legend(h1 + h2, l1 + l2, frameon=False, fontsize=8, loc="upper right", ncol=4, labelcolor=INK)
+    fig.tight_layout(rect=(0, 0, 1, 0.95))
     fig.savefig(path, facecolor=SURF)
     plt.close(fig)
 
@@ -148,22 +139,32 @@ def main():
     comp = sorted([x for x in summ.values() if x["kind"] == "compute" and x["ok"]], key=lambda x: x["clock_MHz"])
     mem = sorted([x for x in summ.values() if x["kind"] == "memory" and x["ok"]], key=lambda x: x["clock_MHz"])
     probe = next(x for x in summ.values() if x["kind"] == "probe")
-    warm_s = next(s for s, sm in S if sm["kind"] == "warmup")
     model = model_curves(comp, cfg, cfg.beta_compute)
     model_cal = model_curves(comp, cfg, calib["overrides"]["beta_compute"]["value"])
-    slopes, trace = leak_slopes(warm_s)
-    fl = calib["fits"]["leakage"]
-    # the simulator's relative temperature sensitivity at the warm-up operating point
-    s_w = trace["clk"] / f_ref
-    v_w = float(ph.voltage_ratio(s_w, cfg))
-    p_chip = float(ph.chip_power(s_w, 55.0, 1.0, cfg))
-    dpdt_sim = cfg.kappa_leak * float(ph.leakage_power(55.0, v_w, cfg))
-    rel_sim = dpdt_sim / p_chip
-    rel_meas = {k: v["slope"] / v["P55"] for k, v in slopes.items()}
+    warms = []
+    for sess, sm in S:
+        if sm["kind"] != "warmup":
+            continue
+        fl = cal.fit_leakage(sess)
+        s_w = fl["clock_MHz"] / f_ref
+        sl = fl.get("slope_const_fan") or fl.get("slope")
+        T_mid = float(np.mean(sl["T_range_C"])) if sl else 55.0
+        v_w = float(ph.voltage_ratio(s_w, cfg))
+        rel_sim = cfg.kappa_leak * float(ph.leakage_power(T_mid, v_w, cfg)) / float(ph.chip_power(s_w, T_mid, 1.0, cfg))
+        warms.append({"name": sess.path.name, "fl": fl, "s": s_w, "T_mid": T_mid, "rel_sim": rel_sim,
+                      "trace": warmup_trace(sess, fl)})
+    from ueic.results import e002
+    from ueic.store import Store
+    st = Store(ROOT / "results" / "ueic.sqlite")
+    e2 = e002(st, 0.01)
+    st.close()
+    tor = {r["param"]: r for r in e2["tornado"]["joint_vs_independent"]["items"]} if e2 else {}
+    base_ji = e2["tornado"]["joint_vs_independent"]["base"] if e2 else None
 
     FIG.mkdir(parents=True, exist_ok=True)
     fig_power_energy(comp, mem, model, model_cal, FIG / "m001_power_energy.png")
-    fig_warmup(trace, FIG / "m001_warmup.png")
+    fig_warmup([(f"Warm-up {i + 1} at {w['fl']['clock_MHz']:.0f} MHz ({w['name'][:15]})", w["trace"])
+                for i, w in enumerate(warms)], FIG / "m001_warmup.png")
 
     dev = calib["device"]
     ec, em = calib["energy_per_work"]["compute"], calib["energy_per_work"]["memory"]
@@ -174,7 +175,7 @@ def main():
     acc, rej = calib["overrides"], calib["rejected"]
 
     L = [
-        "# 10 · Phase 4 calibration results: M001 (RTX 5070)",
+        "# 10 · Phase 4 calibration results: M001 and M002 (RTX 5070)",
         "",
         f"Generated by `python experiments/analyze_m001.py` from the raw sessions in `data/calibration/` and the vetted "
         f"fit `data/calibration/M001_calibration.json` (SHA-256 `{hashlib.sha256(raw).hexdigest()[:16]}…`). "
@@ -260,37 +261,59 @@ def main():
         "resulting error. Representing this curve properly needs a different voltage–frequency form, and a static and "
         "leakage measurement to separate dynamic power (section 4).",
         "",
-        "## 4. Leakage: not identified by this warm-up",
+        "## 4. Leakage: not identified; its temperature slope is measured",
         "",
-        "![Warm-up trace](../results/figures/m001_warmup.png)",
+        "![Warm-up traces](../results/figures/m001_warmup.png)",
         "",
-        f"The die heated from 36 °C to about 50 °C within the first seconds of load (inside the 2 s skipped as start-up). "
-        f"The fan then started at 53 °C and held the GPU at 53–57 °C. Over {fl['T_range_C'][1] - fl['T_range_C'][0]:.0f} K "
-        "the exponential leakage model cannot separate leakage power from its temperature coefficient: the fit ran to a "
-        f"bound and was rejected (R1). {fl['n_load_excluded']} samples were left out because workload throughput fell by "
-        "4–10% for several minutes, with power falling with it; the constant-load rule was added after seeing this.",
+        "Two warm-ups ran at a locked clock from an idle card. In both, the die heated by more than 10 K within the first "
+        "seconds of load, the automatic fan then held the temperature almost flat, and the driver dropped one clock step "
+        "(7–8 MHz) as the card warmed; in the second warm-up that step cut power by about 4 W. The second warm-up was meant to run with a fixed fan; "
+        "the telemetry shows the fan under automatic control (0% at idle, 27–35% under load). Samples are kept only at "
+        "one clock step and steady load; NVML reports temperature in whole degrees.",
         "",
-        "What the warm-up does measure is the local slope of board power with temperature:",
+        "| Warm-up | Clock (MHz) | Board power (W) | Temperature kept | Fan | dP/dT, one clock step (W/K) | at constant fan (W/K) | Relative (%/K) | Simulator registry (%/K) |",
+        "|---|---|---|---|---|---|---|---|---|",
+    ]
+    for i, w in enumerate(warms):
+        fl, sl, sf = w["fl"], w["fl"].get("slope"), w["fl"].get("slope_const_fan")
+        best = sf or sl
+        L.append(f"| {i + 1} ({w['name'][:15]}) | {fl['clock_MHz']:.0f} | {best['P_mean_W']:.0f} | "
+                 f"{sl['T_range_C'][0]:.0f}–{sl['T_range_C'][1]:.0f} C | "
+                 f"{fl['fan_pct_range'][0]:.0f}–{fl['fan_pct_range'][1]:.0f}% | "
+                 f"{sl['dPdT_W_per_K']:.3f} ± {1.96 * sl['se']:.3f} | "
+                 + (f"{sf['dPdT_W_per_K']:.3f} ± {1.96 * sf['se']:.3f} ({sf['T_range_C'][0]:.0f}–{sf['T_range_C'][1]:.0f} C)" if sf else "range < 2 K at constant fan")
+                 + f" | {100 * best['rel_per_K']:.3f}{'' if sf else ' (upper bound: fan rising)'} | {100 * w['rel_sim']:.3f} |")
+    ratios = [w["rel_sim"] / (w["fl"].get("slope_const_fan") or w["fl"]["slope"])["rel_per_K"] for w in warms]
+    L += [
         "",
-        "| Samples | n | Temperature | dP/dT (W/K) | Relative to board power |",
-        "|---|---|---|---|---|",
-        f"| steady clock and load | {slopes['steady_load']['n']} | {slopes['steady_load']['T'][0]:.0f}–{slopes['steady_load']['T'][1]:.0f} C | "
-        f"{slopes['steady_load']['slope']:.3f} ± {slopes['steady_load']['ci95']:.3f} | {100 * rel_meas['steady_load']:.3f}%/K |",
-        f"| … and constant fan speed | {slopes['steady_load_const_fan']['n']} | {slopes['steady_load_const_fan']['T'][0]:.0f}–"
-        f"{slopes['steady_load_const_fan']['T'][1]:.0f} C | {slopes['steady_load_const_fan']['slope']:.3f} ± "
-        f"{slopes['steady_load_const_fan']['ci95']:.3f} | {100 * rel_meas['steady_load_const_fan']:.3f}%/K |",
-        f"| simulator registry, same clock ratio, 55 C | — | — | {dpdt_sim:.2f} (600 W-class) | {100 * rel_sim:.3f}%/K |",
+        "Neither warm-up spans enough temperature at constant clock, load and fan to separate leakage power from its "
+        "temperature coefficient (the fit needs at least 8 K and in practice far more), so `kappa_leak` and `p_leak_ref` "
+        "stay unmeasured (M001's stored leakage record used a looser clock rule; it was rejected either way, and M002 "
+        "records the second attempt with the rule above).",
         "",
-        f"**Finding C (indicative, not transferred):** relative to total power, this card's temperature sensitivity is "
-        f"{rel_sim / rel_meas['steady_load']:.1f}–{rel_sim / rel_meas['steady_load_const_fan']:.1f}× smaller than the "
-        "simulator's registry assumption. If that held for data-centre accelerators, the simulator would overstate the "
-        "benefit of colder coolant, one of the mechanisms behind joint control's advantage. It rests on a 4–9 K window on "
-        "a consumer card and includes any fan-power change in the first row, so it is a reason to measure properly, not a "
-        "result.",
+        f"**Finding C (two operating points, not transferred):** relative to total power, board power rises "
+        f"{min(100 * (w['fl'].get('slope_const_fan') or w['fl']['slope'])['rel_per_K'] for w in warms):.2f}–"
+        f"{max(100 * (w['fl'].get('slope_const_fan') or w['fl']['slope'])['rel_per_K'] for w in warms):.2f}% per K on this "
+        f"card, {min(ratios):.1f}–{max(ratios):.1f}× less than the simulator's registry at the same clock ratio and "
+        "temperature. Each slope rests on a 3–5 K window on a consumer card, so this is evidence about the scale of "
+        "temperature sensitivity, not a calibrated parameter.",
         "",
-        "**Next measurement:** repeat the warm-up at 2347 MHz (about 170 W, so a higher steady temperature) with the fan "
-        "fixed at a constant speed in the card maker's tool, starting from a cold card, for 15 minutes. That widens the "
-        "range at constant fan power. Watch that the GPU stays below about 85 °C.",
+    ]
+    if tor:
+        L += [
+            f"**Why it matters.** In the sensitivity study (E002), joint control's advantage over independent control "
+            f"({100 * base_ji:+.2f}% at registry values) almost vanished when leakage was made less temperature-sensitive: "
+            f"{100 * tor['p_leak_ref']['at_low']:+.2f}% with a third of the leakage power (p_leak_ref "
+            f"{tor['p_leak_ref']['low_value']:g} W) and {100 * tor['kappa_leak']['at_low']:+.2f}% with kappa_leak = "
+            f"{tor['kappa_leak']['low_value']:g}/K. Running chips cooler to cut leakage is the mechanism that separates "
+            "joint from independent control, so a real chip with a third of the assumed temperature sensitivity would "
+            "leave little for joint control to gain. Pre-registered simulation E009 tests this directly with leakage "
+            "matched to the measured slope.",
+            "",
+        ]
+    L += [
+        "**Further measurement** only helps with a fixed fan speed set in the card maker's tool (or a third-party fan "
+        "utility), so the temperature can rise 20 K or more at constant fan power.",
         "",
         "## 5. Driver limit flags",
         "",

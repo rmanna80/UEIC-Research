@@ -1,0 +1,126 @@
+{
+  "key": "E009",
+  "title": "Joint vs independent control with leakage matched to a real GPU's measured temperature slope",
+  "research_question": "Does joint control keep its advantage over independent control when the simulator's leakage is only as temperature-sensitive as measured on real hardware?",
+  "hypothesis": "H1: with leakage matched to the measured slope (matched_k0.02), joint's advantage over independent is smaller in magnitude than with registry leakage in all 6 scenarios (seed-paired change in joint/independent - 1, 95% CI entirely above 0). H2: with matched leakage (matched_k0.02), joint vs independent energy per successful task lies within the 1% practical threshold in all 6 scenarios (95% CI entirely inside -1%..+1%). H3: H2 also holds for every matched variant (kappa 0.01, 0.02, 0.03, and both ends of the slope's 95% CI). H4: in every scenario where independent control spent chip-seconds above the 80 C target with registry leakage, it spends fewer with matched leakage.",
+  "null_hypothesis": "Matching leakage to the measured slope leaves joint control's advantage unchanged.",
+  "independent_variables": [
+    "leakage variant (registry; matched at kappa 0.01/0.02/0.03; matched at the slope's CI ends)",
+    "policy (independent, joint)",
+    "scenario (6)"
+  ],
+  "dependent_variables": [
+    "E_per_success_kJ (primary)",
+    "chip_s_over_target",
+    "chip_s_throttled",
+    "peak_T_j_C",
+    "slo_violations"
+  ],
+  "controlled_variables": [
+    "seeds 0-4",
+    "registry defaults except leakage",
+    "beta_compute and beta_memory from M001",
+    "4 h window + drain",
+    "quasi-steady plant"
+  ],
+  "baseline": "registry_leakage variant within E009 (same seeds and workloads)",
+  "configuration": "Target: the simulator's relative temperature slope of chip power at s = 0.747, 55.0 C, compute-bound work, set to the measured 0.1346%/K (95% CI 0.1050-0.1642%/K) from M001's warm-up at 1995 MHz, one clock step, constant fan (0.177 +/- 0.039 W/K at 131 W). The registry gives 0.3663%/K at the same point. For each kappa, p_leak_ref is solved to hit the target. Clock sensitivity from M001: {'beta_compute': 0.983, 'beta_memory': 0.0}.",
+  "evaluation_criteria": "Paired relative differences with 95% t-CI over 5 seeds; practical threshold 1%. H1: per scenario and seed, d = (joint/independent - 1) in the matched variant minus the same in registry_leakage. H4 on seed means of chip-seconds above target.",
+  "known_limitations": "The target comes from GPU board power of one consumer card over a 4 K window at one operating point; the simulator's slope at other clocks and temperatures follows its exponential model. Several matched p_leak_ref values lie below the registry range swept in E002. The voltage-frequency form is still the rejected registry placeholder. 5 seeds.",
+  "disclosure": "E002's one-at-a-time results were known when these hypotheses were written: joint vs independent was -0.62% at registry values, -0.04% with p_leak_ref = 30 W and -0.03% with kappa_leak = 0.005, which motivated H2. The measured slopes (M001 warm-up, M002 warm-up) were known. No E009 cells were run before registration.",
+  "measurement_source": {
+    "M001_calibration_sha256": "42112c3638fc2ad1937a43a5be71c2a55814e05f641587f6100a9c1b247c15f1",
+    "warmup_session": "20261026T204001_warmup_clk=2017",
+    "slope": {
+      "dPdT_W_per_K": 0.17689881578430502,
+      "se": 0.019848493603365797,
+      "T_range_C": [
+        53.0,
+        57.0
+      ],
+      "P_mean_W": 131.42706340057637,
+      "rel_per_K": 0.001345984694530801,
+      "n": 2776
+    },
+    "target_rel_per_K": 0.001345984694530801,
+    "target_ci95": [
+      0.0010499798500489274,
+      0.0016419895390126747
+    ],
+    "operating_point": {
+      "s": 0.7471910112359551,
+      "T_C": 55.0
+    },
+    "registry_rel_per_K": 0.003663101525370321
+  },
+  "design": {
+    "scenarios": [
+      "S1_moderate",
+      "S2_high_load",
+      "S3_hot",
+      "S4_cool",
+      "S5_memory_heavy",
+      "S6_degraded_cooling"
+    ],
+    "policies": [
+      "independent",
+      "joint"
+    ],
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "timeseries_seeds": [],
+    "param_overrides": {
+      "beta_compute": 0.983,
+      "beta_memory": 0.0
+    },
+    "variants": [
+      {
+        "label": "registry_leakage",
+        "param_overrides": {}
+      },
+      {
+        "label": "matched_k0.01",
+        "param_overrides": {
+          "kappa_leak": 0.01,
+          "p_leak_ref": 59.384
+        }
+      },
+      {
+        "label": "matched_k0.02",
+        "param_overrides": {
+          "kappa_leak": 0.02,
+          "p_leak_ref": 28.962
+        }
+      },
+      {
+        "label": "matched_k0.03",
+        "param_overrides": {
+          "kappa_leak": 0.03,
+          "p_leak_ref": 19.821
+        }
+      },
+      {
+        "label": "matched_k0.02_low",
+        "param_overrides": {
+          "kappa_leak": 0.02,
+          "p_leak_ref": 22.24
+        }
+      },
+      {
+        "label": "matched_k0.02_high",
+        "param_overrides": {
+          "kappa_leak": 0.02,
+          "p_leak_ref": 35.901
+        }
+      }
+    ]
+  },
+  "data_collection": "Simulator outputs written to the append-only SQLite store; every metric labelled with provenance; per-run config SHA-256 and code SHA-256 recorded; time series for selected seeds.",
+  "statistics": "Paired by seed (identical workload realisation across levels). Per-seed relative difference d=(A-B)/B; mean with two-sided 95% Student-t CI.",
+  "practical_significance_threshold": 0.01
+}

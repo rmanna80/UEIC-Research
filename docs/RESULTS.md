@@ -1,6 +1,6 @@
 # UEIC · Simulation results (generated)
 
-Generated 2026-10-26T21:40:14+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `fc542e2731f9b05f…`. Hash-chain check: **OK** (3162 finalised runs verified).
+Generated 2026-10-26T22:17:31+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `6d1bdaaf0e701cae…`. Hash-chain check: **OK** (3163 finalised runs verified).
 
 > **Every number on this page is a simulator output** (provenance `simulator_output`) and is conditional on the parameter registry (`04_assumptions_register.md`), most of which is class E/F. E001C uses two parameters measured on a real GPU (M001); every other parameter is still a placeholder. The measurements themselves are reported in `10_calibration_results.md`. Energy boundary: grid → conversion → accelerators + pump + fans + chiller (see `00_problem_statement.md`).
 
@@ -457,3 +457,4 @@ Experiment `E001C-20261026T213353-ac0b5f`: 300 runs, 0 failed. Same design, seed
 | `E006-20261026T190821-9afd6b` | completed | {"failed": 0, "runs": 360} | Joint control under a dynamic coolant loop (thermal mass + setpoint ramp limits) |
 | `M001-20261026T213241-115dce` | completed | {"failed": 0, "measurement": true, "runs": 1} | GPU calibration measurement (NVIDIA GeForce RTX 5070) |
 | `E001C-20261026T213353-ac0b5f` | completed | {"failed": 0, "runs": 300} | Policy benchmark with measured clock sensitivity (M001: RTX 5070) |
+| `M002-20261026T221416-c4ad2d` | completed | {"failed": 0, "measurement": true, "runs": 1} | Leakage warm-up, attempt 2 (RTX 5070, 2347 MHz, automatic fan) |

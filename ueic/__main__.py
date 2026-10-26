@@ -85,6 +85,7 @@ def main(argv: list[str] | None = None) -> int:
     cf = csub.add_parser("fit"); cf.add_argument("sessions", nargs="+"); cf.add_argument("--out", required=True)
     cf.add_argument("--device", default=None, help="part of the GPU name or UUID, when sessions from several GPUs are present")
     ci = csub.add_parser("ingest"); ci.add_argument("calibration"); ci.add_argument("--key", default="M001")
+    ci.add_argument("--title", default=None)
     sv = sub.add_parser("serve", help="Phase 2: local API + 3-D lab at http://127.0.0.1:8765/lab/")
     sv.add_argument("--host", default="127.0.0.1"); sv.add_argument("--port", type=int, default=8765)
     sv.add_argument("--workers", type=int, default=None)
@@ -198,9 +199,14 @@ def main(argv: list[str] | None = None) -> int:
             if fl.get("ok"):
                 print(f"  leakage warm-up: {fl['T_range_C'][0]:.0f}-{fl['T_range_C'][1]:.0f} C, power "
                       f"{fl['P_range_W'][0]:.0f}-{fl['P_range_W'][1]:.0f} W, R^2 {fl['r2']:.3f}")
-            if fl.get("ok"):
-                print(f"  leakage slope dP/dT {fl['dPdT_W_per_K']:.3f} +/- {1.96 * fl['dPdT_se']:.3f} W/K (95% CI); "
-                      f"{fl['n_load_excluded']} samples left out for unsteady load")
+            for key, what in (("slope", "at one clock step"), ("slope_const_fan", "and constant fan")):
+                sl = fl.get(key)
+                if sl:
+                    print(f"  leakage slope {what}: dP/dT {sl['dPdT_W_per_K']:.3f} +/- {1.96 * sl['se']:.3f} W/K (95% CI) "
+                          f"over {sl['T_range_C'][0]:.0f}-{sl['T_range_C'][1]:.0f} C, {100 * sl['rel_per_K']:.3f}% of power per K")
+            if "n_load_excluded" in fl:
+                print(f"  leakage samples left out: {fl.get('n_clock_excluded', 0)} at another clock step, "
+                      f"{fl['n_load_excluded']} for unsteady load" + (f"; reason not fitted: {fl['reason']}" if not fl.get("ok") else ""))
             for kind, e in out.get("energy_per_work", {}).items():
                 print(f"  {kind} kernel: lowest energy per unit of work at {e['min_at_clock_MHz']:.0f} MHz, "
                       f"{100 * e['saving_vs_top']:.0f}% below the highest clock")
@@ -262,7 +268,7 @@ def main(argv: list[str] | None = None) -> int:
             import hashlib, json as _json
             from .calibrate import ingest
             raw = Path(a.calibration).read_bytes()
-            print(ingest(store, _json.loads(raw), hashlib.sha256(raw).hexdigest(), a.key))
+            print(ingest(store, _json.loads(raw), hashlib.sha256(raw).hexdigest(), a.key, a.title))
     finally:
         store.close()
     return 0

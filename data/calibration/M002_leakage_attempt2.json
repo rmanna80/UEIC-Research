@@ -1,0 +1,90 @@
+{
+ "kind": "ueic_calibration",
+ "created_utc": "2026-10-26T22:13:52+00:00",
+ "device": {
+  "index": 0,
+  "name": "NVIDIA GeForce RTX 5070",
+  "uuid": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+  "max_sm_clock_MHz": 3090,
+  "max_mem_clock_MHz": 14001,
+  "power_limit_W": 250.0
+ },
+ "sessions": [
+  {
+   "kind": "warmup",
+   "path": "data/calibration/20261026T214252_warmup_clk=2347",
+   "name": "20261026T214252_warmup_clk=2347",
+   "ok": true,
+   "n": 8901,
+   "clock_MHz": 2332.0,
+   "clock_cv": 0.0007882630059586538,
+   "label_clock_MHz": 2347.0,
+   "s_nvml": 0.7546925566343042,
+   "power_W": 167.149,
+   "temp_C": 63.0,
+   "throughput": 55.2028,
+   "limited_frac": 1.0,
+   "limit_reasons": {
+    "sw_power_cap": 1.0
+   },
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 168.766,
+   "energy_per_work": 3.02790800466643,
+   "power_limit_W": 250.0,
+   "at_power_limit": false,
+   "device": "NVIDIA GeForce RTX 5070 (GPU-91145432-3fb5-4033-dd9a-1e510e536d51)",
+   "device_key": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+   "nvml_max_clock_MHz": 3090.0
+  }
+ ],
+ "fits": {
+  "beta_compute": {
+   "ok": false,
+   "reason": "need sessions at >= 2 different clocks"
+  },
+  "beta_memory": {
+   "ok": false,
+   "reason": "need sessions at >= 2 different clocks"
+  },
+  "power_vs_clock": {
+   "ok": false,
+   "excluded_s": [],
+   "reason": "need compute sessions at >= 4 different clocks between 0.5 x and 1 x the highest measured clock (0 usable, 0 below that range)"
+  },
+  "leakage": {
+   "clock_MHz": 2332.0,
+   "n_clock_excluded": 577,
+   "n_load_excluded": 0,
+   "temp_resolution_C": 1.0,
+   "slope": {
+    "dPdT_W_per_K": 0.2074528375620749,
+    "se": 0.0072260546338620705,
+    "T_range_C": [
+     61.0,
+     64.0
+    ],
+    "P_mean_W": 167.08591598238723,
+    "rel_per_K": 0.001241593801262955,
+    "n": 8403
+   },
+   "fan_pct_range": [
+    30.0,
+    35.0
+   ],
+   "slope_const_fan": null,
+   "ok": false,
+   "reason": "temperature rose only 3.0 K at constant clock and load; need >= 8 K, and far more to separate leakage from its temperature coefficient"
+  }
+ },
+ "overrides": {},
+ "notes": [
+  "the driver set a limit flag in 1 session(s) although each locked clock held (within 3%) and power stayed at or below 68% of the limit; the flag does not indicate a limit on this GPU and was not treated as one"
+ ],
+ "clock_reference": {
+  "f_ref_MHz": null,
+  "nvml_max_sm_clock_MHz": 3090.0,
+  "method": "s = median SM clock / f_ref, f_ref = highest steady median SM clock among compute sessions"
+ },
+ "rejected": {},
+ "energy_per_work": {}
+}
