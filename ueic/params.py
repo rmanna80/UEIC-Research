@@ -131,6 +131,14 @@ _REGISTRY: list[Param] = [
     _P("verifier_false_accept", 0.0, "-", "F", "P(verifier accepts a wrong small-model answer)", 0.0, 0.2, "routing"),
     _P("verifier_false_reject", 0.0, "-", "F", "P(verifier rejects a correct small-model answer)", 0.0, 0.2, "routing"),
 
+    # ----------------------------------------------------- loop dynamics (Phase 3)
+    _P("loop_mass_kg", 0.0, "kg water", "G",
+       "0 selects the quasi-steady plant of E001-E005 (no loop thermal mass). E006 uses 40 kg and 150 kg; "
+       "those values are placeholders (class F) for a CDU tank + piping, not measurements", group="loop"),
+    _P("tsup_ramp_K_per_min", 0.0, "K/min", "G",
+       "Max rate at which the plant can move its outlet temperature. 0 = instantaneous (E001-E005). "
+       "E006 uses 1.0 and 0.25 (class F placeholders)", group="loop"),
+
     # ------------------------------------------------------------- policies
     _P("fixed_t_sup", 18.0, "degC", "G",
        "Supply temperature of the fixed (conventional) baseline; within ASHRAE W17/W27-class supply ranges", 12.0, 27.0, "policy"),
@@ -138,6 +146,12 @@ _REGISTRY: list[Param] = [
     _P("t_assume_compute", 65.0, "degC", "G",
        "Junction temperature a compute-only controller (no thermal model) assumes", group="policy"),
     _P("t_sup_step", 1.0, "K", "G", "Supply-temperature grid resolution for optimizing controllers", group="policy"),
+    _P("joint_switch_rel", 0.0, "-", "G",
+       "Move suppression: the joint controller keeps its previous action unless the new optimum is predicted "
+       "to use this fraction less grid power (0 = always switch, as in E001-E005)", group="policy"),
+    _P("joint_bias_gain", 0.5, "-", "G",
+       "EWMA gain of the joint_robust controller's temperature-bias estimate (measured minus predicted peak "
+       "junction temperature, clipped at 0); used only by joint_robust", group="policy"),
 
     # --------------------------------------------------------- simulation
     _P("dt", 1.0, "s", "G", "Simulation time step", group="simulation"),
@@ -197,6 +211,11 @@ def validate(cfg: Mapping[str, Any]) -> None:
         raise ValueError("t_sup_min must be below t_sup_max")
     if cfg["dt"] > cfg["control_interval"]:
         raise ValueError("dt must not exceed control_interval")
+    for k in ("loop_mass_kg", "tsup_ramp_K_per_min", "joint_switch_rel"):
+        if cfg[k] < 0:
+            raise ValueError(f"{k} must be >= 0")
+    if not 0.0 <= cfg["joint_bias_gain"] <= 1.0:
+        raise ValueError("joint_bias_gain must be in [0,1]")
 
 
 def assumptions_table() -> list[dict[str, Any]]:

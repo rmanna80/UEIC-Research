@@ -188,6 +188,32 @@ def plant(Q_in, T_sup, flow_factor, T_amb, cfg):
     }
 
 
+def plant_split(Q_plant, T_out, flow_factor, T_amb, cfg):
+    """Heat-rejection plant for the dynamic loop (Phase 3): the plant removes Q_plant (>= 0, W)
+    from water leaving at T_out. Same dry-cooler-then-chiller logic as `plant`; the water
+    enters the plant at T_hot = T_out + Q_plant / Cdot."""
+    Q_plant = np.maximum(np.asarray(Q_plant, dtype=float), 0.0)
+    T_out = np.asarray(T_out, dtype=float)
+    Cdot = cfg.n_accel * mass_flow_per_accel(flow_factor, cfg) * cfg.water_cp
+    T_hot = T_out + Q_plant / Cdot
+    T_floor = np.asarray(T_amb, dtype=float) + cfg.dt_drycooler
+    T_dc_out = np.minimum(np.maximum(T_out, T_floor), T_hot)
+    Q_dc = Cdot * (T_hot - T_dc_out)
+    Q_ch = Cdot * (T_dc_out - T_out)
+    cop = chiller_cop(T_out, T_amb, cfg)
+    W_ch = Q_ch / cop
+    Q_out_pre_fan = Q_dc + Q_ch + W_ch
+    P_fan = cfg.fan_ratio * Q_out_pre_fan
+    return {"T_hot": T_hot, "Q_dc": Q_dc, "Q_ch": Q_ch, "W_ch": W_ch, "P_fan": P_fan, "cop": cop,
+            "Q_amb": Q_out_pre_fan + P_fan, "Cdot": Cdot}
+
+
+def tank_step(T_tank, T_in, Cdot, M_cp, dt):
+    """Exact update of a well-mixed tank (heat capacity M_cp, J/K) fed at T_in with capacity
+    rate Cdot (W/K): M_cp dT/dt = Cdot (T_in - T)."""
+    return T_in + (T_tank - T_in) * np.exp(-Cdot * dt / M_cp)
+
+
 # ---------------------------------------------------------------- thermodynamics
 def stream_exergy_rate(Cdot, T_hot, T_cold, T0):
     """Work potential (W) of the heat released when a stream with capacity rate Cdot

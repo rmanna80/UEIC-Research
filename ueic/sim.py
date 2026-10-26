@@ -4,12 +4,21 @@ Boundary of the energy accounting (document this with every result):
   grid electricity -> power conversion -> accelerators (IT)
                    -> coolant pump, heat-rejection fans, trim chiller
 Not modelled: room air handling for conversion losses, lighting, networking gear,
-host CPUs, storage, building loads, loop thermal mass, plant setpoint dynamics.
+host CPUs, storage, building loads.
+
+Two plant models:
+  * quasi-steady (cfg.loop_mass_kg == 0, used by E001-E005): supply water reaches the
+    chips at the setpoint instantly; the loop has no thermal mass.
+  * dynamic (cfg.loop_mass_kg > 0, Phase 3): a well-mixed supply tank of the given water
+    mass sits between plant and chips, and the plant outlet temperature can move at most
+    cfg.tsup_ramp_K_per_min (0 = no limit). The plant cannot heat water: when the setpoint
+    is above the return temperature it passes water through and the tank absorbs the heat.
 
 Conservation identity checked on every run (and in tests):
   E_grid = E_rejected_to_ambient + E_conversion_loss + dU_chips + dU_loop
-where dU_loop (<= 0) books transient heat flow from coolant into chips that the
-quasi-steady loop (no thermal mass) cannot otherwise represent.
+where dU_loop is the change in stored loop heat (dynamic plant), or, for the quasi-steady
+plant, the (<= 0) transient heat flow from coolant into chips that a massless loop cannot
+otherwise represent.
 """
 from __future__ import annotations
 
@@ -85,8 +94,19 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
     p_design_peak = float(ph.chip_power(1.0, cfg.t_leak_ref, 1.0, cfg))
     q_last = float(N * ph.idle_power(initial_T, cfg))
     action: Action | None = None
+    prev_action: Action | None = None
     next_ctrl = 0.0
     notes: dict[str, int] = {}
+    n_action_changes = n_tsup_changes = n_clock_changes = n_flow_changes = 0
+    tsup_travel = 0.0
+    T_peak_int = float("nan")
+
+    # ---- loop state (Phase 3 dynamic plant; unused when loop_mass_kg == 0)
+    dyn = float(cfg.loop_mass_kg) > 0.0
+    M_cp = float(cfg.loop_mass_kg) * cfg.water_cp
+    ramp = float(cfg.tsup_ramp_K_per_min) / 60.0      # K per second
+    T_tank: float | None = None                        # supply water reaching the chips
+    T_plant_sp: float | None = None                    # plant outlet setpoint after ramp limiting
 
     # ---- accumulators (J)
     E = dict(it=0.0, conv=0.0, pump=0.0, fan=0.0, ch=0.0, q_dc=0.0, q_ch=0.0, q_amb=0.0,
@@ -98,7 +118,10 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
 
     ts: dict[str, list[float]] = {k: [] for k in (
         "t", "P_grid", "P_it", "P_pump", "P_fan", "W_ch", "T_sup", "flow", "T_ret", "T_max", "T_mean",
-        "queue", "busy", "s_c", "s_m", "throttled", "util_offered")}
+        "queue", "busy", "s_c", "s_m", "throttled", "util_offered", "T_sup_cmd")}
+    for i in range(N):
+        ts[f"Tj{i}"] = []
+    acc_Tj = np.zeros(N)
     acc = dict(P_grid=0.0, P_it=0.0, P_pump=0.0, P_fan=0.0, W_ch=0.0, T_ret=0.0, T_mean=0.0, busy=0.0, n=0)
     acc_Tmax = -np.inf
     acc_throttled = 0
@@ -118,17 +141,35 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
             obs = Observation(
                 t=t, D_est=D_est.copy(), backlog=q_work.copy(), T_amb=T_amb,
                 p_chip_peak=max(peak_hist) if peak_hist else p_design_peak,
-                q_chips=q_last, T_j=T.copy())
+                q_chips=q_last, T_j=T.copy(), T_j_peak=T_peak_int,
+                T_sup_actual=float("nan") if T_plant_sp is None else (T_tank if dyn else T_plant_sp))
             action = policy.decide(obs)
             notes[action.note] = notes.get(action.note, 0) + 1
+            if prev_action is not None:
+                ch_s = tuple(action.s) != tuple(prev_action.s)
+                ch_t = action.t_sup != prev_action.t_sup
+                ch_f = action.flow != prev_action.flow
+                n_action_changes += int(ch_s or ch_t or ch_f)
+                n_clock_changes += int(ch_s); n_tsup_changes += int(ch_t); n_flow_changes += int(ch_f)
+                tsup_travel += abs(action.t_sup - prev_action.t_sup)
+            prev_action = action
+            T_peak_int = -np.inf
             arrived_int[:] = 0.0
             p_peak_int = 0.0
             q_int = 0.0
             next_ctrl += ci
         assert action is not None
         s_cls = np.array(action.s, dtype=float)
-        T_sup = float(np.clip(action.t_sup, cfg.t_sup_min, cfg.t_sup_max))
+        T_cmd = float(np.clip(action.t_sup, cfg.t_sup_min, cfg.t_sup_max))
         flow = float(np.clip(action.flow, cfg.flow_min_factor, cfg.flow_max_factor))
+        if T_plant_sp is None:
+            T_plant_sp = T_cmd
+            T_tank = T_cmd
+        elif ramp > 0:
+            T_plant_sp += float(np.clip(T_cmd - T_plant_sp, -ramp * dt, ramp * dt))
+        else:
+            T_plant_sp = T_cmd
+        T_sup = T_tank if dyn else T_plant_sp
 
         # ---------------- arrivals (released at the start of the step they arrive in)
         while next_arr < n and wl.arrival[next_arr] <= t:
@@ -171,6 +212,7 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
         q_rate = float(Qj.sum()) / dt
         T = T_new
         peak_T = max(peak_T, float(T.max()))
+        T_peak_int = max(T_peak_int, float(T.max()))
         t_over_target += float((T > cfg.t_target).sum()) * dt
         throttled = np.where(T > cfg.t_throttle, True, np.where(T < cfg.t_throttle - cfg.throttle_hyst, False, throttled))
         t_throttled += float(throttled.sum()) * dt
@@ -201,11 +243,33 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
         # ---------------- plant + electrical
         P_it = float(P.sum())
         P_pump = float(ph.pump_power(flow, cfg))
-        pl = ph.plant(q_rate + P_pump, T_sup, flow, T_amb, cfg)
+        if not dyn:
+            pl = ph.plant(q_rate + P_pump, T_sup, flow, T_amb, cfg)
+            T_ret = float(pl["T_ret"])
+            Q_loop = float(pl["Q_loop_storage"])
+            ex = float(ph.stream_exergy_rate(pl["Cdot"], T_ret, T_sup, T_amb))
+            q_reuse = (q_rate + P_pump) if T_ret >= cfg.t_reuse_min else 0.0
+        else:
+            Q_in = q_rate + P_pump
+            Cdot = float(cfg.n_accel * ph.mass_flow_per_accel(flow, cfg) * cfg.water_cp)
+            T_ret = T_tank + Q_in / Cdot
+            T_tank_old = T_tank
+            Q_plant = 0.0
+            if T_plant_sp < T_ret:                      # plant active: outlet held at its setpoint
+                T_tank = float(ph.tank_step(T_tank, T_plant_sp, Cdot, M_cp, dt))
+                Q_plant = Q_in - M_cp * (T_tank - T_tank_old) / dt
+                T_out = T_plant_sp
+            if Q_plant <= 0.0:                          # pass-through: tank accumulates the heat
+                T_tank = T_tank_old + Q_in * dt / M_cp
+                Q_plant = 0.0
+                T_out = T_ret
+            pl = ph.plant_split(Q_plant, T_out, flow, T_amb, cfg)
+            Q_loop = M_cp * (T_tank - T_tank_old) / dt
+            ex = float(ph.stream_exergy_rate(pl["Cdot"], pl["T_hot"], T_out, T_amb)) if Q_plant > 0 else 0.0
+            q_reuse = Q_plant if float(pl["T_hot"]) >= cfg.t_reuse_min else 0.0
         W_ch, P_fan = float(pl["W_ch"]), float(pl["P_fan"])
         P_conv = P_it * (1.0 / cfg.eta_conv - 1.0)
         P_grid = P_it + P_conv + P_pump + P_fan + W_ch
-        T_ret = float(pl["T_ret"])
         E["it"] += P_it * dt
         E["conv"] += P_conv * dt
         E["pump"] += P_pump * dt
@@ -215,11 +279,9 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
         E["q_ch"] += float(pl["Q_ch"]) * dt
         E["q_amb"] += float(pl["Q_amb"]) * dt
         E["q_cool"] += q_rate * dt
-        E["loop"] += float(pl["Q_loop_storage"]) * dt
-        ex = float(ph.stream_exergy_rate(pl["Cdot"], T_ret, T_sup, T_amb))
+        E["loop"] += Q_loop * dt
         E["exergy"] += ex * dt
-        if T_ret >= cfg.t_reuse_min:
-            E["reusable"] += (q_rate + P_pump) * dt
+        E["reusable"] += q_reuse * dt
         p_peak_int = max(p_peak_int, float(P_busy[busy].max()) if busy.any() else float(P.max()))
         q_int += q_rate * dt
 
@@ -230,6 +292,7 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
             acc["n"] += 1
             acc_Tmax = max(acc_Tmax, float(T.max()))
             acc_throttled = max(acc_throttled, int(throttled.sum()))
+            acc_Tj += T
         t += dt
         steps += 1
         if record_timeseries and t >= next_log - 1e-9:
@@ -240,6 +303,10 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
             ts["T_sup"].append(T_sup); ts["flow"].append(flow); ts["T_max"].append(acc_Tmax)
             ts["queue"].append(len(queue)); ts["s_c"].append(float(s_cls[0])); ts["s_m"].append(float(s_cls[1]))
             ts["throttled"].append(acc_throttled)
+            ts["T_sup_cmd"].append(T_cmd)
+            for i in range(N):
+                ts[f"Tj{i}"].append(float(acc_Tj[i]) / k_)
+            acc_Tj[:] = 0.0
             ts["util_offered"].append(float(offered_load(t, scenario)) if t <= scenario.duration_s else 0.0)
             acc = dict.fromkeys(acc, 0.0); acc["n"] = 0
             acc_Tmax, acc_throttled = -np.inf, 0
@@ -305,6 +372,11 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
         "busy_time_compute_s": (busy_time[0], "chip*s", S),
         "busy_time_memory_s": (busy_time[1], "chip*s", S),
         "controller_decisions": (float(len(policy.decision_wall_s)), "count", S),
+        "action_changes": (float(n_action_changes), "count", S),
+        "tsup_changes": (float(n_tsup_changes), "count", S),
+        "clock_changes": (float(n_clock_changes), "count", S),
+        "flow_changes": (float(n_flow_changes), "count", S),
+        "tsup_travel_K": (tsup_travel, "K", S),
         "controller_wall_mean_ms": (float(dec.mean() * 1e3), "ms", PROV_MEAS),
         "sim_wall_s": (sim_wall, "s", PROV_MEAS),
     }

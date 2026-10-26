@@ -43,6 +43,8 @@ class Observation:
     p_chip_peak: float         # max per-chip power observed over the recent window, W
     q_chips: float             # mean total chip heat over the last interval, W
     T_j: np.ndarray = field(default_factory=lambda: np.zeros(0))
+    T_j_peak: float = float("nan")      # hottest junction seen during the last interval, degC
+    T_sup_actual: float = float("nan")  # supply temperature actually reaching the chips, degC
 
 
 def s_grid(cfg):
@@ -166,12 +168,83 @@ class IndependentPolicy(Policy):
         return Action(s, t, f, f"{n1};{n2}")
 
 
+def _with_target(cfg, t_target):
+    """Copy of a Config with a different thermal target (Config is read-only)."""
+    from .params import Config
+    c = Config()
+    dict.update(c, cfg)
+    dict.__setitem__(c, "t_target", t_target)
+    return c
+
+
+def predicted_peak(cfg, D, a: Action, T_amb) -> float:
+    """Twin-predicted hottest steady junction temperature under action `a` for demand D."""
+    r = twin.evaluate(cfg, D, a.s[0], a.s[1], a.t_sup, a.flow, T_amb)
+    temps = [float(r["T_i"])]
+    if D[0] > 0:
+        temps.append(float(r["T_c"]))
+    if D[1] > 0:
+        temps.append(float(r["T_m"]))
+    return max(temps)
+
+
 class JointPolicy(Policy):
+    """Joint model-predictive controller.
+
+    Phase 3 option (cfg.joint_switch_rel > 0): move suppression. The previous action is
+    kept while it is still feasible and predicted to cost no more than (1 + joint_switch_rel)
+    times the new optimum, which removes switching driven by tiny predicted differences."""
     name = "joint"
 
+    def __init__(self, model_cfg):
+        super().__init__(model_cfg)
+        self.prev: Action | None = None
+
+    def _plan(self, obs, cfg) -> Action:
+        D = planned_demand(obs, cfg)
+        s, t, f, note = optimise_joint(cfg, D, obs.T_amb)
+        best = Action(s, t, f, note)
+        thr = float(cfg.joint_switch_rel)
+        if thr > 0 and self.prev is not None and best != self.prev:
+            p = self.prev
+            rp = twin.evaluate(cfg, D, p.s[0], p.s[1], p.t_sup, p.flow, obs.T_amb)
+            rb = twin.evaluate(cfg, D, s[0], s[1], t, f, obs.T_amb)
+            if bool(rp["feasible"]) and float(rp["P_grid"]) <= (1.0 + thr) * float(rb["P_grid"]):
+                best = Action(p.s, p.t_sup, p.flow, "joint:hold")
+        self.prev = Action(best.s, best.t_sup, best.flow, best.note) if best.note != "joint:hold" else self.prev
+        return best
+
     def _decide(self, obs):
-        s, t, f, note = optimise_joint(self.cfg, planned_demand(obs, self.cfg), obs.T_amb)
-        return Action(s, t, f, note)
+        return self._plan(obs, self.cfg)
 
 
-POLICIES = {p.name: p for p in (FixedPolicy, ComputeOnlyPolicy, CoolingOnlyPolicy, IndependentPolicy, JointPolicy)}
+class JointRobustPolicy(JointPolicy):
+    """Joint controller with offset-free temperature correction (Phase 3).
+
+    After each interval it compares the hottest measured junction temperature with the
+    twin's prediction for the action it took, keeps a one-sided EWMA of the error
+    (b >= 0), and plans the next action against a tightened target t_target - b. This is
+    the standard disturbance-estimation idea from offset-free MPC, applied only in the
+    safe direction: the bias can make the controller more conservative, never less."""
+    name = "joint_robust"
+
+    def __init__(self, model_cfg):
+        super().__init__(model_cfg)
+        self.bias = 0.0
+        self.pred_peak: float | None = None
+        self.bias_history: list[float] = []
+
+    def _decide(self, obs):
+        g = float(self.cfg.joint_bias_gain)
+        if self.pred_peak is not None and np.isfinite(obs.T_j_peak):
+            e = obs.T_j_peak - self.pred_peak
+            self.bias = max(0.0, (1.0 - g) * self.bias + g * e)
+        self.bias_history.append(self.bias)
+        cfg = _with_target(self.cfg, self.cfg.t_target - self.bias) if self.bias > 0 else self.cfg
+        a = self._plan(obs, cfg)
+        self.pred_peak = predicted_peak(self.cfg, planned_demand(obs, self.cfg), a, obs.T_amb)
+        return a
+
+
+POLICIES = {p.name: p for p in (FixedPolicy, ComputeOnlyPolicy, CoolingOnlyPolicy, IndependentPolicy, JointPolicy,
+                                JointRobustPolicy)}
