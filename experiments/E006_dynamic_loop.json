@@ -1,0 +1,86 @@
+{
+  "key": "E006",
+  "title": "Joint control under a dynamic coolant loop (thermal mass + setpoint ramp limits)",
+  "research_question": "Does the joint controller's advantage over independent control, and its thermal safety, survive when the coolant loop has thermal mass and the plant cannot move its outlet temperature instantly?",
+  "hypothesis": "H1: joint uses less energy per successful task than independent (paired 95% CI below 0) in all 3 scenarios under both dynamic plants. H2: under the slow plant (150 kg, 0.25 K/min) joint records chip-seconds above the 80 C target in at least one scenario, because it plans against a steady state the plant cannot reach quickly. H3: the fixed policy's energy changes by less than 0.5% between quasi-steady and dynamic plants (its setpoint never moves). H4: joint_robust records no more chip-seconds above target than joint in every scenario and plant.",
+  "null_hypothesis": "The joint advantage disappears (CI includes 0) under a dynamic plant, and loop dynamics do not affect thermal safety.",
+  "independent_variables": [
+    "plant model (quasi-steady, 40 kg + 1 K/min, 150 kg + 0.25 K/min)",
+    "policy (4 levels)",
+    "scenario (3 levels)"
+  ],
+  "dependent_variables": [
+    "E_per_success_kJ (primary)",
+    "chip_s_over_target",
+    "chip_s_throttled",
+    "peak_T_j_C",
+    "slo_violations",
+    "E_loop_storage_kWh",
+    "action_changes"
+  ],
+  "controlled_variables": [
+    "workload per seed",
+    "registry defaults",
+    "4 h window + drain",
+    "dt = 1 s"
+  ],
+  "baseline": "quasi-steady plant (identical to E001) within each policy; independent within each plant",
+  "configuration": "Loop mass and ramp values are class F placeholders (CDU tank + piping), not measurements.",
+  "evaluation_criteria": "Paired relative differences with 95% t-CI; practical threshold 1%. H2/H4 judged on seed means of chip-seconds above target.",
+  "known_limitations": "Single well-mixed tank; no pipe transport delay; ramp limit is symmetric; controllers still plan with a steady-state twin.",
+  "disclosure": "Before registration, only unit tests ran on the dynamic plant (energy closure, ramp bound, steady state, pass-through); none compared policies.",
+  "design": {
+    "scenarios": [
+      "S1_moderate",
+      "S3_hot",
+      "S6_degraded_cooling"
+    ],
+    "policies": [
+      "fixed",
+      "independent",
+      "joint",
+      "joint_robust"
+    ],
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "timeseries_seeds": [
+      0
+    ],
+    "variants": [
+      {
+        "label": "quasi_steady",
+        "param_overrides": {
+          "loop_mass_kg": 0.0,
+          "tsup_ramp_K_per_min": 0.0
+        }
+      },
+      {
+        "label": "dyn_40kg_1Kmin",
+        "param_overrides": {
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0
+        }
+      },
+      {
+        "label": "dyn_150kg_0.25Kmin",
+        "param_overrides": {
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25
+        }
+      }
+    ]
+  },
+  "data_collection": "Simulator outputs written to the append-only SQLite store; every metric labelled with provenance; per-run config SHA-256 and code SHA-256 recorded; time series for selected seeds.",
+  "statistics": "Paired by seed (identical workload realisation across levels). Per-seed relative difference d=(A-B)/B; mean with two-sided 95% Student-t CI.",
+  "practical_significance_threshold": 0.01
+}

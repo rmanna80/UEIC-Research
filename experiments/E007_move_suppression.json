@@ -1,0 +1,108 @@
+{
+  "key": "E007",
+  "title": "Move suppression for the joint controller: switching, energy cost, and time-step sensitivity",
+  "research_question": "Can a switching threshold make the joint controller's results insensitive to the simulation time step (E004 failed at 0.52%) without costing energy?",
+  "hypothesis": "H1: thresholds up to 5% cut the number of action changes by less than 25%, because most switching tracks demand rather than chatters. H2: at a 2% threshold the worst per-seed change in grid energy between dt = 1 s and dt = 0.5 s falls below 0.5% in both scenarios. H3: a 2% threshold costs at most 0.3% energy per successful task versus no threshold.",
+  "null_hypothesis": "Suppression neither reduces time-step sensitivity nor is cheap.",
+  "independent_variables": [
+    "switch threshold (0, 0.5%, 2%, 5%)",
+    "dt (1 s, 0.5 s)",
+    "scenario"
+  ],
+  "dependent_variables": [
+    "action_changes",
+    "clock_changes",
+    "flow_changes",
+    "tsup_changes",
+    "E_per_success_kJ",
+    "E_grid_kWh",
+    "chip_s_over_target"
+  ],
+  "controlled_variables": [
+    "joint policy only",
+    "workload per seed",
+    "registry defaults",
+    "quasi-steady plant"
+  ],
+  "baseline": "threshold 0 at the same dt",
+  "configuration": "As E001",
+  "evaluation_criteria": "H1 on seed-mean action changes; H2 on max over seeds of |E(dt=1)/E(dt=0.5) - 1| within each threshold; H3 paired CI of energy per successful task.",
+  "known_limitations": "Threshold acts on predicted, not measured, savings.",
+  "disclosure": "Before registration one exploratory run (S1, seed 4, dt 1 s) showed action changes falling from 102 to 89 at a 5% threshold, with all switching in clocks and flow and none in supply temperature. H1 was written after seeing that run. No dt comparison with suppression was run.",
+  "design": {
+    "scenarios": [
+      "S1_moderate",
+      "S3_hot"
+    ],
+    "policies": [
+      "joint"
+    ],
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "timeseries_seeds": [],
+    "variants": [
+      {
+        "label": "thr=0.0|dt=1.0",
+        "param_overrides": {
+          "joint_switch_rel": 0.0,
+          "dt": 1.0
+        }
+      },
+      {
+        "label": "thr=0.005|dt=1.0",
+        "param_overrides": {
+          "joint_switch_rel": 0.005,
+          "dt": 1.0
+        }
+      },
+      {
+        "label": "thr=0.02|dt=1.0",
+        "param_overrides": {
+          "joint_switch_rel": 0.02,
+          "dt": 1.0
+        }
+      },
+      {
+        "label": "thr=0.05|dt=1.0",
+        "param_overrides": {
+          "joint_switch_rel": 0.05,
+          "dt": 1.0
+        }
+      },
+      {
+        "label": "thr=0.0|dt=0.5",
+        "param_overrides": {
+          "joint_switch_rel": 0.0,
+          "dt": 0.5
+        }
+      },
+      {
+        "label": "thr=0.02|dt=0.5",
+        "param_overrides": {
+          "joint_switch_rel": 0.02,
+          "dt": 0.5
+        }
+      },
+      {
+        "label": "thr=0.05|dt=0.5",
+        "param_overrides": {
+          "joint_switch_rel": 0.05,
+          "dt": 0.5
+        }
+      }
+    ]
+  },
+  "data_collection": "Simulator outputs written to the append-only SQLite store; every metric labelled with provenance; per-run config SHA-256 and code SHA-256 recorded; time series for selected seeds.",
+  "statistics": "Paired by seed (identical workload realisation across levels). Per-seed relative difference d=(A-B)/B; mean with two-sided 95% Student-t CI.",
+  "practical_significance_threshold": 0.01
+}

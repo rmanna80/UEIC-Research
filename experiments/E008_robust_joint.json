@@ -1,0 +1,106 @@
+{
+  "key": "E008",
+  "title": "Self-correcting joint control under digital-twin mismatch",
+  "research_question": "Does feeding measured junction temperatures back into the joint controller (one-sided offset-free correction) restore thermal safety under twin mismatch without giving up its energy advantage?",
+  "hypothesis": "H1: in every mismatch case where joint exceeded the 80 C target, joint_robust has zero chip-seconds throttled and at least 80% fewer chip-seconds above target than joint. H2: joint_robust uses no more energy per successful task than independent (paired 95% CI upper bound <= 0) in every case. H3: with a correct twin (default and *_twin_correct variants), joint_robust is within +/-0.5% of joint on energy per successful task.",
+  "null_hypothesis": "The correction does not remove overheating, or it removes it only by giving up the energy advantage.",
+  "independent_variables": [
+    "truth|twin case (7 levels)",
+    "policy (independent, joint, joint_robust)",
+    "scenario"
+  ],
+  "dependent_variables": [
+    "E_per_success_kJ",
+    "chip_s_over_target",
+    "chip_s_throttled",
+    "peak_T_j_C"
+  ],
+  "controlled_variables": [
+    "seeds 0-4",
+    "4 h window",
+    "quasi-steady plant",
+    "bias gain 0.5"
+  ],
+  "baseline": "independent within each case; joint within each case",
+  "configuration": "Mismatch cases as E005, plus the registry default.",
+  "evaluation_criteria": "Paired relative differences with 95% t-CI; practical threshold 1%; chip-second counts as seed means.",
+  "known_limitations": "The correction only tightens the temperature target; it does not re-estimate leakage, so energy predictions stay biased.",
+  "disclosure": "Before registration a unit test ran S3_hot (1 h, seed 0) with the leakage mismatch and showed joint_robust with fewer than half of joint's chip-seconds above target.",
+  "design": {
+    "scenarios": [
+      "S1_moderate",
+      "S3_hot"
+    ],
+    "policies": [
+      "independent",
+      "joint",
+      "joint_robust"
+    ],
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "timeseries_seeds": [
+      0
+    ],
+    "variants": [
+      {
+        "label": "default"
+      },
+      {
+        "label": "high_leak|twin_correct",
+        "param_overrides": {
+          "kappa_leak": 0.03,
+          "p_leak_ref": 130.0
+        }
+      },
+      {
+        "label": "high_leak|twin_low_leak",
+        "param_overrides": {
+          "kappa_leak": 0.03,
+          "p_leak_ref": 130.0
+        },
+        "model_param_overrides": {
+          "kappa_leak": 0.012,
+          "p_leak_ref": 70.0
+        }
+      },
+      {
+        "label": "fouled_plate|twin_correct",
+        "param_overrides": {
+          "r_conv_ref": 0.026
+        }
+      },
+      {
+        "label": "fouled_plate|twin_clean",
+        "param_overrides": {
+          "r_conv_ref": 0.026
+        },
+        "model_param_overrides": {
+          "r_conv_ref": 0.015
+        }
+      },
+      {
+        "label": "poor_chiller|twin_correct",
+        "param_overrides": {
+          "eta_ii_chiller": 0.35
+        }
+      },
+      {
+        "label": "poor_chiller|twin_optimistic",
+        "param_overrides": {
+          "eta_ii_chiller": 0.35
+        },
+        "model_param_overrides": {
+          "eta_ii_chiller": 0.55
+        }
+      }
+    ]
+  },
+  "data_collection": "Simulator outputs written to the append-only SQLite store; every metric labelled with provenance; per-run config SHA-256 and code SHA-256 recorded; time series for selected seeds.",
+  "statistics": "Paired by seed (identical workload realisation across levels). Per-seed relative difference d=(A-B)/B; mean with two-sided 95% Student-t CI.",
+  "practical_significance_threshold": 0.01
+}
