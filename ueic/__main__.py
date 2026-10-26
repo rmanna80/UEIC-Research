@@ -191,8 +191,23 @@ def main(argv: list[str] | None = None) -> int:
             if cr["f_ref_MHz"]:
                 print(f"  clock reference s = 1 at {cr['f_ref_MHz']:.0f} MHz (highest steady compute clock; "
                       f"NVML table max {cr['nvml_max_sm_clock_MHz']:.0f} MHz)")
+            fp = out["fits"].get("power_vs_clock", {})
+            fl = out["fits"].get("leakage", {})
+            if fp.get("ok"):
+                print(f"  power vs clock: R^2 {fp['r2']:.4f}, rms residual {fp['rms_resid_W']:.1f} W over {fp['n']} clocks")
+            if fl.get("ok"):
+                print(f"  leakage warm-up: {fl['T_range_C'][0]:.0f}-{fl['T_range_C'][1]:.0f} C, power "
+                      f"{fl['P_range_W'][0]:.0f}-{fl['P_range_W'][1]:.0f} W, R^2 {fl['r2']:.3f}")
+            fmt = lambda v: f"{v['value']}" + (f" +/- {1.96 * v['se']:.2g} (95% CI)" if v.get("se") else "")
+            print("  accepted (transferred to calibrated experiments):" if out["overrides"] else
+                  "  accepted: none")
             for k, v in out["overrides"].items():
-                print(f"  {k} = {v['value']}  (se {v['se']}, class {v['evidence']})")
+                print(f"    {k} = {fmt(v)}  class {v['evidence']}" +
+                      (f"  [{v['status']}: measured {v['measured']}]" if "measured" in v else ""))
+            if out.get("rejected"):
+                print("  rejected (kept in the record, not transferred):")
+                for k, v in out["rejected"].items():
+                    print(f"    {k} = {v['value']}: {v['reason']}")
             for n in out["notes"]:
                 print("  note:", n)
         return 0

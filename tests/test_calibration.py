@@ -352,3 +352,63 @@ def test_fan_ramp_during_warmup_is_noted(tmp_path):
     out = cal.calibrate([_write_session(tmp_path, "warmup", 1400, rng, seconds=900, warm=True, fan_ramp=True)])
     assert out["fits"]["leakage"]["ok"] and out["fits"]["leakage"]["fan_pct_range"][1] > 70
     assert any("fan speed rose" in n for n in out["notes"])
+
+
+# ------------------------------------------------------------- what may be transferred to the simulator
+def _desktop_summary_candidates():
+    """The estimates printed by the first desktop fit (2026-10-26), as the fitter produced them."""
+    return [
+        {"name": "beta_compute", "value": 0.983, "se": 0.004465, "evidence": "B", "at_bound": []},
+        {"name": "beta_memory", "value": -0.0557, "se": 0.04027, "evidence": "B", "at_bound": []},
+        {"name": "v_min_ratio", "value": 0.3, "se": 0.1848, "evidence": "B", "at_bound": ["v_min_ratio"]},
+        {"name": "kappa_leak", "value": 0.2, "se": 0.05612, "evidence": "B", "at_bound": ["kappa"]},
+        {"name": "p_leak_ref", "value": 22.74, "se": None, "evidence": "E", "at_bound": [], "derived_from": "kappa_leak"},
+    ]
+
+
+def test_first_desktop_fit_would_not_have_transferred_failed_fits():
+    acc, rej = cal.accept_estimates(_desktop_summary_candidates())
+    assert acc["beta_compute"]["status"] == "accepted" and acc["beta_compute"]["value"] == 0.983
+    assert acc["beta_memory"]["value"] == 0.0 and acc["beta_memory"]["measured"] == -0.0557   # R3, CI reaches 0
+    assert "edge of its allowed range" in rej["v_min_ratio"]["reason"]                         # R1
+    assert "edge of its allowed range" in rej["kappa_leak"]["reason"]                          # R1
+    assert "derived from kappa_leak" in rej["p_leak_ref"]["reason"]
+    make_config({k: v["value"] for k, v in acc.items()})
+
+
+def test_imprecise_and_unphysical_estimates_are_rejected():
+    acc, rej = cal.accept_estimates([
+        {"name": "kappa_leak", "value": 0.02, "se": 0.05, "evidence": "B", "at_bound": []},      # CI wider than range
+        {"name": "beta_memory", "value": -0.5, "se": 0.04, "evidence": "B", "at_bound": []},     # far below 0
+        {"name": "beta_compute", "value": 1.004, "se": 0.004, "evidence": "B", "at_bound": []},  # CI reaches 1
+    ])
+    assert "wider than the registry range" in rej["kappa_leak"]["reason"]
+    assert "physical range" in rej["beta_memory"]["reason"]
+    assert acc["beta_compute"]["value"] == 1.0 and acc["beta_compute"]["status"] == "at physical limit"
+
+
+def test_flat_then_steep_power_curve_is_caught_at_the_bound():
+    """Real voltage-frequency curves stay near a floor, then rise steeply. The registry's linear v(s)
+    cannot follow that, and the fit runs to its lower bound instead of failing loudly."""
+    summ = [{"ok": True, "s": s, "power_W": P} for s, P in zip([0.5, 0.625, 0.75, 0.875, 1.0], [60, 62, 66, 120, 250])]
+    r = cal.fit_power_clock(summ)
+    assert r["at_bound"] == ["v_min_ratio"] and r["r2"] < 0.95
+
+
+def test_simulator_refuses_unphysical_clock_sensitivity():
+    for bad in ({"beta_memory": -0.06}, {"beta_compute": 1.2}, {"v_min_ratio": 0.0}, {"kappa_leak": -0.01}):
+        with pytest.raises(ValueError):
+            make_config(bad)
+
+
+def test_ingest_preserves_rejected_estimates(tmp_path):
+    acc, rej = cal.accept_estimates(_desktop_summary_candidates())
+    calib = {"device": {"name": "Desktop GPU"}, "overrides": acc, "rejected": rej, "notes": []}
+    st = Store(tmp_path / "m.sqlite")
+    run = st.runs(cal.ingest(st, calib, "abc"))[0]
+    assert run["metrics"]["v_min_ratio_rejected"] == 0.3 and "v_min_ratio" not in run["metrics"]
+    assert run["metrics"]["beta_memory"] == 0.0 and run["metrics"]["beta_memory_measured"] == -0.0557
+    assert st.verify_chain()[0]
+    st.close()
+    with pytest.raises(ValueError, match="no accepted"):
+        cal.apply_calibration({"key": "E001", "title": "t", "design": {}}, {"overrides": {}}, "abc")

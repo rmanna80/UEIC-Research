@@ -223,6 +223,14 @@ def validate(cfg: Mapping[str, Any]) -> None:
         raise ValueError("warm_start must be 0 or 1")
     if not 0.0 <= cfg["joint_bias_gain"] <= 1.0:
         raise ValueError("joint_bias_gain must be in [0,1]")
+    # throughput cannot fall as the clock rises, nor rise faster than the clock
+    for k in ("beta_compute", "beta_memory"):
+        if not 0.0 <= cfg[k] <= 1.0:
+            raise ValueError(f"{k} must be in [0,1] (got {cfg[k]})")
+    if not 0.0 < cfg["v_min_ratio"] <= 1.0:
+        raise ValueError(f"v_min_ratio must be in (0,1] (got {cfg['v_min_ratio']})")
+    if cfg["kappa_leak"] < 0 or cfg["p_leak_ref"] < 0:
+        raise ValueError("kappa_leak and p_leak_ref must be >= 0")
 
 
 def assumptions_table() -> list[dict[str, Any]]:

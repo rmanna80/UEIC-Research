@@ -336,6 +336,22 @@ def fit_beta(summaries: list[dict]) -> dict[str, Any]:
             "method": "log-log least squares of median throughput vs median SM clock / max clock"}
 
 
+def _at_bounds(popt, lo, hi, names, scale) -> list[str]:
+    """Parameters that ended within 0.1% of a bound of the allowed range (span, or `scale` if open)."""
+    out = []
+    for p_, l_, h_, n_ in zip(popt, lo, hi, names):
+        span = (h_ - l_) if np.isfinite(h_) else scale
+        if p_ - l_ <= 1e-3 * span or (np.isfinite(h_) and h_ - p_ <= 1e-3 * span):
+            out.append(n_)
+    return out
+
+
+def _r2(y, yhat) -> float:
+    y = np.asarray(y, float)
+    ss = float(((y - y.mean()) ** 2).sum())
+    return 1.0 - float(((y - yhat) ** 2).sum()) / ss if ss > 0 else float("nan")
+
+
 def v_of_s(s, vmin):
     return vmin + (1.0 - vmin) * (np.asarray(s) - S_MIN) / (1.0 - S_MIN)
 
@@ -357,11 +373,17 @@ def fit_power_clock(summaries: list[dict], s_floor: float = S_MIN - 0.02) -> dic
     s = np.array([p[0] for p in pts])
     P = np.array([p[1] for p in pts])
     p0 = (0.3 * P.min(), P.max(), 0.7)
-    popt, pcov = curve_fit(_power_model, s, P, p0=p0, bounds=([0, 0, 0.3], [np.inf, np.inf, 1.0]), maxfev=20000)
+    lo, hi = [0, 0, 0.3], [np.inf, np.inf, 1.0]
+    popt, pcov = curve_fit(_power_model, s, P, p0=p0, bounds=(lo, hi), maxfev=20000)
     se = np.sqrt(np.diag(pcov))
+    fit = _power_model(s, *popt)
+    order = np.argsort(s)
     return {"ok": True, "A_W": float(popt[0]), "P_dyn_W": float(popt[1]), "v_min_ratio": float(popt[2]),
             "v_min_ratio_se": float(se[2]), "n": len(pts), "excluded_s": excluded,
             "s_range": [float(s.min()), float(s.max())],
+            "at_bound": _at_bounds(popt, lo, hi, ["A_W", "P_dyn_W", "v_min_ratio"], float(P.max())),
+            "r2": _r2(P, fit), "rms_resid_W": float(np.sqrt(np.mean((P - fit) ** 2))),
+            "points": [{"s": float(s[i]), "P_W": float(P[i]), "fit_W": float(fit[i])} for i in order],
             "method": "P = A + P_d * s * v(s)^2 with v linear between s_min = 0.5 and 1 (registry form); "
                       "temperature differences between sessions are not removed"}
 
@@ -382,14 +404,18 @@ def fit_leakage(sess: Session, clock_tol_MHz: float = 15.0) -> dict[str, Any]:
         return {"ok": False, "reason": f"temperature rose only {T.max() - T.min():.1f} K at constant clock; "
                                        "need >= 8 K (start from a cold GPU)"}
     p0 = (np.min(P) * 0.8, np.min(P) * 0.2, 0.02)
-    popt, pcov = curve_fit(_leak_model, T, P, p0=p0, bounds=([0, 0, 0], [np.inf, np.inf, 0.2]), maxfev=20000)
+    lo, hi = [0, 0, 0], [np.inf, np.inf, 0.2]
+    popt, pcov = curve_fit(_leak_model, T, P, p0=p0, bounds=(lo, hi), maxfev=20000)
     se = np.sqrt(np.diag(pcov))
     c, L, k = popt
     resid = P - _leak_model(T, *popt)
+    at_bound = _at_bounds(popt, lo, hi, ["c_W", "L_ref_W", "kappa"], float(P.max()))
+    r2 = _r2(P, _leak_model(T, *popt))
     return {"ok": True, "kappa": float(k), "kappa_se": float(se[2]), "L_ref_W": float(L), "L_ref_se": float(se[1]),
             "c_W": float(c), "leak_fraction_at_ref": float(L / (c + L)), "n": int(keep.sum()),
             "T_range_C": [float(T.min()), float(T.max())], "clock_MHz": float(np.median(clk[keep])),
-            "resid_std_W": float(resid.std()),
+            "resid_std_W": float(resid.std()), "at_bound": at_bound, "r2": r2,
+            "P_range_W": [float(P.min()), float(P.max())],
             "fan_pct_range": _range_or_none([r.get("fan_pct") for r, k in zip(tel, keep) if k]),
             "method": "P(T) = c + L*exp(kappa*(T-60)) at constant clock and load during warm-up; assumes the "
                       "temperature-dependent part of board power is leakage (fan and VR losses are not separated)"}
@@ -496,39 +522,105 @@ def calibrate(session_dirs: Iterable[str | Path], cfg=None, device: str | None =
         notes.append(f"fan speed rose from {fr[0]:.0f}% to {fr[1]:.0f}% during the warm-up. On desktop cards the fans "
                      "draw from the board power NVML reports, so part of the power rise is fan power and kappa_leak "
                      "is an upper bound. A fixed fan speed during the warm-up removes this")
-    ov = out["overrides"]
+    cands = []
     if fb_c["ok"]:
-        ov["beta_compute"] = {"value": round(fb_c["value"], 4), "se": fb_c["se"], "evidence": "B"}
+        cands.append({"name": "beta_compute", "value": fb_c["value"], "se": fb_c["se"], "evidence": "B", "at_bound": []})
     if fb_m["ok"]:
-        ov["beta_memory"] = {"value": round(fb_m["value"], 4), "se": fb_m["se"], "evidence": "B"}
+        cands.append({"name": "beta_memory", "value": fb_m["value"], "se": fb_m["se"], "evidence": "B", "at_bound": []})
     if fp["ok"]:
-        ov["v_min_ratio"] = {"value": round(fp["v_min_ratio"], 4), "se": fp["v_min_ratio_se"], "evidence": "B"}
+        cands.append({"name": "v_min_ratio", "value": fp["v_min_ratio"], "se": fp["v_min_ratio_se"], "evidence": "B",
+                      "at_bound": fp["at_bound"]})
     if fl["ok"]:
-        ov["kappa_leak"] = {"value": round(fl["kappa"], 5), "se": fl["kappa_se"], "evidence": "B"}
         f = fl["leak_fraction_at_ref"]
-        scaled = f / (1 - f) * (cfg.p_dyn_max + cfg.p_static_other)
-        ov["p_leak_ref"] = {"value": round(float(scaled), 2), "se": None, "evidence": "E",
-                            "note": f"measured leak fraction {f:.3f} at 60 C scaled to the simulated accelerator"}
-    for k, v in list(ov.items()):
-        lo, hi = None, None
+        scaled = f / (1 - f) * (cfg.p_dyn_max + cfg.p_static_other) if f < 1 else float("inf")
+        cands.append({"name": "kappa_leak", "value": fl["kappa"], "se": fl["kappa_se"], "evidence": "B",
+                      "at_bound": fl["at_bound"]})
+        cands.append({"name": "p_leak_ref", "value": float(scaled), "se": None, "evidence": "E", "at_bound": [],
+                      "derived_from": "kappa_leak",
+                      "note": f"measured leak fraction {f:.3f} at 60 C scaled to the simulated accelerator"})
+    out["overrides"], out["rejected"] = accept_estimates(cands)
+    for k, v in out["overrides"].items():
         from .params import REGISTRY
-        if REGISTRY[k].low is not None:
-            lo, hi = REGISTRY[k].low, REGISTRY[k].high
-            if not lo <= v["value"] <= hi:
-                out["notes"].append(f"{k} = {v['value']} lies outside the registry range [{lo}, {hi}] swept in E002")
-    # every override must yield a valid configuration
-    make_config({k: v["value"] for k, v in ov.items()})
+        lo, hi = REGISTRY[k].low, REGISTRY[k].high
+        if lo is not None and not lo <= v["value"] <= hi:
+            notes.append(f"{k} = {v['value']} lies outside the registry range [{lo}, {hi}] swept in E002")
+    # every transferred value must yield a valid configuration
+    make_config({k: v["value"] for k, v in out["overrides"].items()})
     return out
+
+
+PHYSICAL = {"beta_compute": (0.0, 1.0), "beta_memory": (0.0, 1.0), "v_min_ratio": (0.0, 1.0),
+            "kappa_leak": (0.0, float("inf")), "p_leak_ref": (0.0, float("inf"))}
+ROUND = {"beta_compute": 4, "beta_memory": 4, "v_min_ratio": 4, "kappa_leak": 5, "p_leak_ref": 2}
+
+
+def accept_estimates(cands: list[dict[str, Any]]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Decide which fitted values may be transferred to the simulator. Rules (set on 2026-10-26,
+    after the first desktop fit summary was seen and before its raw telemetry was examined):
+      R1 boundary  - a fit that ended at an edge of its allowed parameter range is rejected: the
+                     model did not describe the data.
+      R2 precision - a value whose 95% CI half-width (1.96 se) exceeds the width of the registry
+                     range it would replace is rejected: it adds no information beyond E002.
+      R3 physical  - a value outside its physical range is moved to that limit when its 95% CI
+                     reaches the limit, and rejected otherwise.
+    A derived value (p_leak_ref) is accepted only if the value it is derived from is accepted.
+    Rejected values are kept in the record with the reason."""
+    from .params import REGISTRY
+    acc: dict[str, Any] = {}
+    rej: dict[str, Any] = {}
+    for c in cands:
+        k, v, se = c["name"], float(c["value"]), c["se"]
+        base = {"value": round(v, ROUND[k]), "se": se, "evidence": c["evidence"]}
+        if c.get("note"):
+            base["note"] = c["note"]
+        if c.get("derived_from"):
+            continue
+        if c["at_bound"]:
+            rej[k] = {**base, "reason": "fit ended at the edge of its allowed range (" + ", ".join(c["at_bound"]) +
+                      "): the model does not describe these data"}
+            continue
+        if se is None or not np.isfinite(se):
+            rej[k] = {**base, "reason": "no standard error (too few points for the number of fitted parameters)"}
+            continue
+        lo, hi = REGISTRY[k].low, REGISTRY[k].high
+        if lo is not None and 1.96 * se > hi - lo:
+            rej[k] = {**base, "reason": f"95% CI half-width {1.96 * se:.3g} is wider than the registry range "
+                                        f"[{lo}, {hi}] it would replace"}
+            continue
+        plo, phi = PHYSICAL[k]
+        if v < plo or v > phi:
+            limit = plo if v < plo else phi
+            if abs(v - limit) <= 1.96 * se:
+                acc[k] = {**base, "value": limit, "measured": round(v, ROUND[k]), "status": "at physical limit",
+                          "note": f"measured {v:.4g} +/- {1.96 * se:.2g} (95% CI) reaches the physical limit {limit:g}; "
+                                  "transferred at the limit"}
+            else:
+                rej[k] = {**base, "reason": f"outside the physical range [{plo:g}, {phi:g}] beyond its 95% CI"}
+            continue
+        acc[k] = {**base, "status": "accepted"}
+    for c in cands:
+        if c.get("derived_from"):
+            k = c["name"]
+            base = {"value": round(float(c["value"]), ROUND[k]), "se": None, "evidence": c["evidence"],
+                    "note": c.get("note")}
+            if c["derived_from"] in acc:
+                acc[k] = {**base, "status": "accepted"}
+            else:
+                rej[k] = {**base, "reason": f"derived from {c['derived_from']}, which was rejected"}
+    return acc, rej
 
 
 def apply_calibration(spec: dict[str, Any], calib: dict[str, Any], calib_sha256: str) -> dict[str, Any]:
     """New spec whose every cell uses the calibrated values; provenance travels with the spec."""
     spec = json.loads(json.dumps(spec))
     over = {k: v["value"] for k, v in calib["overrides"].items()}
+    if not over:
+        raise ValueError("the calibration has no accepted values to transfer")
     spec["design"]["param_overrides"] = {**spec["design"].get("param_overrides", {}), **over}
     spec["key"] = spec["key"] + "C"
     spec["title"] = spec["title"] + " (calibrated)"
-    spec["calibration_source"] = {"sha256": calib_sha256, "device": calib.get("device"), "overrides": calib["overrides"]}
+    spec["calibration_source"] = {"sha256": calib_sha256, "device": calib.get("device"), "overrides": calib["overrides"],
+                                  "rejected": calib.get("rejected", {})}
     return spec
 
 
@@ -553,12 +645,23 @@ def ingest(store, calib: dict[str, Any], calib_sha256: str, key: str = "M001") -
     run_id = store.start_run(exp_id, {"kind": "calibration", "variant": "measured", "policy": "-", "scenario": "-"},
                              0, {"calibration": calib}, {})
     metrics = {}
+    notes = list(calib.get("notes", []))
     for k, v in calib["overrides"].items():
         prov = "physical_measurement" if v["evidence"] == "B" else "engineering_assumption"
         metrics[k] = (float(v["value"]), "-", prov)
         if v.get("se") is not None:
             metrics[k + "_se"] = (float(v["se"]), "-", prov)
-    store.finish_run(run_id, metrics, calib.get("notes", []), None)
+        if "measured" in v:
+            metrics[k + "_measured"] = (float(v["measured"]), "-", prov)
+            notes.append(f"{k}: {v['note']}")
+    # failures are preserved: rejected estimates are recorded, labelled, with the reason
+    for k, v in calib.get("rejected", {}).items():
+        prov = "physical_measurement" if v["evidence"] == "B" else "engineering_assumption"
+        metrics[k + "_rejected"] = (float(v["value"]), "-", prov)
+        if v.get("se") is not None and np.isfinite(v["se"]):
+            metrics[k + "_rejected_se"] = (float(v["se"]), "-", prov)
+        notes.append(f"{k} rejected (not transferred): {v['reason']}")
+    store.finish_run(run_id, metrics, notes, None)
     store.set_experiment_status(exp_id, "completed", {"runs": 1, "failed": 0, "measurement": True})
     return exp_id
 

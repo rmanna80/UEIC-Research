@@ -96,7 +96,19 @@ python -m ueic run experiments\E001_policy_benchmark.json --calibration data\cal
 
 Commit the `data/calibration/` folder with the results: it is the evidence behind any calibrated experiment.
 
-## 5. Troubleshooting
+## 5. What gets transferred to the simulator
+
+A fitted number enters calibrated experiments only if it passes three rules. They were set on 2026-10-26, after the first desktop fit summary was seen and before its raw telemetry was examined. That fit transferred two failed fits as measurements; see the research log.
+
+| Rule | Test | Why |
+|---|---|---|
+| R1 boundary | Rejected if the fit ended at an edge of its allowed parameter range | The model did not describe the data; the number is an artefact of the limit |
+| R2 precision | Rejected if the 95% CI half-width (1.96 × se) is wider than the registry range the value would replace | It adds nothing beyond the sensitivity study (E002) |
+| R3 physical | A value outside its physical range (e.g. a negative clock sensitivity) is moved to the limit if its 95% CI reaches the limit, otherwise rejected | The simulator rejects unphysical values; a CI that includes the limit is consistent with it |
+
+`p_leak_ref` is derived from the leakage fit, so it is accepted only if `kappa_leak` is. `fit` prints accepted and rejected values separately, with R² and residuals for the power and leakage fits. `ingest` stores both: rejected values are recorded as `<name>_rejected` with the reason, never as model inputs. Calibrated experiments (`run --calibration`) use the accepted values only, and record the rejected ones in their spec.
+
+## 6. Troubleshooting
 
 | Message or symptom | Cause | Fix |
 |---|---|---|
@@ -116,7 +128,7 @@ Commit the `data/calibration/` folder with the results: it is the evidence behin
 | Empty folders in `data\calibration` from earlier failed starts | Older versions created the folder before checking PyTorch | Delete them. `fit` skips them either way |
 | GPU stays at a fixed clock after you stop | Clock locks persist | `nvidia-smi -i 0 -rgc` |
 
-## 6. What the fits can and cannot tell you
+## 7. What the fits can and cannot tell you
 
 | Fit | Model | Main caveat |
 |---|---|---|

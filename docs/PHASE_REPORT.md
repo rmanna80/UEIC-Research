@@ -84,7 +84,7 @@
 
 ### What was tested
 
-91 tests in total (45 from Phases 0–1). New coverage:
+96 tests in total (45 from Phases 0–1). New coverage:
 * bitwise legacy reproduction;
 * dynamic-loop energy closure, ramp bound, steady state against the twin, pass-through, and the quasi-steady limit;
 * the exact tank response;
