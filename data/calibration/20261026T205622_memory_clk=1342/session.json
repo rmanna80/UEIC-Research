@@ -1,0 +1,18 @@
+{
+ "kind": "memory",
+ "label": "clk=1342",
+ "seconds": 60.0,
+ "gpu": 0,
+ "throughput_unit": "GB/s",
+ "idle_before_s": 0.0,
+ "device": {
+  "index": 0,
+  "name": "NVIDIA GeForce RTX 5070",
+  "uuid": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+  "max_sm_clock_MHz": 3090,
+  "max_mem_clock_MHz": 14001,
+  "power_limit_W": 250.0
+ },
+ "telemetry_sha256": "2e238ab4c71062c114d35d053ca79eabc82fc1e75a5d7fa06d575f50d45bf035",
+ "provenance": "physical_measurement"
+}

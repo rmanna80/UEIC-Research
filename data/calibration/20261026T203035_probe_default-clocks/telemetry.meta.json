@@ -1,0 +1,24 @@
+{
+ "kind": "nvml_telemetry",
+ "provenance": "physical_measurement",
+ "measurement_boundary": "GPU board power as reported by NVML; excludes host, PSU losses, chassis fans and the cooling plant",
+ "instrument": "NVML via nvidia-ml-py; driver 610.88",
+ "calibration_status": "manufacturer on-board sensor; not independently calibrated",
+ "sampling_interval_s": 0.1,
+ "started_utc": "2026-10-26T20:30:36+00:00",
+ "stopped_utc": "2026-10-26T20:31:37+00:00",
+ "n_samples": 606,
+ "host": "Windows-11-10.0.26200-SP0",
+ "devices": [
+  {
+   "index": 0,
+   "name": "NVIDIA GeForce RTX 5070",
+   "uuid": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+   "max_sm_clock_MHz": 3090,
+   "max_mem_clock_MHz": 14001,
+   "power_limit_W": 250.0
+  }
+ ],
+ "csv": "telemetry.csv",
+ "csv_sha256": "c9e7a7fb5be0594507e0d3e1051b8b54a3d7b78fe1246a4ee4ea35c996124a0a"
+}

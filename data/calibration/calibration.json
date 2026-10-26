@@ -1,0 +1,357 @@
+{
+ "kind": "ueic_calibration",
+ "created_utc": "2026-10-26T21:08:03+00:00",
+ "device": {
+  "index": 0,
+  "name": "NVIDIA GeForce RTX 5070",
+  "uuid": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+  "max_sm_clock_MHz": 3090,
+  "max_mem_clock_MHz": 14001,
+  "power_limit_W": 250.0
+ },
+ "sessions": [
+  {
+   "kind": "probe",
+   "path": "data\\calibration\\20261026T203035_probe_default-clocks",
+   "name": "20261026T203035_probe_default-clocks",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 2685.0,
+   "clock_cv": 0.004019419464393208,
+   "label_clock_MHz": null,
+   "s_nvml": 0.8689320388349514,
+   "power_W": 250.002,
+   "temp_C": 70.0,
+   "throughput": 63.7688,
+   "limited_frac": 0.0,
+   "limit_reasons": {},
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 250.08085,
+   "power_limit_W": 250.0,
+   "s": 1.0056179775280898
+  },
+  {
+   "kind": "warmup",
+   "path": "data\\calibration\\20261026T204001_warmup_clk=2017",
+   "name": "20261026T204001_warmup_clk=2017",
+   "ok": true,
+   "n": 5900,
+   "clock_MHz": 1995.0,
+   "clock_cv": 0.001636514412648153,
+   "label_clock_MHz": 2017.0,
+   "s_nvml": 0.6456310679611651,
+   "power_W": 131.6275,
+   "temp_C": 56.0,
+   "throughput": 47.6189,
+   "limited_frac": 0.9991525423728813,
+   "limit_reasons": {
+    "sw_power_cap": 0.9991525423728813
+   },
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 132.07,
+   "power_limit_W": 250.0,
+   "s": 0.7471910112359551
+  },
+  {
+   "kind": "compute",
+   "path": "data\\calibration\\20261026T205519_compute_clk=1342",
+   "name": "20261026T205519_compute_clk=1342",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 1335.0,
+   "clock_cv": 0.0,
+   "label_clock_MHz": 1342.0,
+   "s_nvml": 0.4320388349514563,
+   "power_W": 87.40350000000001,
+   "temp_C": 47.0,
+   "throughput": 31.8604,
+   "limited_frac": 1.0,
+   "limit_reasons": {
+    "sw_power_cap": 1.0
+   },
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 87.57045,
+   "power_limit_W": 250.0,
+   "s": 0.5
+  },
+  {
+   "kind": "memory",
+   "path": "data\\calibration\\20261026T205622_memory_clk=1342",
+   "name": "20261026T205622_memory_clk=1342",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 1335.0,
+   "clock_cv": 0.0,
+   "label_clock_MHz": 1342.0,
+   "s_nvml": 0.4320388349514563,
+   "power_W": 85.0445,
+   "temp_C": 41.0,
+   "throughput": 580.956,
+   "limited_frac": 0.0,
+   "limit_reasons": {},
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 85.32424999999999,
+   "power_limit_W": 250.0,
+   "s": 0.5
+  },
+  {
+   "kind": "compute",
+   "path": "data\\calibration\\20261026T205725_compute_clk=1680",
+   "name": "20261026T205725_compute_clk=1680",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 1657.0,
+   "clock_cv": 0.00048035698317841984,
+   "label_clock_MHz": 1680.0,
+   "s_nvml": 0.5362459546925566,
+   "power_W": 105.397,
+   "temp_C": 49.0,
+   "throughput": 39.5944,
+   "limited_frac": 1.0,
+   "limit_reasons": {
+    "sw_power_cap": 1.0
+   },
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 105.6151,
+   "power_limit_W": 250.0,
+   "s": 0.6205992509363296
+  },
+  {
+   "kind": "memory",
+   "path": "data\\calibration\\20261026T205827_memory_clk=1680",
+   "name": "20261026T205827_memory_clk=1680",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 1657.0,
+   "clock_cv": 0.00048035698317841984,
+   "label_clock_MHz": 1680.0,
+   "s_nvml": 0.5362459546925566,
+   "power_W": 87.114,
+   "temp_C": 41.0,
+   "throughput": 582.7115,
+   "limited_frac": 0.0,
+   "limit_reasons": {},
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 87.33795,
+   "power_limit_W": 250.0,
+   "s": 0.6205992509363296
+  },
+  {
+   "kind": "compute",
+   "path": "data\\calibration\\20261026T205930_compute_clk=2017",
+   "name": "20261026T205930_compute_clk=2017",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 2002.0,
+   "clock_cv": 0.0016559029215127195,
+   "label_clock_MHz": 2017.0,
+   "s_nvml": 0.6478964401294498,
+   "power_W": 131.991,
+   "temp_C": 53.0,
+   "throughput": 47.644149999999996,
+   "limited_frac": 1.0,
+   "limit_reasons": {
+    "sw_power_cap": 1.0
+   },
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 132.2132,
+   "power_limit_W": 250.0,
+   "s": 0.749812734082397
+  },
+  {
+   "kind": "memory",
+   "path": "data\\calibration\\20261026T210032_memory_clk=2017",
+   "name": "20261026T210032_memory_clk=2017",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 2002.0,
+   "clock_cv": 0.0,
+   "label_clock_MHz": 2017.0,
+   "s_nvml": 0.6478964401294498,
+   "power_W": 91.638,
+   "temp_C": 43.0,
+   "throughput": 584.019,
+   "limited_frac": 0.0,
+   "limit_reasons": {},
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 91.93225,
+   "power_limit_W": 250.0,
+   "s": 0.749812734082397
+  },
+  {
+   "kind": "compute",
+   "path": "data\\calibration\\20261026T210135_compute_clk=2347",
+   "name": "20261026T210135_compute_clk=2347",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 2340.0,
+   "clock_cv": 0.001308532183296877,
+   "label_clock_MHz": 2347.0,
+   "s_nvml": 0.7572815533980582,
+   "power_W": 168.498,
+   "temp_C": 60.0,
+   "throughput": 55.35595,
+   "limited_frac": 0.91,
+   "limit_reasons": {
+    "sw_power_cap": 0.91
+   },
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 170.4314,
+   "power_limit_W": 250.0,
+   "s": 0.8764044943820225
+  },
+  {
+   "kind": "memory",
+   "path": "data\\calibration\\20261026T210237_memory_clk=2347",
+   "name": "20261026T210237_memory_clk=2347",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 2340.0,
+   "clock_cv": 0.0,
+   "label_clock_MHz": 2347.0,
+   "s_nvml": 0.7572815533980582,
+   "power_W": 97.995,
+   "temp_C": 47.0,
+   "throughput": 581.554,
+   "limited_frac": 0.0,
+   "limit_reasons": {},
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 98.302,
+   "power_limit_W": 250.0,
+   "s": 0.8764044943820225
+  },
+  {
+   "kind": "compute",
+   "path": "data\\calibration\\20261026T210340_compute_clk=2685",
+   "name": "20261026T210340_compute_clk=2685",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 2670.0,
+   "clock_cv": 0.0014140914844110789,
+   "label_clock_MHz": 2685.0,
+   "s_nvml": 0.8640776699029126,
+   "power_W": 247.72750000000002,
+   "temp_C": 72.0,
+   "throughput": 63.079800000000006,
+   "limited_frac": 0.0,
+   "limit_reasons": {},
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 250.04555,
+   "power_limit_W": 250.0,
+   "s": 1.0
+  },
+  {
+   "kind": "memory",
+   "path": "data\\calibration\\20261026T210442_memory_clk=2685",
+   "name": "20261026T210442_memory_clk=2685",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 2677.0,
+   "clock_cv": 0.0,
+   "label_clock_MHz": 2685.0,
+   "s_nvml": 0.8663430420711974,
+   "power_W": 116.642,
+   "temp_C": 51.0,
+   "throughput": 551.2170000000001,
+   "limited_frac": 0.0,
+   "limit_reasons": {},
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 118.35695,
+   "power_limit_W": 250.0,
+   "s": 1.002621722846442
+  }
+ ],
+ "fits": {
+  "beta_compute": {
+   "ok": true,
+   "value": 0.9830328266120814,
+   "se": 0.004464978812446927,
+   "n": 5,
+   "r2": 0.9999381133263365,
+   "method": "log-log least squares of median throughput vs median SM clock / max clock"
+  },
+  "beta_memory": {
+   "ok": true,
+   "value": -0.05570950304563097,
+   "se": 0.04026529367244908,
+   "n": 5,
+   "r2": 0.38952944575833426,
+   "method": "log-log least squares of median throughput vs median SM clock / max clock"
+  },
+  "power_vs_clock": {
+   "ok": true,
+   "A_W": 79.74109678504655,
+   "P_dyn_W": 163.2150314357917,
+   "v_min_ratio": 0.30000000000000004,
+   "v_min_ratio_se": 0.18484999967235427,
+   "n": 5,
+   "excluded_s": [],
+   "s_range": [
+    0.5,
+    1.0
+   ],
+   "method": "P = A + P_d * s * v(s)^2 with v linear between s_min = 0.5 and 1 (registry form); temperature differences between sessions are not removed"
+  },
+  "leakage": {
+   "ok": true,
+   "kappa": 0.1999999999999999,
+   "kappa_se": 0.05612307898208974,
+   "L_ref_W": 5.494882152176568,
+   "L_ref_se": 0.30292917693612265,
+   "c_W": 128.0927434821208,
+   "leak_fraction_at_ref": 0.041133167283166454,
+   "n": 5981,
+   "T_range_C": [
+    48.0,
+    57.0
+   ],
+   "clock_MHz": 1995.0,
+   "resid_std_W": 2.0984388482899106,
+   "method": "P(T) = c + L*exp(kappa*(T-60)) at constant clock and load during warm-up; assumes the temperature-dependent part of board power is leakage (fan and VR losses are not separated)"
+  }
+ },
+ "overrides": {
+  "beta_compute": {
+   "value": 0.983,
+   "se": 0.004464978812446927,
+   "evidence": "B"
+  },
+  "beta_memory": {
+   "value": -0.0557,
+   "se": 0.04026529367244908,
+   "evidence": "B"
+  },
+  "v_min_ratio": {
+   "value": 0.3,
+   "se": 0.18484999967235427,
+   "evidence": "B"
+  },
+  "kappa_leak": {
+   "value": 0.2,
+   "se": 0.05612307898208974,
+   "evidence": "B"
+  },
+  "p_leak_ref": {
+   "value": 22.74,
+   "se": null,
+   "evidence": "E",
+   "note": "measured leak fraction 0.041 at 60 C scaled to the simulated accelerator"
+  }
+ },
+ "notes": [
+  "20261026T204001_warmup_clk=2017: clock held down by a limit in 100% of samples (power cap 100%)",
+  "20261026T205519_compute_clk=1342: clock held down by a limit in 100% of samples (power cap 100%)",
+  "20261026T205725_compute_clk=1680: clock held down by a limit in 100% of samples (power cap 100%)",
+  "20261026T205930_compute_clk=2017: clock held down by a limit in 100% of samples (power cap 100%)",
+  "20261026T210135_compute_clk=2347: clock held down by a limit in 91% of samples (power cap 91%)",
+  "beta_memory = -0.0557 lies outside the registry range [0.15, 0.6] swept in E002",
+  "v_min_ratio = 0.3 lies outside the registry range [0.6, 0.85] swept in E002",
+  "kappa_leak = 0.2 lies outside the registry range [0.005, 0.04] swept in E002",
+  "p_leak_ref = 22.74 lies outside the registry range [30.0, 180.0] swept in E002"
+ ],
+ "clock_reference": {
+  "f_ref_MHz": 2670.0,
+  "nvml_max_sm_clock_MHz": 3090.0,
+  "method": "s = median SM clock / f_ref, f_ref = highest steady median SM clock among compute sessions"
+ }
+}
