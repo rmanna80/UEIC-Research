@@ -1,6 +1,6 @@
 # UEIC · Phase 1 results (generated)
 
-Generated 2026-10-26T18:23:40+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `3ba633ce79bc9bcf…`. Hash-chain check: **OK** (1791 finalised runs verified).
+Generated 2026-10-26T19:18:11+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `ed0113f3c27d694d…`. Hash-chain check: **OK** (2861 finalised runs verified).
 
 > **Every number on this page is a simulator output** (provenance `simulator_output`) and is conditional on the parameter registry (`04_assumptions_register.md`), most of which is class E/F. None of it is a measurement of real hardware. Energy boundary: grid → conversion → accelerators + pump + fans + chiller (see `00_problem_statement.md`).
 
@@ -14,6 +14,9 @@ Generated 2026-10-26T18:23:40+00:00 by `python -m ueic report` from `results/uei
 | E003 | **partly supported** | Saves below break-even: yes; costs above it: yes; energy saving smaller than work saving: no; false accepts lower success: yes. |
 | E004 | **not met** | Worst change dt 1 s vs 0.5 s: fixed 0.02%, joint 0.52% (criterion < 0.5%). |
 | E005 | **partly supported** | Leakage/cold-plate twin errors pushed joint over the 80 °C target in 2/4 cases (S3_hot) and shrank its advantage over independent in 3/4; hardware protection held peak temperature near 85 °C. |
+| E006 | **partly supported** | H1 joint < independent under both dynamic plants in all scenarios: yes. H2 joint over target with the slow plant: yes (S6_degraded_cooling). H3 fixed policy unaffected: yes. H4 joint_robust never worse than joint on overheating: no (S6_degraded_cooling/dyn_150kg_0.25Kmin, S6_degraded_cooling/dyn_40kg_1Kmin). |
+| E007 | **supported, but suppression not the cause** | Switching cut by a 5% threshold: S1_moderate 16.5%, S3_hot 24.5% (H1 <25%: yes). Worst dt-sensitivity at 2%: S1_moderate 0.39%, S3_hot 0.38%; with no threshold: S1_moderate 0.39%, S3_hot 0.38%. Energy cost of 2%: <= 0.3%. |
+| E008 | **partly supported** | Where joint overheated (2 cases) the correction cut chip-seconds over target by 85%, 84% with no throttling (H1: yes). Not confirmed no-worse than independent in S3_hot/high_leak|twin_low_leak (H2: no). Within 0.5% of joint with a correct twin (H3: yes). |
 
 ## E004 · Time-step convergence
 
@@ -34,7 +37,7 @@ Experiment `E004-20261026T180548-d4faa6`. Pre-registered criterion: grid energy 
 | joint | 1 | dt=1.0 | +0.524% |
 | joint | 1 | dt=2.0 | +1.510% |
 
-Worst |change| at dt = 1 s: joint 0.524%, fixed 0.020%. **Criterion NOT met.**
+Worst |change| at dt = 1 s: fixed 0.020%, joint 0.524%. **Criterion NOT met.**
 
 ## E001 · Policy benchmark
 
@@ -283,6 +286,127 @@ Experiment `E005-20261026T181138-bbb7db`: 120 runs, 0 failed. 5 seeds.
 | S3_hot | poor_chiller|twin_correct | -0.27% [-0.38%, -0.17%] | detectable reduction, not confirmed >= threshold | 0 | 367 | 0 | 8 | 76.6 | 85.1 |
 | S3_hot | poor_chiller|twin_optimistic | -0.30% [-0.37%, -0.22%] | detectable reduction, not confirmed >= threshold | 0 | 369 | 0 | 8 | 76.6 | 85.1 |
 
+## E006 · Dynamic coolant loop (v2)
+
+Experiment `E006-20261026T190821-9afd6b`: 360 runs, 0 failed; supersedes `E006-20261026T184900-8dd0d3` (cold-start confound, see research log). Runs with loop-storage change above 0.5% of grid energy: 13.
+
+![E006](../results/figures/e006_joint_vs_independent.png)
+
+| Scenario | Plant | Joint vs independent [95% CI] | Verdict |
+|---|---|---|---|
+| S1_moderate | quasi_steady | -0.65% [-0.67%, -0.63%] | detectable reduction, not confirmed >= threshold |
+| S1_moderate | dyn_40kg_1Kmin | -0.53% [-0.56%, -0.51%] | detectable reduction, not confirmed >= threshold |
+| S1_moderate | dyn_150kg_0.25Kmin | -0.47% [-0.50%, -0.45%] | detectable reduction, not confirmed >= threshold |
+| S3_hot | quasi_steady | -0.38% [-0.43%, -0.34%] | detectable reduction, not confirmed >= threshold |
+| S3_hot | dyn_40kg_1Kmin | -0.39% [-0.43%, -0.35%] | detectable reduction, not confirmed >= threshold |
+| S3_hot | dyn_150kg_0.25Kmin | -0.39% [-0.43%, -0.36%] | detectable reduction, not confirmed >= threshold |
+| S6_degraded_cooling | quasi_steady | -1.39% [-1.56%, -1.21%] | meaningful reduction (CI beyond threshold) |
+| S6_degraded_cooling | dyn_40kg_1Kmin | -1.49% [-1.68%, -1.29%] | meaningful reduction (CI beyond threshold) |
+| S6_degraded_cooling | dyn_150kg_0.25Kmin | -1.11% [-1.30%, -0.93%] | detectable reduction, not confirmed >= threshold |
+
+| Scenario | Plant | Policy | chip·s > 80 °C | chip·s throttled | Peak T_j (°C) | Loop storage (% of grid) |
+|---|---|---|---|---|---|---|
+| S1_moderate | dyn_150kg_0.25Kmin | fixed | 0 | 0 | 52.0 | +0.00% |
+| S1_moderate | dyn_150kg_0.25Kmin | independent | 0 | 0 | 69.4 | +0.21% |
+| S1_moderate | dyn_150kg_0.25Kmin | joint | 0 | 0 | 61.3 | +0.00% |
+| S1_moderate | dyn_150kg_0.25Kmin | joint_robust | 0 | 0 | 61.3 | +0.00% |
+| S1_moderate | dyn_40kg_1Kmin | fixed | 0 | 0 | 52.0 | +0.00% |
+| S1_moderate | dyn_40kg_1Kmin | independent | 0 | 0 | 69.4 | +0.20% |
+| S1_moderate | dyn_40kg_1Kmin | joint | 0 | 0 | 61.3 | +0.00% |
+| S1_moderate | dyn_40kg_1Kmin | joint_robust | 0 | 0 | 61.3 | +0.00% |
+| S1_moderate | quasi_steady | fixed | 0 | 0 | 52.0 | +0.00% |
+| S1_moderate | quasi_steady | independent | 0 | 0 | 69.4 | +0.00% |
+| S1_moderate | quasi_steady | joint | 0 | 0 | 61.3 | +0.00% |
+| S1_moderate | quasi_steady | joint_robust | 0 | 0 | 61.3 | +0.00% |
+| S3_hot | dyn_150kg_0.25Kmin | fixed | 0 | 0 | 52.0 | +0.00% |
+| S3_hot | dyn_150kg_0.25Kmin | independent | 415 | 6 | 85.0 | -0.01% |
+| S3_hot | dyn_150kg_0.25Kmin | joint | 0 | 0 | 76.6 | -0.00% |
+| S3_hot | dyn_150kg_0.25Kmin | joint_robust | 0 | 0 | 76.6 | -0.00% |
+| S3_hot | dyn_40kg_1Kmin | fixed | 0 | 0 | 52.0 | +0.00% |
+| S3_hot | dyn_40kg_1Kmin | independent | 408 | 6 | 85.1 | -0.00% |
+| S3_hot | dyn_40kg_1Kmin | joint | 0 | 0 | 76.6 | -0.00% |
+| S3_hot | dyn_40kg_1Kmin | joint_robust | 0 | 0 | 76.6 | -0.00% |
+| S3_hot | quasi_steady | fixed | 0 | 0 | 52.0 | +0.00% |
+| S3_hot | quasi_steady | independent | 433 | 11 | 85.1 | -0.01% |
+| S3_hot | quasi_steady | joint | 0 | 0 | 76.6 | -0.01% |
+| S3_hot | quasi_steady | joint_robust | 0 | 0 | 76.6 | -0.01% |
+| S6_degraded_cooling | dyn_150kg_0.25Kmin | fixed | 0 | 0 | 69.7 | +0.00% |
+| S6_degraded_cooling | dyn_150kg_0.25Kmin | independent | 1256 | 152 | 85.5 | +0.85% |
+| S6_degraded_cooling | dyn_150kg_0.25Kmin | joint | 421 | 0 | 81.1 | -0.04% |
+| S6_degraded_cooling | dyn_150kg_0.25Kmin | joint_robust | 464 | 0 | 82.4 | -0.04% |
+| S6_degraded_cooling | dyn_40kg_1Kmin | fixed | 0 | 0 | 69.7 | +0.00% |
+| S6_degraded_cooling | dyn_40kg_1Kmin | independent | 1168 | 139 | 85.5 | -0.27% |
+| S6_degraded_cooling | dyn_40kg_1Kmin | joint | 131 | 0 | 80.5 | -0.06% |
+| S6_degraded_cooling | dyn_40kg_1Kmin | joint_robust | 176 | 0 | 81.4 | -0.05% |
+| S6_degraded_cooling | quasi_steady | fixed | 0 | 0 | 69.7 | +0.00% |
+| S6_degraded_cooling | quasi_steady | independent | 1182 | 171 | 85.5 | +0.00% |
+| S6_degraded_cooling | quasi_steady | joint | 0 | 0 | 78.9 | +0.00% |
+| S6_degraded_cooling | quasi_steady | joint_robust | 0 | 0 | 78.9 | +0.00% |
+
+## E007 · Move suppression
+
+Experiment `E007-20261026T185421-9da2d0`: 140 runs, 0 failed. Joint controller only.
+
+| Scenario | Threshold | dt (s) | Action changes | Clock | Flow | Supply temp | Energy per success (kJ) |
+|---|---|---|---|---|---|---|---|
+| S1_moderate | 0.5% | 1 | 102.4 | 102.4 | 37.8 | 0.0 | 10.193 |
+| S1_moderate | 2.0% | 0.5 | 101.1 | 101.1 | 35.8 | 0.0 | 10.172 |
+| S1_moderate | 2.0% | 1 | 101.0 | 101.0 | 37.4 | 0.0 | 10.193 |
+| S1_moderate | 5.0% | 0.5 | 88.0 | 88.0 | 34.8 | 0.0 | 10.208 |
+| S1_moderate | 5.0% | 1 | 87.0 | 87.0 | 36.8 | 0.0 | 10.235 |
+| S1_moderate | 0.0% | 0.5 | 104.3 | 103.1 | 37.0 | 0.0 | 10.171 |
+| S1_moderate | 0.0% | 1 | 104.2 | 103.0 | 39.0 | 0.0 | 10.192 |
+| S3_hot | 0.5% | 1 | 105.2 | 102.6 | 32.4 | 1.0 | 10.984 |
+| S3_hot | 2.0% | 0.5 | 103.3 | 101.1 | 29.9 | 1.0 | 10.963 |
+| S3_hot | 2.0% | 1 | 103.6 | 101.0 | 32.2 | 1.0 | 10.987 |
+| S3_hot | 5.0% | 0.5 | 89.8 | 87.6 | 28.7 | 1.0 | 11.009 |
+| S3_hot | 5.0% | 1 | 89.3 | 86.7 | 31.6 | 1.0 | 11.037 |
+| S3_hot | 0.0% | 0.5 | 118.1 | 103.3 | 41.9 | 1.2 | 10.957 |
+| S3_hot | 0.0% | 1 | 118.3 | 103.2 | 43.8 | 1.2 | 10.980 |
+
+| Scenario | Threshold | Energy vs no threshold [95% CI] |
+|---|---|---|
+| S1_moderate | thr=0.005|dt=1.0 | +0.003% [-0.007%, +0.012%] |
+| S3_hot | thr=0.005|dt=1.0 | +0.034% [+0.025%, +0.042%] |
+| S1_moderate | thr=0.02|dt=1.0 | +0.006% [-0.017%, +0.029%] |
+| S3_hot | thr=0.02|dt=1.0 | +0.055% [+0.034%, +0.077%] |
+| S1_moderate | thr=0.05|dt=1.0 | +0.416% [+0.116%, +0.715%] |
+| S3_hot | thr=0.05|dt=1.0 | +0.517% [+0.207%, +0.827%] |
+| S1_moderate | thr=0.0|dt=1.0 | +0.000% [+0.000%, +0.000%] |
+| S3_hot | thr=0.0|dt=1.0 | +0.000% [+0.000%, +0.000%] |
+
+| Scenario | Threshold | Worst per-seed change dt 1 s vs 0.5 s | Mean | Seeds |
+|---|---|---|---|---|
+| S1_moderate | 0.0% | 0.388% | 0.215% | 10 |
+| S3_hot | 0.0% | 0.382% | 0.219% | 10 |
+| S1_moderate | 2.0% | 0.387% | 0.211% | 10 |
+| S3_hot | 2.0% | 0.382% | 0.217% | 10 |
+| S1_moderate | 5.0% | 0.524% | 0.267% | 10 |
+| S3_hot | 5.0% | 0.500% | 0.263% | 10 |
+
+## E008 · Self-correcting joint control under twin mismatch
+
+Experiment `E008-20261026T185711-ac8eb3`: 210 runs, 0 failed. 5 seeds.
+
+![E008](../results/figures/e008_overheating.png)
+
+| Scenario | Truth \| twin | Self-correcting vs independent | vs joint | Joint vs independent | chip·s > 80 °C (I / J / J-sc) | throttled (I / J / J-sc) |
+|---|---|---|---|---|---|---|
+| S1_moderate | default | -0.68% [-0.72%, -0.64%] | +0.00% [+0.00%, +0.00%] | -0.68% [-0.72%, -0.64%] | 0 / 0 / 0 | 0 / 0 / 0 |
+| S1_moderate | fouled_plate|twin_clean | -1.28% [-1.37%, -1.19%] | +0.00% [+0.00%, +0.00%] | -1.28% [-1.37%, -1.19%] | 398 / 0 / 0 | 0 / 0 / 0 |
+| S1_moderate | fouled_plate|twin_correct | -0.63% [-0.74%, -0.52%] | +0.00% [+0.00%, +0.00%] | -0.63% [-0.74%, -0.52%] | 2 / 0 / 0 | 0 / 0 / 0 |
+| S1_moderate | high_leak|twin_correct | -2.20% [-2.41%, -1.98%] | +0.00% [+0.00%, +0.00%] | -2.20% [-2.41%, -1.98%] | 0 / 0 / 0 | 0 / 0 / 0 |
+| S1_moderate | high_leak|twin_low_leak | -1.58% [-1.83%, -1.32%] | +0.00% [+0.00%, +0.00%] | -1.58% [-1.83%, -1.32%] | 0 / 0 / 0 | 0 / 0 / 0 |
+| S1_moderate | poor_chiller|twin_correct | -0.68% [-0.72%, -0.64%] | +0.00% [+0.00%, +0.00%] | -0.68% [-0.72%, -0.64%] | 0 / 0 / 0 | 0 / 0 / 0 |
+| S1_moderate | poor_chiller|twin_optimistic | -0.68% [-0.72%, -0.64%] | +0.00% [+0.00%, +0.00%] | -0.68% [-0.72%, -0.64%] | 0 / 0 / 0 | 0 / 0 / 0 |
+| S3_hot | default | -0.33% [-0.40%, -0.27%] | +0.00% [+0.00%, +0.01%] | -0.33% [-0.40%, -0.27%] | 369 / 0 / 0 | 8 / 0 / 0 |
+| S3_hot | fouled_plate|twin_clean | -0.19% [-0.38%, -0.01%] | +0.14% [+0.06%, +0.22%] | -0.34% [-0.48%, -0.20%] | 4420 / 2341 / 353 | 357 / 9 / 0 |
+| S3_hot | fouled_plate|twin_correct | -1.01% [-1.37%, -0.66%] | +0.06% [+0.01%, +0.11%] | -1.07% [-1.42%, -0.73%] | 878 / 0 / 0 | 120 / 0 / 0 |
+| S3_hot | high_leak|twin_correct | -3.90% [-4.26%, -3.54%] | +0.00% [+0.00%, +0.00%] | -3.90% [-4.26%, -3.54%] | 682 / 0 / 0 | 89 / 0 / 0 |
+| S3_hot | high_leak|twin_low_leak | +0.07% [-0.17%, +0.31%] | -0.63% [-0.79%, -0.46%] | +0.70% [+0.31%, +1.09%] | 680 / 4021 / 624 | 90 / 314 / 0 |
+| S3_hot | poor_chiller|twin_correct | -0.27% [-0.38%, -0.17%] | +0.00% [+0.00%, +0.01%] | -0.27% [-0.38%, -0.17%] | 367 / 0 / 0 | 8 / 0 / 0 |
+| S3_hot | poor_chiller|twin_optimistic | -0.29% [-0.37%, -0.22%] | +0.00% [+0.00%, +0.01%] | -0.30% [-0.37%, -0.22%] | 369 / 0 / 0 | 8 / 0 / 0 |
+
 ## Experiment register (including superseded and failed)
 
 | Id | Status | Runs | Title |
@@ -296,3 +420,7 @@ Experiment `E005-20261026T181138-bbb7db`: 120 runs, 0 failed. 5 seeds.
 | `E005-20261026T181138-bbb7db` | completed | {"failed": 0, "runs": 120} | Robustness of model-based control to digital-twin mismatch |
 | `E002-20261026T181319-d3c503` | completed | {"failed": 0, "runs": 459} | One-at-a-time sensitivity of policy comparisons to uncertain assumptions |
 | `E001-20261026T181652-ada586` | completed | {"failed": 0, "runs": 300} | Policy benchmark: fixed vs compute-only vs cooling-only vs independent vs joint |
+| `E006-20261026T184900-8dd0d3` | completed | {"failed": 0, "runs": 360} | Joint control under a dynamic coolant loop (thermal mass + setpoint ramp limits) |
+| `E007-20261026T185421-9da2d0` | completed | {"failed": 0, "runs": 140} | Move suppression for the joint controller: switching, energy cost, and time-step sensitivity |
+| `E008-20261026T185711-ac8eb3` | completed | {"failed": 0, "runs": 210} | Self-correcting joint control under digital-twin mismatch |
+| `E006-20261026T190821-9afd6b` | completed | {"failed": 0, "runs": 360} | Joint control under a dynamic coolant loop (thermal mass + setpoint ramp limits) |

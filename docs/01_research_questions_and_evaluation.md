@@ -44,5 +44,9 @@
 | E003 | Routing cascade vs analytic break-even | 7 variants × 2 policies × 10 seeds |
 | E004 | Time-step convergence | 4 dt × 2 policies × 2 seeds |
 | E005 | Digital-twin mismatch robustness | 6 variants × 2 policies × 2 scenarios × 5 seeds |
+| E006 | Dynamic coolant loop (v2 after a confound in v1) | 3 plant models × 4 policies × 3 scenarios × 10 seeds |
+| E007 | Move suppression and time-step sensitivity | 7 threshold/dt variants × 2 scenarios × 10 seeds (joint only) |
+| E008 | Self-correcting joint control under twin mismatch | 7 cases × 3 policies × 2 scenarios × 5 seeds |
+| M001 | GPU calibration measurement (when run on real hardware) | measurement experiment, see `09` |
 
 Full pre-registered specs, including hypotheses, variables, controls and limitations, are in `experiments/*.json`. They are frozen in the database at registration.

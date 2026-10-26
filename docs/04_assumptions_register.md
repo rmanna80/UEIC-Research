@@ -23,9 +23,12 @@ Classes E and F are *not measurements*. Every E/F value with a range is swept in
 | loop | `flow_design_lpm` | 1.2 | L/min per accelerator | E |  | Gives ~8 K coolant rise at ~650 W (Q = m_dot*cp*dT) |
 | loop | `flow_max_factor` | 2 | - | G |  | Highest allowed flow / design flow |
 | loop | `flow_min_factor` | 0.5 | - | G |  | Lowest allowed flow / design flow |
+| loop | `loop_mass_kg` | 0 | kg water | G |  | 0 selects the quasi-steady plant of E001-E005 (no loop thermal mass). E006 uses 40 kg and 150 kg; those values are placeholders (class F) for a CDU tank + piping, not measurements |
 | loop | `m_dp` | 1.8 | - | E | 1 – 2 | dP ~ flow**m. m=1 laminar (Hagen-Poiseuille), ~1.75-2 turbulent (Darcy-Weisbach) |
 | loop | `t_sup_max` | 45 | degC | G |  | Highest supply temperature allowed; ASHRAE class W45 upper supply limit (reference_values.md) |
 | loop | `t_sup_min` | 12 | degC | G |  | Lowest supply temperature the plant can deliver |
+| loop | `tsup_ramp_K_per_min` | 0 | K/min | G |  | Max rate at which the plant can move its outlet temperature. 0 = instantaneous (E001-E005). E006 uses 1.0 and 0.25 (class F placeholders) |
+| loop | `warm_start` | 0 | 0/1 | G |  | 1 = controllers start with the demand estimate and chip-heat estimate of the initial offered load, as if the system had been running, so each policy starts in its own steady state. 0 = cold start with zero demand estimate (E001-E005, E006 v1). Needed with a loop thermal mass: in E006 v1 a cold start let the first (zero-demand) decision set the initial tank temperature, a confound found in analysis |
 | physics | `k_boltzmann` | 1.38065e-23 | J/K | A |  | SI exact value (NIST); see reference_values.md |
 | physics | `water_cp` | 4180 | J/(kg*K) | A |  | Liquid water near 25 C. NIST WebBook (Shomate eq.) gives ~4.184 J/(g K) at 25 C and ~4.178 at 40-45 C; see reference_values.md |
 | physics | `water_rho` | 997 | kg/m^3 | A |  | Density of liquid water near 25 C |
@@ -39,6 +42,8 @@ Classes E and F are *not measurements*. Every E/F value with a range is swept in
 | plant | `t_reuse_min` | 45 | degC | F | 35 – 60 | Return temperature needed for heat to count as reusable |
 | policy | `fixed_flow` | 1 | x design | G |  | Flow factor of the fixed baseline policy |
 | policy | `fixed_t_sup` | 18 | degC | G | 12 – 27 | Supply temperature of the fixed (conventional) baseline; within ASHRAE W17/W27-class supply ranges |
+| policy | `joint_bias_gain` | 0.5 | - | G |  | EWMA gain of the joint_robust controller's temperature-bias estimate (measured minus predicted peak junction temperature, clipped at 0); used only by joint_robust |
+| policy | `joint_switch_rel` | 0 | - | G |  | Move suppression: the joint controller keeps its previous action unless the new optimum is predicted to use this fraction less grid power (0 = always switch, as in E001-E005) |
 | policy | `t_assume_compute` | 65 | degC | G |  | Junction temperature a compute-only controller (no thermal model) assumes |
 | policy | `t_sup_step` | 1 | K | G |  | Supply-temperature grid resolution for optimizing controllers |
 | routing | `frac_easy` | 0.6 | - | F | 0.2 – 0.9 | Fraction of tasks a small model can handle |
@@ -71,4 +76,4 @@ Classes E and F are *not measurements*. Every E/F value with a range is swept in
 | workload | `slo_factor` | 5 | - | G |  | Latency SLO multiplier on nominal work |
 | workload | `u_max` | 0.85 | - | G |  | Max planned utilization (queueing headroom) for optimizing controllers |
 
-Counts by class: A: 3, E: 8, F: 27, G: 24
+Counts by class: A: 3, E: 8, F: 27, G: 29

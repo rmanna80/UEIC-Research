@@ -2,7 +2,7 @@
 
 A research platform for one question: **can an AI computing system lower the facility energy per successful task by coordinating what it computes (clock frequency, model routing) with how it is cooled (coolant temperature, flow, free cooling versus chilling), and how much of that needs joint rather than independent control?**
 
-This package covers **Phase 0** (problem definition, evaluation criteria, architecture, assumptions, risks, literature matrix) and **Phase 1** (a validated simulator, five control policies, a pre-registered benchmark, sensitivity and robustness studies, a tamper-evident experiment store, a report and a dashboard). Everything here is simulation. No number in it is a hardware measurement.
+This repository covers **Phase 0** (problem definition, evaluation criteria, architecture, assumptions, risks, literature matrix), **Phase 1** (a validated simulator, a pre-registered benchmark, sensitivity and robustness studies, a tamper-evident experiment store, report and dashboard), **Phase 2** (a local API and interactive 3-D lab), **Phase 3** (dynamic coolant loop, move suppression, a self-correcting joint controller; experiments E006–E008), and **Phase 4 tooling** (read-only GPU telemetry and calibration, ready to run on your hardware). Every result so far is simulation; no number is a hardware measurement yet.
 
 ## Start here
 
@@ -26,7 +26,7 @@ py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
-python -m pytest                                   # 45 validation tests, ~15 s
+python -m pytest                                   # 73 tests, ~30 s
 python -m ueic verify                              # check the results database has not been altered
 python -m ueic params                              # print the assumptions register
 ```

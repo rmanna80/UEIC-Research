@@ -187,6 +187,58 @@ def fig_e003(R, out):
     plt.close(fig)
 
 
+def fig_e006(R, out):
+    e = R["E006"]
+    rows = e["joint_vs_independent"]
+    scen = sorted({r["scenario"] for r in rows})
+    plants = ["quasi_steady", "dyn_40kg_1Kmin", "dyn_150kg_0.25Kmin"]
+    names = {"quasi_steady": "Quasi-steady plant", "dyn_40kg_1Kmin": "40 kg loop, 1 K/min", "dyn_150kg_0.25Kmin": "150 kg loop, 0.25 K/min"}
+    fig, ax = plt.subplots(figsize=(10, 3.8), dpi=150)
+    fig.patch.set_facecolor(SURF)
+    _style(ax)
+    for j, pl in enumerate(plants):
+        for i, sc in enumerate(scen):
+            r = next((x for x in rows if x["scenario"] == sc and x["plant"] == pl), None)
+            if not r:
+                continue
+            x = i + (j - 1) * 0.22
+            ax.plot([x, x], [r["lo"] * 100, r["hi"] * 100], color=SLOTS[j], linewidth=2)
+            ax.scatter([x], [r["mean"] * 100], color=SLOTS[j], s=40, zorder=3, label=names[pl] if i == 0 else None,
+                       edgecolor=SURF, linewidth=1.5)
+    ax.axhline(0, color=AXIS, linewidth=1)
+    ax.axhline(-R["threshold"] * 100, color=MUTED, linewidth=1, linestyle="--")
+    ax.text(-0.45, -R["threshold"] * 100 + 0.04, "practical threshold (1%)", color=MUTED, fontsize=8, ha="left", va="bottom")
+    ax.set_xticks(range(len(scen)), [s_.split("_", 1)[1].replace("_", " ") for s_ in scen])
+    ax.set_ylabel("Joint vs independent (%)", color=INK2, fontsize=9)
+    ax.legend(frameon=False, fontsize=8.5, loc="lower left", labelcolor=INK)
+    ax.set_title(f"E006 v{e['version']} · Joint vs independent energy per successful task under three plant models (mean, 95% CI, 10 seeds)",
+                 fontsize=10, color=INK, loc="left")
+    fig.tight_layout()
+    fig.savefig(out / "e006_joint_vs_independent.png", facecolor=SURF)
+    plt.close(fig)
+
+
+def fig_e008(R, out):
+    rows = [r for r in R["E008"]["rows"] if r["scenario"] == "S3_hot"]
+    pols = ["independent", "joint", "joint_robust"]
+    lab = {"independent": "Independent", "joint": "Joint", "joint_robust": "Joint, self-correcting"}
+    fig, ax = plt.subplots(figsize=(10, 3.8), dpi=150)
+    fig.patch.set_facecolor(SURF)
+    _style(ax)
+    x = np.arange(len(rows))
+    w = 0.26
+    for j, p in enumerate(pols):
+        v = [r[p]["over"] or 0 for r in rows]
+        ax.bar(x + (j - 1) * w, v, width=w * 0.92, color=SLOTS[[0, 4, 2][j]], label=lab[p], edgecolor=SURF, linewidth=1)
+    ax.set_xticks(x, [r["variant"].replace("|", "\n") for r in rows], fontsize=7.5)
+    ax.set_ylabel("Chip-seconds above 80 °C (mean of 5 seeds)", color=INK2, fontsize=9)
+    ax.legend(frameon=False, fontsize=8.5, loc="upper left", labelcolor=INK)
+    ax.set_title("E008 · Overheating under digital-twin mismatch, hot ambient (simulated)", fontsize=10, color=INK, loc="left")
+    fig.tight_layout()
+    fig.savefig(out / "e008_overheating.png", facecolor=SURF)
+    plt.close(fig)
+
+
 # ------------------------------------------------------------------------ markdown
 def md_assumptions(R) -> str:
     L = ["# 04 · Assumptions register", "",
@@ -342,6 +394,52 @@ def md_results(R) -> str:
                      f"{num(r['joint_peak_T_j_C'], 1)} | {num(r['independent_peak_T_j_C'], 1)} |")
         L.append("")
 
+    e6 = R.get("E006")
+    if e6:
+        L += [f"## E006 · Dynamic coolant loop (v{e6['version']})", "",
+              f"Experiment `{e6['id']}`: {e6['n_runs']} runs, {e6['n_failed']} failed"
+              + (f"; supersedes `{e6['supersedes']}` (cold-start confound, see research log)" if e6["supersedes"] else "")
+              + f". Runs with loop-storage change above 0.5% of grid energy: {e6['storage_warnings']}.", "",
+              "![E006](../results/figures/e006_joint_vs_independent.png)", "",
+              "| Scenario | Plant | Joint vs independent [95% CI] | Verdict |", "|---|---|---|---|"]
+        for r in e6["joint_vs_independent"]:
+            L.append(f"| {r['scenario']} | {r['plant']} | {ci(r, 2)} | {r['verdict']} |")
+        L += ["", "| Scenario | Plant | Policy | chip·s > 80 °C | chip·s throttled | Peak T_j (°C) | Loop storage (% of grid) |",
+              "|---|---|---|---|---|---|---|"]
+        for t in e6["thermal"]:
+            L.append(f"| {t['scenario']} | {t['plant']} | {t['policy']} | {num(t['over'], 0)} | {num(t['throttled'], 0)} | "
+                     f"{num(t['peak'], 1)} | {t['storage_pct']:+.2f}% |")
+        L.append("")
+    e7 = R.get("E007")
+    if e7:
+        L += ["## E007 · Move suppression", "", f"Experiment `{e7['id']}`: {e7['n_runs']} runs, {e7['n_failed']} failed. Joint controller only.", "",
+              "| Scenario | Threshold | dt (s) | Action changes | Clock | Flow | Supply temp | Energy per success (kJ) |",
+              "|---|---|---|---|---|---|---|---|"]
+        for x in e7["switching"]:
+            L.append(f"| {x['scenario']} | {x['threshold']:.1%} | {x['dt']:g} | {x['action_changes']:.1f} | {x['clock_changes']:.1f} | "
+                     f"{x['flow_changes']:.1f} | {x['tsup_changes']:.1f} | {x['E_per_success_kJ']:.3f} |")
+        L += ["", "| Scenario | Threshold | Energy vs no threshold [95% CI] |", "|---|---|---|"]
+        for x in e7["energy_vs_no_threshold"]:
+            L.append(f"| {x['scenario']} | {x['variant']} | {ci(x, 3)} |")
+        L += ["", "| Scenario | Threshold | Worst per-seed change dt 1 s vs 0.5 s | Mean | Seeds |", "|---|---|---|---|---|"]
+        for d in e7["dt_sensitivity"]:
+            L.append(f"| {d['scenario']} | {d['threshold']:.1%} | {d['max']:.3%} | {d['mean']:.3%} | {d['n']} |")
+        L.append("")
+    e8 = R.get("E008")
+    if e8:
+        L += ["## E008 · Self-correcting joint control under twin mismatch", "",
+              f"Experiment `{e8['id']}`: {e8['n_runs']} runs, {e8['n_failed']} failed. 5 seeds.", "",
+              "![E008](../results/figures/e008_overheating.png)", "",
+              "| Scenario | Truth \\| twin | Self-correcting vs independent | vs joint | Joint vs independent | chip·s > 80 °C (I / J / J-sc) | throttled (I / J / J-sc) |",
+              "|---|---|---|---|---|---|---|"]
+        for r in e8["rows"]:
+            c = lambda k: (f"{pct(r[k]['mean'], 2)} [{pct(r[k]['lo'], 2)}, {pct(r[k]['hi'], 2)}]" if r[k] else "n/a")
+            L.append(f"| {r['scenario']} | {r['variant']} | {c('joint_robust_vs_independent')} | {c('joint_robust_vs_joint')} | "
+                     f"{c('joint_vs_independent')} | {num(r['independent']['over'], 0)} / {num(r['joint']['over'], 0)} / "
+                     f"{num(r['joint_robust']['over'], 0)} | {num(r['independent']['throttled'], 0)} / {num(r['joint']['throttled'], 0)} / "
+                     f"{num(r['joint_robust']['throttled'], 0)} |")
+        L.append("")
+
     L += ["## Experiment register (including superseded and failed)", "",
           "| Id | Status | Runs | Title |", "|---|---|---|---|"]
     for x in R["experiments"]:
@@ -371,6 +469,10 @@ def build_report(store, root: Path) -> str:
         fig_e002_tornado(R, figs, "joint_vs_fixed")
     if R["E003"]:
         fig_e003(R, figs)
+    if R.get("E006"):
+        fig_e006(R, figs)
+    if R.get("E008"):
+        fig_e008(R, figs)
     docs = root / "docs"
     (docs / "RESULTS.md").write_text(md_results(R))
     (docs / "04_assumptions_register.md").write_text(md_assumptions(R))

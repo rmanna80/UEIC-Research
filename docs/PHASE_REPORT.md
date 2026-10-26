@@ -1,4 +1,4 @@
-# UEIC · Phase 0–1 report
+# UEIC · Phase report (Phases 0–4)
 
 *All results are simulator outputs. They are conditional on the assumptions register, most of which is class E/F. Exact figures, confidence intervals and the experiment IDs behind them are in `RESULTS.md`, which is generated from the database.*
 
@@ -56,6 +56,69 @@
 | **E005, half the cases** | Predicted thermal-target violations under every leakage or cold-plate twin error; they occurred only in hot ambient (2 of 4 cases). |
 | **Disclosure** | One smoke run preceded registration of the hypotheses and the 1% threshold (research log). |
 
+## Phases 2–4 (second session)
+
+### What was built
+
+* **Phase 3 simulator upgrades.**
+  * A coolant loop with thermal mass (a well-mixed supply tank) and a ramp limit on the plant's outlet temperature. The plant can no longer heat water: if the setpoint is above the return temperature, water passes through and the tank absorbs the heat.
+  * Move suppression for the joint controller (`joint_switch_rel`).
+  * A self-correcting joint controller (`joint_robust`). It compares measured peak junction temperature with its twin's prediction and tightens its own target by a one-sided running estimate of the error.
+  * A `warm_start` option (see failures).
+  * Action-change metrics and per-chip temperature series.
+  * With all new options at their defaults, every stored E001–E005 result still reproduces bitwise (a test reads the database).
+* **Phase 4 tooling (needs your GPU to run).**
+  * Read-only NVML telemetry. A test enforces that no setter is ever called.
+  * Calibration sessions and fits for clock sensitivity, the voltage–frequency form and leakage–temperature, each with standard errors and range checks.
+  * Ingestion into the store as a measurement experiment (`physical_measurement` provenance), and `run --calibration` to create traced, calibrated experiment versions.
+  * The fits are validated by recovering known parameters from synthetic sessions. Protocol: `09_calibration_protocol.md`.
+* **Phase 2 lab.**
+  * A local FastAPI service (127.0.0.1) over the store and the physics module.
+  * A Three.js lab with these views:
+    * a cooling system bound to the physics model, with assumption sliders and an exploded view;
+    * facility playback of stored runs, with per-chip temperatures and before/after comparison;
+    * an exploded accelerator package whose blocks link to model parameters;
+    * a conceptual photonic accelerator showing qualitative energy sinks;
+    * a per-run energy-flow diagram;
+    * an experiment manager that registers and runs experiments through the same append-only path.
+
+### What was tested
+
+73 tests in total (45 from Phases 0–1). New coverage:
+* bitwise legacy reproduction;
+* dynamic-loop energy closure, ramp bound, steady state against the twin, pass-through, and the quasi-steady limit;
+* the exact tank response;
+* move suppression;
+* self-correction under mismatch;
+* the warm-start regression;
+* telemetry read-only enforcement;
+* fit recovery on synthetic data;
+* API values against the twin and the store;
+* the experiment POST path.
+
+The lab was checked in a headless browser on desktop and phone, in light and dark themes, with no JavaScript errors.
+
+### What the results show (E006 v2, E007, E008; simulated)
+
+**7. A dynamic coolant loop does not change the picture.** Joint still beats independent control by 0.4–1.5% under both dynamic plants, every CI below zero (E006 v2). That is the same order as with the instant plant, and clears the 1% threshold only with degraded cooling.
+
+**8. Loop lag erodes joint control's thermal margin.** With degraded cold plates, the joint controller exceeded the 80 °C target under both dynamic plants: 131 chip·s with the 40 kg loop and 421 with the 150 kg loop, versus 0 with the instant plant. It never triggered throttling. It plans against a steady state the slow plant needs minutes to reach. Independent control was worse throughout (1,168–1,256 chip·s, 139–152 throttled).
+
+**9. Move suppression fixes nothing that needed fixing.** Most switching is clock changes that track demand; supply temperature barely moves. A 5% threshold cut switching by 16–25% but cost 0.4–0.5% energy. On 4-hour runs, time-step sensitivity was already under 0.5% without suppression (worst 0.39%), and a 2% threshold did not change it (E007). E004's 0.52% came from short 1-hour runs.
+
+**10. Feeding measured temperatures back restores most of the safety lost to a wrong twin.** In both cases where plain joint control overheated under mismatch, the self-correcting controller cut chip-seconds over target by 84–85% and eliminated throttling. With a correct twin it matched plain joint to within 0.06% (E008). Under the leakage mismatch it ended level with independent control on energy (+0.07%, CI −0.17% to +0.31%), where plain joint was 0.7% worse. It did **not** help with loop lag: it slightly increased overshoot in E006 (176 vs 131 and 464 vs 421 chip·s). Its correction targets model error, not delay.
+
+### What failed (second session)
+
+| Item | What happened |
+|---|---|
+| **E006 v1 confound** | With a cold start, the joint controller's first decision (zero demand) chose 12 °C, and the dynamic plant used that as the initial tank temperature. Joint runs then used up that stored coldness (up to 4.9 kWh per run), making joint look 4.8% better than independent in hot ambient. Found by examining v1's energy breakdown. Fixed with `warm_start` and a run warning when loop-storage change exceeds 0.5% of grid energy; regression-tested. Re-run as v2 with unchanged hypotheses; v1 is kept. |
+| **E006 H4** | Predicted the self-correcting controller would never overheat more than plain joint; false under loop lag (two cases). |
+| **E008 H2** | Predicted the self-correcting controller would be no worse than independent on energy in every case. In the hot leakage-mismatch case the CI (−0.17% to +0.31%) does not exclude a small loss. |
+| **E007 H2** | Met as written (worst 0.38–0.39% at a 2% threshold), but equally met with no threshold. Suppression is not the reason. |
+| **Residual storage** | 13 E006 v2 runs (independent control, degraded cooling) still changed loop storage by more than 0.5% of grid energy. Up to 0.85% of grid energy ends up stored rather than rejected, which flatters independent control by at most a few tenths of a percent. |
+| **Disclosures** | One exploratory move-suppression run and one self-correction unit test preceded registration of E007 and E008; E006 v1 results were seen before v2 was registered. All are stated in the specs. |
+
 ## Definition of done (charter §16), initial platform
 
 | # | Criterion | Status |
@@ -66,11 +129,11 @@
 | 4 | Functioning simulation | Done |
 | 5 | Reproducible baseline | Done (bitwise-reproducible per seed; bundles) |
 | 6 | ≥ 2 strategies compared | Done (5 policies, paired CIs) |
-| 7 | Energy and thermal models validated | Done analytically; **not** against hardware |
+| 7 | Energy and thermal models validated | Done analytically; **not** against hardware. Calibration tooling is ready (`09`) and needs a real GPU |
 | 8 | Output-quality requirements evaluated | Partly: SLO and placeholder correctness only |
 | 9 | Persistent, exportable logs | Done |
 | 10 | Dashboard shows real simulation outputs | Done (static, generated from the database) |
-| 11 | Interactive 3-D models linked to configuration | **Not done.** Phase 2. The 2-D cold-plate explorer bound to the physics module is a stopgap |
+| 11 | Interactive 3-D models linked to configuration | Done (Phase 2 lab). The cooling model is bound to the physics module, facility playback to stored runs; chip and photonic models are conceptual and labelled so; the energy-flow view is 2-D by choice |
 | 12 | Numerical assumptions visible | Done (`04`, dashboard) |
 | 13 | Failed experiments preserved | Done |
 | 14 | Simulated vs measured distinguished | Done (provenance on every metric) |
@@ -80,7 +143,7 @@
 
 ## What should happen next
 
-1. **Measure the parameters that drive the conclusions** on one real GPU with NVML, read-only: clock vs throughput vs power for a compute-bound and a memory-bound kernel, and power vs die temperature at fixed clock and load. This replaces the highest-impact class F/E values with class B values from your own hardware.
-2. **Add loop thermal mass and setpoint ramp limits**, then re-run E001 and E005.
-3. **Add move suppression to the joint controller** and re-run E004; quantify the thermal-safety benefit that remains.
-4. **Phase 2:** FastAPI over the store, then the 3-D cold-plate model bound to the same physics functions the explorer uses.
+1. **Run the calibration protocol on your GPU** (`09_calibration_protocol.md`), then `ueic calib ingest` and re-run E001 and E002 with `--calibration`. This is still the step with the highest information value. Nothing else can move the main conclusions off placeholder values.
+2. **Make the joint controller lag-aware.** Plan over a short horizon with the tank and ramp model instead of a steady state. E006 shows that steady-state planning is what costs its thermal margin under loop lag, and that the temperature-feedback correction does not fix this.
+3. **Remaining Phase 3 items:** routing decided jointly with clocks and cooling; a facility power-cap scenario; multi-node placement with migration cost.
+4. **Operation-level energy model** (FLOPs and bytes per prefill and decode phase), to estimate the data-movement share that gate 1 of the hardware feasibility assessment needs.

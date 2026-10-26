@@ -1,8 +1,8 @@
 {
- "generated_utc": "2026-10-26T18:23:40+00:00",
- "code_sha256": "3ba633ce79bc9bcf032562aeaf1524990aa22180a04ee3ae34323c8be003734f",
+ "generated_utc": "2026-10-26T19:18:11+00:00",
+ "code_sha256": "ed0113f3c27d694daa68b3900af15e34e3cec7e4c1ac8984946232169abb5ac6",
  "chain_ok": true,
- "chain_msg": "1791 finalised runs verified",
+ "chain_msg": "2861 finalised runs verified",
  "threshold": 0.01,
  "E001": {
   "id": "E001-20261026T181652-ada586",
@@ -127366,8 +127366,8 @@
    }
   ],
   "worst_abs_dt1_vs_dt05": {
-   "joint": 0.00523615383123377,
-   "fixed": 0.0001971718938484912
+   "fixed": 0.0001971718938484912,
+   "joint": 0.00523615383123377
   },
   "hypothesis_met": false
  },
@@ -127667,6 +127667,2241 @@
    }
   ],
   "n_runs": 120,
+  "n_failed": 0
+ },
+ "E006": {
+  "id": "E006-20261026T190821-9afd6b",
+  "version": 2,
+  "supersedes": "E006-20261026T184900-8dd0d3",
+  "spec": {
+   "baseline": "quasi-steady plant (identical to E001) within each policy; independent within each plant",
+   "configuration": "Loop mass and ramp values are class F placeholders (CDU tank + piping), not measurements.",
+   "controlled_variables": [
+    "workload per seed",
+    "registry defaults",
+    "4 h window + drain",
+    "dt = 1 s"
+   ],
+   "data_collection": "Simulator outputs written to the append-only SQLite store; every metric labelled with provenance; per-run config SHA-256 and code SHA-256 recorded; time series for selected seeds.",
+   "dependent_variables": [
+    "E_per_success_kJ (primary)",
+    "chip_s_over_target",
+    "chip_s_throttled",
+    "peak_T_j_C",
+    "slo_violations",
+    "E_loop_storage_kWh (must stay below 0.5% of grid energy)",
+    "action_changes"
+   ],
+   "design": {
+    "policies": [
+     "fixed",
+     "independent",
+     "joint",
+     "joint_robust"
+    ],
+    "scenarios": [
+     "S1_moderate",
+     "S3_hot",
+     "S6_degraded_cooling"
+    ],
+    "seeds": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9
+    ],
+    "timeseries_seeds": [
+     0
+    ],
+    "variants": [
+     {
+      "label": "quasi_steady",
+      "param_overrides": {
+       "loop_mass_kg": 0.0,
+       "tsup_ramp_K_per_min": 0.0,
+       "warm_start": 1.0
+      }
+     },
+     {
+      "label": "dyn_40kg_1Kmin",
+      "param_overrides": {
+       "loop_mass_kg": 40.0,
+       "tsup_ramp_K_per_min": 1.0,
+       "warm_start": 1.0
+      }
+     },
+     {
+      "label": "dyn_150kg_0.25Kmin",
+      "param_overrides": {
+       "loop_mass_kg": 150.0,
+       "tsup_ramp_K_per_min": 0.25,
+       "warm_start": 1.0
+      }
+     }
+    ]
+   },
+   "disclosure": "v1 (E006-20261026T184900-8dd0d3) ran with a cold start: the joint controller's first decision, made at zero demand, chose 12 C, and the dynamic plant used that setpoint as the initial tank temperature. The joint runs then drew down that stored coldness (up to 4.9 kWh of heat absorbed and never rejected), which overstated joint's advantage under dynamic plants. Found by examining v1's energy breakdown. v2 adds warm_start to every variant so each policy starts in its own steady state; hypotheses are unchanged. v1 results were seen before v2 was registered. Before v1, only unit tests ran on the dynamic plant.",
+   "evaluation_criteria": "Paired relative differences with 95% t-CI; practical threshold 1%. H2/H4 judged on seed means of chip-seconds above target.",
+   "hypothesis": "H1: joint uses less energy per successful task than independent (paired 95% CI below 0) in all 3 scenarios under both dynamic plants. H2: under the slow plant (150 kg, 0.25 K/min) joint records chip-seconds above the 80 C target in at least one scenario, because it plans against a steady state the plant cannot reach quickly. H3: the fixed policy's energy changes by less than 0.5% between quasi-steady and dynamic plants (its setpoint never moves). H4: joint_robust records no more chip-seconds above target than joint in every scenario and plant.",
+   "independent_variables": [
+    "plant model (quasi-steady, 40 kg + 1 K/min, 150 kg + 0.25 K/min)",
+    "policy (4 levels)",
+    "scenario (3 levels)"
+   ],
+   "key": "E006",
+   "known_limitations": "Single well-mixed tank; no pipe transport delay; ramp limit is symmetric; controllers still plan with a steady-state twin.",
+   "null_hypothesis": "The joint advantage disappears (CI includes 0) under a dynamic plant, and loop dynamics do not affect thermal safety.",
+   "practical_significance_threshold": 0.01,
+   "research_question": "Does the joint controller's advantage over independent control, and its thermal safety, survive when the coolant loop has thermal mass and the plant cannot move its outlet temperature instantly?",
+   "statistics": "Paired by seed (identical workload realisation across levels). Per-seed relative difference d=(A-B)/B; mean with two-sided 95% Student-t CI.",
+   "title": "Joint control under a dynamic coolant loop (thermal mass + setpoint ramp limits)"
+  },
+  "joint_vs_independent": [
+   {
+    "group": [
+     "S1_moderate",
+     "quasi_steady"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.006530586676990217,
+    "lo": -0.006739033356803435,
+    "hi": -0.006322139997176999,
+    "mean_a": 10.231566202321195,
+    "mean_b": 10.298792653287304,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "plant": "quasi_steady",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "dyn_40kg_1Kmin"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.005340523925019965,
+    "lo": -0.005620144794091293,
+    "hi": -0.005060903055948637,
+    "mean_a": 10.231566202321195,
+    "mean_b": 10.286539291414703,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "plant": "dyn_40kg_1Kmin",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "dyn_150kg_0.25Kmin"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.004745842220027445,
+    "lo": -0.00498982390200584,
+    "hi": -0.0045018605380490505,
+    "mean_a": 10.231566202321195,
+    "mean_b": 10.28038135399144,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "plant": "dyn_150kg_0.25Kmin",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "quasi_steady"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.003848235808141447,
+    "lo": -0.0042607869690881265,
+    "hi": -0.003435684647194768,
+    "mean_a": 11.017037224002724,
+    "mean_b": 11.0595579599161,
+    "relative": true,
+    "scenario": "S3_hot",
+    "plant": "quasi_steady",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "dyn_40kg_1Kmin"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.003891146078269471,
+    "lo": -0.004283418973642285,
+    "hi": -0.0034988731828966575,
+    "mean_a": 11.016993677747259,
+    "mean_b": 11.059991690314963,
+    "relative": true,
+    "scenario": "S3_hot",
+    "plant": "dyn_40kg_1Kmin",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "dyn_150kg_0.25Kmin"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.003943902974572577,
+    "lo": -0.004293653300913155,
+    "hi": -0.003594152648231999,
+    "mean_a": 11.016992087663846,
+    "mean_b": 11.060571518751987,
+    "relative": true,
+    "scenario": "S3_hot",
+    "plant": "dyn_150kg_0.25Kmin",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "quasi_steady"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.013881911662456017,
+    "lo": -0.0156319637058381,
+    "hi": -0.012131859619073936,
+    "mean_a": 11.341457649050469,
+    "mean_b": 11.501241059028251,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "plant": "quasi_steady",
+    "verdict": "meaningful reduction (CI beyond threshold)"
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "dyn_40kg_1Kmin"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.014864627597429117,
+    "lo": -0.016813794290605158,
+    "hi": -0.012915460904253075,
+    "mean_a": 11.332149763684544,
+    "mean_b": 11.503287396737317,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "plant": "dyn_40kg_1Kmin",
+    "verdict": "meaningful reduction (CI beyond threshold)"
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "dyn_150kg_0.25Kmin"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.01112190754981512,
+    "lo": -0.012970290457453675,
+    "hi": -0.009273524642176567,
+    "mean_a": 11.324230614011576,
+    "mean_b": 11.451717176411936,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "plant": "dyn_150kg_0.25Kmin",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   }
+  ],
+  "plant_effect": [
+   {
+    "group": [
+     "S1_moderate",
+     "fixed"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_40kg_1Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "mean_a": 15.42359885636138,
+    "mean_b": 15.42359885636138,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "policy": "fixed",
+    "plant": "dyn_40kg_1Kmin"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "fixed"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_40kg_1Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "mean_a": 16.818296868658845,
+    "mean_b": 16.818296868658845,
+    "relative": true,
+    "scenario": "S3_hot",
+    "policy": "fixed",
+    "plant": "dyn_40kg_1Kmin"
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "fixed"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_40kg_1Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "mean_a": 15.687545976665202,
+    "mean_b": 15.687545976665202,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "policy": "fixed",
+    "plant": "dyn_40kg_1Kmin"
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "fixed"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_150kg_0.25Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "mean_a": 15.42359885636138,
+    "mean_b": 15.42359885636138,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "policy": "fixed",
+    "plant": "dyn_150kg_0.25Kmin"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "fixed"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_150kg_0.25Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "mean_a": 16.818296868658845,
+    "mean_b": 16.818296868658845,
+    "relative": true,
+    "scenario": "S3_hot",
+    "policy": "fixed",
+    "plant": "dyn_150kg_0.25Kmin"
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "fixed"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_150kg_0.25Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "mean_a": 15.687545976665202,
+    "mean_b": 15.687545976665202,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "policy": "fixed",
+    "plant": "dyn_150kg_0.25Kmin"
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "independent"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_40kg_1Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": -0.001196347210663177,
+    "lo": -0.0014872130711571512,
+    "hi": -0.0009054813501692029,
+    "mean_a": 10.286539291414703,
+    "mean_b": 10.298792653287304,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "policy": "independent",
+    "plant": "dyn_40kg_1Kmin"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "independent"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_40kg_1Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": 3.91171223119095e-05,
+    "lo": -5.473414324091591e-05,
+    "hi": 0.00013296838786473492,
+    "mean_a": 11.059991690314963,
+    "mean_b": 11.0595579599161,
+    "relative": true,
+    "scenario": "S3_hot",
+    "policy": "independent",
+    "plant": "dyn_40kg_1Kmin"
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "independent"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_40kg_1Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": 0.00017525279477589438,
+    "lo": -0.0002555130847113474,
+    "hi": 0.0006060186742631362,
+    "mean_a": 11.503287396737317,
+    "mean_b": 11.501241059028251,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "policy": "independent",
+    "plant": "dyn_40kg_1Kmin"
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "independent"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_150kg_0.25Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": -0.0017931936877368829,
+    "lo": -0.0020245842625843244,
+    "hi": -0.0015618031128894413,
+    "mean_a": 10.28038135399144,
+    "mean_b": 10.298792653287304,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "policy": "independent",
+    "plant": "dyn_150kg_0.25Kmin"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "independent"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_150kg_0.25Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": 9.191888784801692e-05,
+    "lo": -3.433206952918212e-05,
+    "hi": 0.00021816984522521595,
+    "mean_a": 11.060571518751987,
+    "mean_b": 11.0595579599161,
+    "relative": true,
+    "scenario": "S3_hot",
+    "policy": "independent",
+    "plant": "dyn_150kg_0.25Kmin"
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "independent"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_150kg_0.25Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": -0.004308141721893397,
+    "lo": -0.00491216602916039,
+    "hi": -0.0037041174146264042,
+    "mean_a": 11.451717176411936,
+    "mean_b": 11.501241059028251,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "policy": "independent",
+    "plant": "dyn_150kg_0.25Kmin"
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "joint"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_40kg_1Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "mean_a": 10.231566202321195,
+    "mean_b": 10.231566202321195,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "policy": "joint",
+    "plant": "dyn_40kg_1Kmin"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "joint"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_40kg_1Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": -3.953881409796755e-06,
+    "lo": -4.067412487098084e-06,
+    "hi": -3.840350332495426e-06,
+    "mean_a": 11.016993677747259,
+    "mean_b": 11.017037224002724,
+    "relative": true,
+    "scenario": "S3_hot",
+    "policy": "joint",
+    "plant": "dyn_40kg_1Kmin"
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "joint"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_40kg_1Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": -0.0008222722010184768,
+    "lo": -0.0010206629457452743,
+    "hi": -0.0006238814562916793,
+    "mean_a": 11.332149763684544,
+    "mean_b": 11.341457649050469,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "policy": "joint",
+    "plant": "dyn_40kg_1Kmin"
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "joint"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_150kg_0.25Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "mean_a": 10.231566202321195,
+    "mean_b": 10.231566202321195,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "policy": "joint",
+    "plant": "dyn_150kg_0.25Kmin"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "joint"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_150kg_0.25Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": -4.0982811709262164e-06,
+    "lo": -4.206203950645029e-06,
+    "hi": -3.990358391207404e-06,
+    "mean_a": 11.016992087663846,
+    "mean_b": 11.017037224002724,
+    "relative": true,
+    "scenario": "S3_hot",
+    "policy": "joint",
+    "plant": "dyn_150kg_0.25Kmin"
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "joint"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_150kg_0.25Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": -0.0015217732366078175,
+    "lo": -0.0019900795520270648,
+    "hi": -0.0010534669211885704,
+    "mean_a": 11.324230614011576,
+    "mean_b": 11.341457649050469,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "policy": "joint",
+    "plant": "dyn_150kg_0.25Kmin"
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "joint_robust"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_40kg_1Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "mean_a": 10.231566202321195,
+    "mean_b": 10.231566202321195,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "policy": "joint_robust",
+    "plant": "dyn_40kg_1Kmin"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "joint_robust"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_40kg_1Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": -7.073620737939741e-06,
+    "lo": -1.198094473207288e-05,
+    "hi": -2.166296743806603e-06,
+    "mean_a": 11.017533269866133,
+    "mean_b": 11.017611586188405,
+    "relative": true,
+    "scenario": "S3_hot",
+    "policy": "joint_robust",
+    "plant": "dyn_40kg_1Kmin"
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "joint_robust"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_40kg_1Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": -0.0005498852725225082,
+    "lo": -0.0007942001144475978,
+    "hi": -0.0003055704305974186,
+    "mean_a": 11.34114212969476,
+    "mean_b": 11.34733868256885,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "policy": "joint_robust",
+    "plant": "dyn_40kg_1Kmin"
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "joint_robust"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_150kg_0.25Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "mean_a": 10.231566202321195,
+    "mean_b": 10.231566202321195,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "policy": "joint_robust",
+    "plant": "dyn_150kg_0.25Kmin"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "joint_robust"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_150kg_0.25Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": -1.1740737439645914e-05,
+    "lo": -2.341557431036213e-05,
+    "hi": -6.59005689297e-08,
+    "mean_a": 11.017481162259363,
+    "mean_b": 11.017611586188405,
+    "relative": true,
+    "scenario": "S3_hot",
+    "policy": "joint_robust",
+    "plant": "dyn_150kg_0.25Kmin"
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "joint_robust"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "dyn_150kg_0.25Kmin",
+    "b": "quasi_steady",
+    "factor": "variant",
+    "n": 10,
+    "mean": -0.0008277085276449901,
+    "lo": -0.0023261508579310946,
+    "hi": 0.0006707338026411143,
+    "mean_a": 11.33816393089385,
+    "mean_b": 11.34733868256885,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "policy": "joint_robust",
+    "plant": "dyn_150kg_0.25Kmin"
+   }
+  ],
+  "thermal": [
+   {
+    "scenario": "S1_moderate",
+    "plant": "dyn_150kg_0.25Kmin",
+    "policy": "fixed",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 51.96218554787547,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 15.42359885636138
+   },
+   {
+    "scenario": "S1_moderate",
+    "plant": "dyn_150kg_0.25Kmin",
+    "policy": "independent",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 69.38189568906441,
+    "storage_pct": 0.20649947502219537,
+    "E_per_success_kJ": 10.28038135399144
+   },
+   {
+    "scenario": "S1_moderate",
+    "plant": "dyn_150kg_0.25Kmin",
+    "policy": "joint",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 61.3314822665002,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 10.231566202321195
+   },
+   {
+    "scenario": "S1_moderate",
+    "plant": "dyn_150kg_0.25Kmin",
+    "policy": "joint_robust",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 61.3314822665002,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 10.231566202321195
+   },
+   {
+    "scenario": "S1_moderate",
+    "plant": "dyn_40kg_1Kmin",
+    "policy": "fixed",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 51.96218554787547,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 15.42359885636138
+   },
+   {
+    "scenario": "S1_moderate",
+    "plant": "dyn_40kg_1Kmin",
+    "policy": "independent",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 69.44943805992534,
+    "storage_pct": 0.20416491014831198,
+    "E_per_success_kJ": 10.286539291414703
+   },
+   {
+    "scenario": "S1_moderate",
+    "plant": "dyn_40kg_1Kmin",
+    "policy": "joint",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 61.3314822665002,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 10.231566202321195
+   },
+   {
+    "scenario": "S1_moderate",
+    "plant": "dyn_40kg_1Kmin",
+    "policy": "joint_robust",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 61.3314822665002,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 10.231566202321195
+   },
+   {
+    "scenario": "S1_moderate",
+    "plant": "quasi_steady",
+    "policy": "fixed",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 51.96218554787547,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 15.42359885636138
+   },
+   {
+    "scenario": "S1_moderate",
+    "plant": "quasi_steady",
+    "policy": "independent",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 69.43960210563651,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 10.298792653287304
+   },
+   {
+    "scenario": "S1_moderate",
+    "plant": "quasi_steady",
+    "policy": "joint",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 61.3314822665002,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 10.231566202321195
+   },
+   {
+    "scenario": "S1_moderate",
+    "plant": "quasi_steady",
+    "policy": "joint_robust",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 61.3314822665002,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 10.231566202321195
+   },
+   {
+    "scenario": "S3_hot",
+    "plant": "dyn_150kg_0.25Kmin",
+    "policy": "fixed",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 51.96218554787547,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 16.818296868658845
+   },
+   {
+    "scenario": "S3_hot",
+    "plant": "dyn_150kg_0.25Kmin",
+    "policy": "independent",
+    "over": 415.2,
+    "throttled": 6.0,
+    "peak": 85.02281564876459,
+    "storage_pct": -0.012787824846524415,
+    "E_per_success_kJ": 11.060571518751987
+   },
+   {
+    "scenario": "S3_hot",
+    "plant": "dyn_150kg_0.25Kmin",
+    "policy": "joint",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 76.6387390955982,
+    "storage_pct": -1.2067587051397196e-07,
+    "E_per_success_kJ": 11.016992087663846
+   },
+   {
+    "scenario": "S3_hot",
+    "plant": "dyn_150kg_0.25Kmin",
+    "policy": "joint_robust",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 76.63861957371398,
+    "storage_pct": -1.0093365242046166e-05,
+    "E_per_success_kJ": 11.017481162259363
+   },
+   {
+    "scenario": "S3_hot",
+    "plant": "dyn_40kg_1Kmin",
+    "policy": "fixed",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 51.96218554787547,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 16.818296868658845
+   },
+   {
+    "scenario": "S3_hot",
+    "plant": "dyn_40kg_1Kmin",
+    "policy": "independent",
+    "over": 407.5,
+    "throttled": 6.1,
+    "peak": 85.05993677694455,
+    "storage_pct": -3.4227688826677e-08,
+    "E_per_success_kJ": 11.059991690314963
+   },
+   {
+    "scenario": "S3_hot",
+    "plant": "dyn_40kg_1Kmin",
+    "policy": "joint",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 76.63892244657612,
+    "storage_pct": -5.606680227334617e-13,
+    "E_per_success_kJ": 11.016993677747259
+   },
+   {
+    "scenario": "S3_hot",
+    "plant": "dyn_40kg_1Kmin",
+    "policy": "joint_robust",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 76.6389214566669,
+    "storage_pct": -7.42577718710811e-12,
+    "E_per_success_kJ": 11.017533269866133
+   },
+   {
+    "scenario": "S3_hot",
+    "plant": "quasi_steady",
+    "policy": "fixed",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 51.96218554787547,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 16.818296868658845
+   },
+   {
+    "scenario": "S3_hot",
+    "plant": "quasi_steady",
+    "policy": "independent",
+    "over": 432.7,
+    "throttled": 10.7,
+    "peak": 85.09200429456796,
+    "storage_pct": -0.00949273157744391,
+    "E_per_success_kJ": 11.0595579599161
+   },
+   {
+    "scenario": "S3_hot",
+    "plant": "quasi_steady",
+    "policy": "joint",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 76.63892314386263,
+    "storage_pct": -0.00952934692267144,
+    "E_per_success_kJ": 11.017037224002724
+   },
+   {
+    "scenario": "S3_hot",
+    "plant": "quasi_steady",
+    "policy": "joint_robust",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 76.63892314386263,
+    "storage_pct": -0.009528848104876518,
+    "E_per_success_kJ": 11.017611586188405
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "plant": "dyn_150kg_0.25Kmin",
+    "policy": "fixed",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 69.70632855542887,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 15.687545976665202
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "plant": "dyn_150kg_0.25Kmin",
+    "policy": "independent",
+    "over": 1255.9,
+    "throttled": 151.7,
+    "peak": 85.52593085422217,
+    "storage_pct": 0.8517382097808993,
+    "E_per_success_kJ": 11.451717176411936
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "plant": "dyn_150kg_0.25Kmin",
+    "policy": "joint",
+    "over": 420.8,
+    "throttled": 0.0,
+    "peak": 81.05159687631848,
+    "storage_pct": -0.03739377794441901,
+    "E_per_success_kJ": 11.324230614011576
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "plant": "dyn_150kg_0.25Kmin",
+    "policy": "joint_robust",
+    "over": 464.5,
+    "throttled": 0.0,
+    "peak": 82.40447337204606,
+    "storage_pct": -0.0388059510717984,
+    "E_per_success_kJ": 11.33816393089385
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "plant": "dyn_40kg_1Kmin",
+    "policy": "fixed",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 69.70632855542887,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 15.687545976665202
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "plant": "dyn_40kg_1Kmin",
+    "policy": "independent",
+    "over": 1168.5,
+    "throttled": 138.8,
+    "peak": 85.47542717854452,
+    "storage_pct": -0.266403672082186,
+    "E_per_success_kJ": 11.503287396737317
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "plant": "dyn_40kg_1Kmin",
+    "policy": "joint",
+    "over": 130.7,
+    "throttled": 0.0,
+    "peak": 80.5391521614022,
+    "storage_pct": -0.05573435307798356,
+    "E_per_success_kJ": 11.332149763684544
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "plant": "dyn_40kg_1Kmin",
+    "policy": "joint_robust",
+    "over": 176.0,
+    "throttled": 0.0,
+    "peak": 81.43750473374367,
+    "storage_pct": -0.04891073766950287,
+    "E_per_success_kJ": 11.34114212969476
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "plant": "quasi_steady",
+    "policy": "fixed",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 69.70632855542887,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 15.687545976665202
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "plant": "quasi_steady",
+    "policy": "independent",
+    "over": 1181.6,
+    "throttled": 170.9,
+    "peak": 85.51067905965647,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 11.501241059028251
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "plant": "quasi_steady",
+    "policy": "joint",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 78.8766921926438,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 11.341457649050469
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "plant": "quasi_steady",
+    "policy": "joint_robust",
+    "over": 0.0,
+    "throttled": 0.0,
+    "peak": 78.87608939392946,
+    "storage_pct": 0.0,
+    "E_per_success_kJ": 11.34733868256885
+   }
+  ],
+  "storage_warnings": 13,
+  "n_runs": 360,
+  "n_failed": 0
+ },
+ "E007": {
+  "id": "E007-20261026T185421-9da2d0",
+  "spec": {
+   "baseline": "threshold 0 at the same dt",
+   "configuration": "As E001",
+   "controlled_variables": [
+    "joint policy only",
+    "workload per seed",
+    "registry defaults",
+    "quasi-steady plant"
+   ],
+   "data_collection": "Simulator outputs written to the append-only SQLite store; every metric labelled with provenance; per-run config SHA-256 and code SHA-256 recorded; time series for selected seeds.",
+   "dependent_variables": [
+    "action_changes",
+    "clock_changes",
+    "flow_changes",
+    "tsup_changes",
+    "E_per_success_kJ",
+    "E_grid_kWh",
+    "chip_s_over_target"
+   ],
+   "design": {
+    "policies": [
+     "joint"
+    ],
+    "scenarios": [
+     "S1_moderate",
+     "S3_hot"
+    ],
+    "seeds": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9
+    ],
+    "timeseries_seeds": [],
+    "variants": [
+     {
+      "label": "thr=0.0|dt=1.0",
+      "param_overrides": {
+       "dt": 1.0,
+       "joint_switch_rel": 0.0
+      }
+     },
+     {
+      "label": "thr=0.005|dt=1.0",
+      "param_overrides": {
+       "dt": 1.0,
+       "joint_switch_rel": 0.005
+      }
+     },
+     {
+      "label": "thr=0.02|dt=1.0",
+      "param_overrides": {
+       "dt": 1.0,
+       "joint_switch_rel": 0.02
+      }
+     },
+     {
+      "label": "thr=0.05|dt=1.0",
+      "param_overrides": {
+       "dt": 1.0,
+       "joint_switch_rel": 0.05
+      }
+     },
+     {
+      "label": "thr=0.0|dt=0.5",
+      "param_overrides": {
+       "dt": 0.5,
+       "joint_switch_rel": 0.0
+      }
+     },
+     {
+      "label": "thr=0.02|dt=0.5",
+      "param_overrides": {
+       "dt": 0.5,
+       "joint_switch_rel": 0.02
+      }
+     },
+     {
+      "label": "thr=0.05|dt=0.5",
+      "param_overrides": {
+       "dt": 0.5,
+       "joint_switch_rel": 0.05
+      }
+     }
+    ]
+   },
+   "disclosure": "Before registration one exploratory run (S1, seed 4, dt 1 s) showed action changes falling from 102 to 89 at a 5% threshold, with all switching in clocks and flow and none in supply temperature. H1 was written after seeing that run. No dt comparison with suppression was run.",
+   "evaluation_criteria": "H1 on seed-mean action changes; H2 on max over seeds of |E(dt=1)/E(dt=0.5) - 1| within each threshold; H3 paired CI of energy per successful task.",
+   "hypothesis": "H1: thresholds up to 5% cut the number of action changes by less than 25%, because most switching tracks demand rather than chatters. H2: at a 2% threshold the worst per-seed change in grid energy between dt = 1 s and dt = 0.5 s falls below 0.5% in both scenarios. H3: a 2% threshold costs at most 0.3% energy per successful task versus no threshold.",
+   "independent_variables": [
+    "switch threshold (0, 0.5%, 2%, 5%)",
+    "dt (1 s, 0.5 s)",
+    "scenario"
+   ],
+   "key": "E007",
+   "known_limitations": "Threshold acts on predicted, not measured, savings.",
+   "null_hypothesis": "Suppression neither reduces time-step sensitivity nor is cheap.",
+   "practical_significance_threshold": 0.01,
+   "research_question": "Can a switching threshold make the joint controller's results insensitive to the simulation time step (E004 failed at 0.52%) without costing energy?",
+   "statistics": "Paired by seed (identical workload realisation across levels). Per-seed relative difference d=(A-B)/B; mean with two-sided 95% Student-t CI.",
+   "title": "Move suppression for the joint controller: switching, energy cost, and time-step sensitivity"
+  },
+  "switching": [
+   {
+    "scenario": "S1_moderate",
+    "variant": "thr=0.005|dt=1.0",
+    "threshold": 0.005,
+    "dt": 1.0,
+    "action_changes": 102.4,
+    "clock_changes": 102.4,
+    "flow_changes": 37.8,
+    "tsup_changes": 0.0,
+    "E_per_success_kJ": 10.19266562701319,
+    "over": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "thr=0.02|dt=0.5",
+    "threshold": 0.02,
+    "dt": 0.5,
+    "action_changes": 101.1,
+    "clock_changes": 101.1,
+    "flow_changes": 35.8,
+    "tsup_changes": 0.0,
+    "E_per_success_kJ": 10.171809630252339,
+    "over": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "thr=0.02|dt=1.0",
+    "threshold": 0.02,
+    "dt": 1.0,
+    "action_changes": 101.0,
+    "clock_changes": 101.0,
+    "flow_changes": 37.4,
+    "tsup_changes": 0.0,
+    "E_per_success_kJ": 10.192960182254627,
+    "over": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "thr=0.05|dt=0.5",
+    "threshold": 0.05,
+    "dt": 0.5,
+    "action_changes": 88.0,
+    "clock_changes": 88.0,
+    "flow_changes": 34.8,
+    "tsup_changes": 0.0,
+    "E_per_success_kJ": 10.208132389246607,
+    "over": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "thr=0.05|dt=1.0",
+    "threshold": 0.05,
+    "dt": 1.0,
+    "action_changes": 87.0,
+    "clock_changes": 87.0,
+    "flow_changes": 36.8,
+    "tsup_changes": 0.0,
+    "E_per_success_kJ": 10.234525824159878,
+    "over": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "thr=0.0|dt=0.5",
+    "threshold": 0.0,
+    "dt": 0.5,
+    "action_changes": 104.3,
+    "clock_changes": 103.1,
+    "flow_changes": 37.0,
+    "tsup_changes": 0.0,
+    "E_per_success_kJ": 10.17128750806946,
+    "over": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "thr=0.0|dt=1.0",
+    "threshold": 0.0,
+    "dt": 1.0,
+    "action_changes": 104.2,
+    "clock_changes": 103.0,
+    "flow_changes": 39.0,
+    "tsup_changes": 0.0,
+    "E_per_success_kJ": 10.192392237901862,
+    "over": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "thr=0.005|dt=1.0",
+    "threshold": 0.005,
+    "dt": 1.0,
+    "action_changes": 105.2,
+    "clock_changes": 102.6,
+    "flow_changes": 32.4,
+    "tsup_changes": 1.0,
+    "E_per_success_kJ": 10.984157777287844,
+    "over": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "thr=0.02|dt=0.5",
+    "threshold": 0.02,
+    "dt": 0.5,
+    "action_changes": 103.3,
+    "clock_changes": 101.1,
+    "flow_changes": 29.9,
+    "tsup_changes": 1.0,
+    "E_per_success_kJ": 10.963045323997482,
+    "over": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "thr=0.02|dt=1.0",
+    "threshold": 0.02,
+    "dt": 1.0,
+    "action_changes": 103.6,
+    "clock_changes": 101.0,
+    "flow_changes": 32.2,
+    "tsup_changes": 1.0,
+    "E_per_success_kJ": 10.986530029353133,
+    "over": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "thr=0.05|dt=0.5",
+    "threshold": 0.05,
+    "dt": 0.5,
+    "action_changes": 89.8,
+    "clock_changes": 87.6,
+    "flow_changes": 28.7,
+    "tsup_changes": 1.0,
+    "E_per_success_kJ": 11.008816482413076,
+    "over": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "thr=0.05|dt=1.0",
+    "threshold": 0.05,
+    "dt": 1.0,
+    "action_changes": 89.3,
+    "clock_changes": 86.7,
+    "flow_changes": 31.6,
+    "tsup_changes": 1.0,
+    "E_per_success_kJ": 11.03692289214525,
+    "over": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "thr=0.0|dt=0.5",
+    "threshold": 0.0,
+    "dt": 0.5,
+    "action_changes": 118.1,
+    "clock_changes": 103.3,
+    "flow_changes": 41.9,
+    "tsup_changes": 1.2,
+    "E_per_success_kJ": 10.957271144182956,
+    "over": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "thr=0.0|dt=1.0",
+    "threshold": 0.0,
+    "dt": 1.0,
+    "action_changes": 118.3,
+    "clock_changes": 103.2,
+    "flow_changes": 43.8,
+    "tsup_changes": 1.2,
+    "E_per_success_kJ": 10.980470157517084,
+    "over": 0.0
+   }
+  ],
+  "energy_vs_no_threshold": [
+   {
+    "group": [
+     "S1_moderate",
+     "joint"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "thr=0.005|dt=1.0",
+    "b": "thr=0.0|dt=1.0",
+    "factor": "variant",
+    "n": 10,
+    "mean": 2.7684218212992676e-05,
+    "lo": -6.557038796716164e-05,
+    "hi": 0.000120938824393147,
+    "mean_a": 10.19266562701319,
+    "mean_b": 10.192392237901862,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "variant": "thr=0.005|dt=1.0"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "joint"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "thr=0.005|dt=1.0",
+    "b": "thr=0.0|dt=1.0",
+    "factor": "variant",
+    "n": 10,
+    "mean": 0.000336272992508552,
+    "lo": 0.00024949313349809674,
+    "hi": 0.00042305285151900726,
+    "mean_a": 10.984157777287844,
+    "mean_b": 10.980470157517084,
+    "relative": true,
+    "scenario": "S3_hot",
+    "variant": "thr=0.005|dt=1.0"
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "joint"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "thr=0.02|dt=1.0",
+    "b": "thr=0.0|dt=1.0",
+    "factor": "variant",
+    "n": 10,
+    "mean": 5.8488194992172934e-05,
+    "lo": -0.00016984204606452472,
+    "hi": 0.00028681843604887056,
+    "mean_a": 10.192960182254627,
+    "mean_b": 10.192392237901862,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "variant": "thr=0.02|dt=1.0"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "joint"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "thr=0.02|dt=1.0",
+    "b": "thr=0.0|dt=1.0",
+    "factor": "variant",
+    "n": 10,
+    "mean": 0.0005544289681624116,
+    "lo": 0.0003386438344222957,
+    "hi": 0.0007702141019025275,
+    "mean_a": 10.986530029353133,
+    "mean_b": 10.980470157517084,
+    "relative": true,
+    "scenario": "S3_hot",
+    "variant": "thr=0.02|dt=1.0"
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "joint"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "thr=0.05|dt=1.0",
+    "b": "thr=0.0|dt=1.0",
+    "factor": "variant",
+    "n": 10,
+    "mean": 0.0041561935819441585,
+    "lo": 0.0011643202020516128,
+    "hi": 0.007148066961836704,
+    "mean_a": 10.234525824159878,
+    "mean_b": 10.192392237901862,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "variant": "thr=0.05|dt=1.0"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "joint"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "thr=0.05|dt=1.0",
+    "b": "thr=0.0|dt=1.0",
+    "factor": "variant",
+    "n": 10,
+    "mean": 0.0051653281238023705,
+    "lo": 0.0020655739797070666,
+    "hi": 0.008265082267897675,
+    "mean_a": 11.03692289214525,
+    "mean_b": 10.980470157517084,
+    "relative": true,
+    "scenario": "S3_hot",
+    "variant": "thr=0.05|dt=1.0"
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "joint"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "thr=0.0|dt=1.0",
+    "b": "thr=0.0|dt=1.0",
+    "factor": "variant",
+    "n": 10,
+    "mean": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "mean_a": 10.192392237901862,
+    "mean_b": 10.192392237901862,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "variant": "thr=0.0|dt=1.0"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "joint"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "thr=0.0|dt=1.0",
+    "b": "thr=0.0|dt=1.0",
+    "factor": "variant",
+    "n": 10,
+    "mean": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "mean_a": 10.980470157517084,
+    "mean_b": 10.980470157517084,
+    "relative": true,
+    "scenario": "S3_hot",
+    "variant": "thr=0.0|dt=1.0"
+   }
+  ],
+  "dt_sensitivity": [
+   {
+    "threshold": 0.0,
+    "scenario": "S1_moderate",
+    "max": 0.0038750024854943277,
+    "mean": 0.0021544925611107547,
+    "n": 10
+   },
+   {
+    "threshold": 0.0,
+    "scenario": "S3_hot",
+    "max": 0.003819250554419895,
+    "mean": 0.002193927806985052,
+    "n": 10
+   },
+   {
+    "threshold": 0.02,
+    "scenario": "S1_moderate",
+    "max": 0.0038745476350212638,
+    "mean": 0.0021128837578268224,
+    "n": 10
+   },
+   {
+    "threshold": 0.02,
+    "scenario": "S3_hot",
+    "max": 0.0038155181825318962,
+    "mean": 0.0021723787521910507,
+    "n": 10
+   },
+   {
+    "threshold": 0.05,
+    "scenario": "S1_moderate",
+    "max": 0.005241668456999582,
+    "mean": 0.0026744876660953153,
+    "n": 10
+   },
+   {
+    "threshold": 0.05,
+    "scenario": "S3_hot",
+    "max": 0.004999074891940847,
+    "mean": 0.002630323807479562,
+    "n": 10
+   }
+  ],
+  "n_runs": 140,
+  "n_failed": 0
+ },
+ "E008": {
+  "id": "E008-20261026T185711-ac8eb3",
+  "spec": {
+   "baseline": "independent within each case; joint within each case",
+   "configuration": "Mismatch cases as E005, plus the registry default.",
+   "controlled_variables": [
+    "seeds 0-4",
+    "4 h window",
+    "quasi-steady plant",
+    "bias gain 0.5"
+   ],
+   "data_collection": "Simulator outputs written to the append-only SQLite store; every metric labelled with provenance; per-run config SHA-256 and code SHA-256 recorded; time series for selected seeds.",
+   "dependent_variables": [
+    "E_per_success_kJ",
+    "chip_s_over_target",
+    "chip_s_throttled",
+    "peak_T_j_C"
+   ],
+   "design": {
+    "policies": [
+     "independent",
+     "joint",
+     "joint_robust"
+    ],
+    "scenarios": [
+     "S1_moderate",
+     "S3_hot"
+    ],
+    "seeds": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "timeseries_seeds": [
+     0
+    ],
+    "variants": [
+     {
+      "label": "default"
+     },
+     {
+      "label": "high_leak|twin_correct",
+      "param_overrides": {
+       "kappa_leak": 0.03,
+       "p_leak_ref": 130.0
+      }
+     },
+     {
+      "label": "high_leak|twin_low_leak",
+      "model_param_overrides": {
+       "kappa_leak": 0.012,
+       "p_leak_ref": 70.0
+      },
+      "param_overrides": {
+       "kappa_leak": 0.03,
+       "p_leak_ref": 130.0
+      }
+     },
+     {
+      "label": "fouled_plate|twin_correct",
+      "param_overrides": {
+       "r_conv_ref": 0.026
+      }
+     },
+     {
+      "label": "fouled_plate|twin_clean",
+      "model_param_overrides": {
+       "r_conv_ref": 0.015
+      },
+      "param_overrides": {
+       "r_conv_ref": 0.026
+      }
+     },
+     {
+      "label": "poor_chiller|twin_correct",
+      "param_overrides": {
+       "eta_ii_chiller": 0.35
+      }
+     },
+     {
+      "label": "poor_chiller|twin_optimistic",
+      "model_param_overrides": {
+       "eta_ii_chiller": 0.55
+      },
+      "param_overrides": {
+       "eta_ii_chiller": 0.35
+      }
+     }
+    ]
+   },
+   "disclosure": "Before registration a unit test ran S3_hot (1 h, seed 0) with the leakage mismatch and showed joint_robust with fewer than half of joint's chip-seconds above target.",
+   "evaluation_criteria": "Paired relative differences with 95% t-CI; practical threshold 1%; chip-second counts as seed means.",
+   "hypothesis": "H1: in every mismatch case where joint exceeded the 80 C target, joint_robust has zero chip-seconds throttled and at least 80% fewer chip-seconds above target than joint. H2: joint_robust uses no more energy per successful task than independent (paired 95% CI upper bound <= 0) in every case. H3: with a correct twin (default and *_twin_correct variants), joint_robust is within +/-0.5% of joint on energy per successful task.",
+   "independent_variables": [
+    "truth|twin case (7 levels)",
+    "policy (independent, joint, joint_robust)",
+    "scenario"
+   ],
+   "key": "E008",
+   "known_limitations": "The correction only tightens the temperature target; it does not re-estimate leakage, so energy predictions stay biased.",
+   "null_hypothesis": "The correction does not remove overheating, or it removes it only by giving up the energy advantage.",
+   "practical_significance_threshold": 0.01,
+   "research_question": "Does feeding measured junction temperatures back into the joint controller (one-sided offset-free correction) restore thermal safety under twin mismatch without giving up its energy advantage?",
+   "statistics": "Paired by seed (identical workload realisation across levels). Per-seed relative difference d=(A-B)/B; mean with two-sided 95% Student-t CI.",
+   "title": "Self-correcting joint control under digital-twin mismatch"
+  },
+  "rows": [
+   {
+    "scenario": "S1_moderate",
+    "variant": "default",
+    "joint_robust_vs_independent": {
+     "mean": -0.006813267343973162,
+     "lo": -0.007180777437600846,
+     "hi": -0.006445757250345478,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "joint_robust_vs_joint": {
+     "mean": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "verdict": "no detectable difference"
+    },
+    "joint_vs_independent": {
+     "mean": -0.006813267343973162,
+     "lo": -0.007180777437600846,
+     "hi": -0.006445757250345478,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "independent": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 69.49462803417703
+    },
+    "joint": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 61.23552019519981
+    },
+    "joint_robust": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 61.23552019519981
+    }
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "fouled_plate|twin_clean",
+    "joint_robust_vs_independent": {
+     "mean": -0.012766264416044953,
+     "lo": -0.013662944094997893,
+     "hi": -0.011869584737092013,
+     "verdict": "meaningful reduction (CI beyond threshold)"
+    },
+    "joint_robust_vs_joint": {
+     "mean": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "verdict": "no detectable difference"
+    },
+    "joint_vs_independent": {
+     "mean": -0.012766264416044953,
+     "lo": -0.013662944094997893,
+     "hi": -0.011869584737092013,
+     "verdict": "meaningful reduction (CI beyond threshold)"
+    },
+    "independent": {
+     "over": 398.0,
+     "throttled": 0.0,
+     "peak": 82.3887685654685
+    },
+    "joint": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 69.30125928522793
+    },
+    "joint_robust": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 69.30125928522793
+    }
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "fouled_plate|twin_correct",
+    "joint_robust_vs_independent": {
+     "mean": -0.006294063748770315,
+     "lo": -0.007410360218108765,
+     "hi": -0.005177767279431865,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "joint_robust_vs_joint": {
+     "mean": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "verdict": "no detectable difference"
+    },
+    "joint_vs_independent": {
+     "mean": -0.006294063748770315,
+     "lo": -0.007410360218108765,
+     "hi": -0.005177767279431865,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "independent": {
+     "over": 1.8,
+     "throttled": 0.0,
+     "peak": 79.19456547714364
+    },
+    "joint": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 67.05608685990887
+    },
+    "joint_robust": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 67.05608685990887
+    }
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "high_leak|twin_correct",
+    "joint_robust_vs_independent": {
+     "mean": -0.021953654006746186,
+     "lo": -0.02405980388501312,
+     "hi": -0.019847504128479253,
+     "verdict": "meaningful reduction (CI beyond threshold)"
+    },
+    "joint_robust_vs_joint": {
+     "mean": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "verdict": "no detectable difference"
+    },
+    "joint_vs_independent": {
+     "mean": -0.021953654006746186,
+     "lo": -0.02405980388501312,
+     "hi": -0.019847504128479253,
+     "verdict": "meaningful reduction (CI beyond threshold)"
+    },
+    "independent": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 76.18438048793647
+    },
+    "joint": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 60.30728695665765
+    },
+    "joint_robust": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 60.30728695665765
+    }
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "high_leak|twin_low_leak",
+    "joint_robust_vs_independent": {
+     "mean": -0.01575609667747922,
+     "lo": -0.018340404974835436,
+     "hi": -0.013171788380123003,
+     "verdict": "meaningful reduction (CI beyond threshold)"
+    },
+    "joint_robust_vs_joint": {
+     "mean": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "verdict": "no detectable difference"
+    },
+    "joint_vs_independent": {
+     "mean": -0.01575609667747922,
+     "lo": -0.018340404974835436,
+     "hi": -0.013171788380123003,
+     "verdict": "meaningful reduction (CI beyond threshold)"
+    },
+    "independent": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 76.17698227048326
+    },
+    "joint": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 66.76588039248195
+    },
+    "joint_robust": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 66.76588039248195
+    }
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "poor_chiller|twin_correct",
+    "joint_robust_vs_independent": {
+     "mean": -0.006813267343973162,
+     "lo": -0.007180777437600846,
+     "hi": -0.006445757250345478,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "joint_robust_vs_joint": {
+     "mean": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "verdict": "no detectable difference"
+    },
+    "joint_vs_independent": {
+     "mean": -0.006813267343973162,
+     "lo": -0.007180777437600846,
+     "hi": -0.006445757250345478,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "independent": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 69.49462803417703
+    },
+    "joint": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 61.23552019519981
+    },
+    "joint_robust": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 61.23552019519981
+    }
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "poor_chiller|twin_optimistic",
+    "joint_robust_vs_independent": {
+     "mean": -0.006813267343973162,
+     "lo": -0.007180777437600846,
+     "hi": -0.006445757250345478,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "joint_robust_vs_joint": {
+     "mean": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "verdict": "no detectable difference"
+    },
+    "joint_vs_independent": {
+     "mean": -0.006813267343973162,
+     "lo": -0.007180777437600846,
+     "hi": -0.006445757250345478,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "independent": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 69.49462803417703
+    },
+    "joint": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 61.23552019519981
+    },
+    "joint_robust": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 61.23552019519981
+    }
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "default",
+    "joint_robust_vs_independent": {
+     "mean": -0.003308196983018972,
+     "lo": -0.003961565020329401,
+     "hi": -0.0026548289457085433,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "joint_robust_vs_joint": {
+     "mean": 2.8065606573102957e-05,
+     "lo": 5.497423990390291e-06,
+     "hi": 5.063378915581562e-05,
+     "verdict": "detectable increase, not confirmed >= threshold"
+    },
+    "joint_vs_independent": {
+     "mean": -0.0033361687660487917,
+     "lo": -0.003989697321442706,
+     "hi": -0.0026826402106548772,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "independent": {
+     "over": 369.2,
+     "throttled": 8.4,
+     "peak": 85.07316874197231
+    },
+    "joint": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 76.63171725381518
+    },
+    "joint_robust": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 76.63171725381518
+    }
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "fouled_plate|twin_clean",
+    "joint_robust_vs_independent": {
+     "mean": -0.0019397867786291767,
+     "lo": -0.0037628916691463355,
+     "hi": -0.00011668188811201816,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "joint_robust_vs_joint": {
+     "mean": 0.001424816980575286,
+     "lo": 0.0006214459312216398,
+     "hi": 0.0022281880299289325,
+     "verdict": "detectable increase, not confirmed >= threshold"
+    },
+    "joint_vs_independent": {
+     "mean": -0.003359996543152122,
+     "lo": -0.004768229687505734,
+     "hi": -0.0019517633987985096,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "independent": {
+     "over": 4420.4,
+     "throttled": 357.4,
+     "peak": 85.50667317314421
+    },
+    "joint": {
+     "over": 2340.6,
+     "throttled": 9.4,
+     "peak": 85.01479658251411
+    },
+    "joint_robust": {
+     "over": 352.6,
+     "throttled": 0.0,
+     "peak": 81.85334558988306
+    }
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "fouled_plate|twin_correct",
+    "joint_robust_vs_independent": {
+     "mean": -0.010139887869463522,
+     "lo": -0.01369882066542688,
+     "hi": -0.006580955073500164,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "joint_robust_vs_joint": {
+     "mean": 0.0006034816274347385,
+     "lo": 0.00011455091588118756,
+     "hi": 0.0010924123389882893,
+     "verdict": "detectable increase, not confirmed >= threshold"
+    },
+    "joint_vs_independent": {
+     "mean": -0.010737040153208229,
+     "lo": -0.01417910759177994,
+     "hi": -0.007294972714636517,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "independent": {
+     "over": 877.6,
+     "throttled": 120.2,
+     "peak": 85.42826941774123
+    },
+    "joint": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 79.2541610250317
+    },
+    "joint_robust": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 79.25318229917664
+    }
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "high_leak|twin_correct",
+    "joint_robust_vs_independent": {
+     "mean": -0.039001639131457905,
+     "lo": -0.04256424969499989,
+     "hi": -0.03543902856791592,
+     "verdict": "meaningful reduction (CI beyond threshold)"
+    },
+    "joint_robust_vs_joint": {
+     "mean": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "verdict": "no detectable difference"
+    },
+    "joint_vs_independent": {
+     "mean": -0.039001639131457905,
+     "lo": -0.04256424969499989,
+     "hi": -0.03543902856791592,
+     "verdict": "meaningful reduction (CI beyond threshold)"
+    },
+    "independent": {
+     "over": 681.8,
+     "throttled": 89.0,
+     "peak": 85.42337453090943
+    },
+    "joint": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 53.68489604162471
+    },
+    "joint_robust": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 53.68489604162471
+    }
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "high_leak|twin_low_leak",
+    "joint_robust_vs_independent": {
+     "mean": 0.0007091110160643593,
+     "lo": -0.0016874138786480077,
+     "hi": 0.003105635910776726,
+     "verdict": "no detectable difference"
+    },
+    "joint_robust_vs_joint": {
+     "mean": -0.0062741846223607015,
+     "lo": -0.007905575283160908,
+     "hi": -0.004642793961560496,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "joint_vs_independent": {
+     "mean": 0.007030506756315491,
+     "lo": 0.0031320701234753574,
+     "hi": 0.010928943389155624,
+     "verdict": "detectable increase, not confirmed >= threshold"
+    },
+    "independent": {
+     "over": 680.2,
+     "throttled": 90.4,
+     "peak": 85.42337550236837
+    },
+    "joint": {
+     "over": 4021.2,
+     "throttled": 313.8,
+     "peak": 85.20988508106885
+    },
+    "joint_robust": {
+     "over": 624.0,
+     "throttled": 0.0,
+     "peak": 83.27179278541429
+    }
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "poor_chiller|twin_correct",
+    "joint_robust_vs_independent": {
+     "mean": -0.0027191227032129896,
+     "lo": -0.0037573598845529886,
+     "hi": -0.0016808855218729906,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "joint_robust_vs_joint": {
+     "mean": 2.8075577143181755e-05,
+     "lo": 5.500044102779742e-06,
+     "hi": 5.065111018358377e-05,
+     "verdict": "detectable increase, not confirmed >= threshold"
+    },
+    "joint_vs_independent": {
+     "mean": -0.002747122902752613,
+     "lo": -0.003781839176016875,
+     "hi": -0.0017124066294883506,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "independent": {
+     "over": 367.2,
+     "throttled": 8.4,
+     "peak": 85.07236952805349
+    },
+    "joint": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 76.63171725381518
+    },
+    "joint_robust": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 76.63171725381518
+    }
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "poor_chiller|twin_optimistic",
+    "joint_robust_vs_independent": {
+     "mean": -0.0029391792522456143,
+     "lo": -0.0037072782906410586,
+     "hi": -0.00217108021385017,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "joint_robust_vs_joint": {
+     "mean": 2.8035813489852874e-05,
+     "lo": 5.493815007516051e-06,
+     "hi": 5.0577811972189694e-05,
+     "verdict": "detectable increase, not confirmed >= threshold"
+    },
+    "joint_vs_independent": {
+     "mean": -0.002967134916606288,
+     "lo": -0.0037272408265200314,
+     "hi": -0.0022070290066925446,
+     "verdict": "detectable reduction, not confirmed >= threshold"
+    },
+    "independent": {
+     "over": 369.2,
+     "throttled": 8.4,
+     "peak": 85.07316874197231
+    },
+    "joint": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 76.63171725381518
+    },
+    "joint_robust": {
+     "over": 0.0,
+     "throttled": 0.0,
+     "peak": 76.63171725381518
+    }
+   }
+  ],
+  "n_runs": 210,
   "n_failed": 0
  },
  "assumptions": [
@@ -128191,6 +130426,36 @@
    "group": "routing"
   },
   {
+   "name": "loop_mass_kg",
+   "value": 0.0,
+   "unit": "kg water",
+   "evidence": "G",
+   "source": "0 selects the quasi-steady plant of E001-E005 (no loop thermal mass). E006 uses 40 kg and 150 kg; those values are placeholders (class F) for a CDU tank + piping, not measurements",
+   "low": null,
+   "high": null,
+   "group": "loop"
+  },
+  {
+   "name": "warm_start",
+   "value": 0.0,
+   "unit": "0/1",
+   "evidence": "G",
+   "source": "1 = controllers start with the demand estimate and chip-heat estimate of the initial offered load, as if the system had been running, so each policy starts in its own steady state. 0 = cold start with zero demand estimate (E001-E005, E006 v1). Needed with a loop thermal mass: in E006 v1 a cold start let the first (zero-demand) decision set the initial tank temperature, a confound found in analysis",
+   "low": null,
+   "high": null,
+   "group": "loop"
+  },
+  {
+   "name": "tsup_ramp_K_per_min",
+   "value": 0.0,
+   "unit": "K/min",
+   "evidence": "G",
+   "source": "Max rate at which the plant can move its outlet temperature. 0 = instantaneous (E001-E005). E006 uses 1.0 and 0.25 (class F placeholders)",
+   "low": null,
+   "high": null,
+   "group": "loop"
+  },
+  {
    "name": "fixed_t_sup",
    "value": 18.0,
    "unit": "degC",
@@ -128226,6 +130491,26 @@
    "unit": "K",
    "evidence": "G",
    "source": "Supply-temperature grid resolution for optimizing controllers",
+   "low": null,
+   "high": null,
+   "group": "policy"
+  },
+  {
+   "name": "joint_switch_rel",
+   "value": 0.0,
+   "unit": "-",
+   "evidence": "G",
+   "source": "Move suppression: the joint controller keeps its previous action unless the new optimum is predicted to use this fraction less grid power (0 = always switch, as in E001-E005)",
+   "low": null,
+   "high": null,
+   "group": "policy"
+  },
+  {
+   "name": "joint_bias_gain",
+   "value": 0.5,
+   "unit": "-",
+   "evidence": "G",
+   "source": "EWMA gain of the joint_robust controller's temperature-bias estimate (measured minus predicted peak junction temperature, clipped at 0); used only by joint_robust",
    "low": null,
    "high": null,
    "group": "policy"
@@ -128391,6 +130676,50 @@
   [
    "2026-10-26T18:23:39+00:00",
    "Clean-copy check: 45/45 tests pass from a fresh copy; hash chain verified (1791 runs). A fresh re-run of E004 reproduced every stored metric bitwise except Ex_rejected_kWh, as expected because E004 v2 predates the exergy fix. A spot re-run of one E001 v3 cell (S3_hot, joint, seed 3) matched bitwise. Wall-clock metrics excluded (measured, host-dependent)."
+  ],
+  [
+   "2026-10-26T18:49:00+00:00",
+   "Phase 3 start (code commit 0631975). Added dynamic coolant loop (tank mass + setpoint ramp), move suppression (joint_switch_rel) and a self-correcting joint controller (joint_robust). With new options at defaults, stored E001 results reproduce bitwise (tested). Exploratory looks before registering E006-E008: unit tests only for the dynamic plant; one S1 seed-4 run of move suppression (action changes 102 -> 89 at 5%, all switching in clocks/flow, none in supply temperature); one S3 1 h seed-0 run of joint_robust under leakage mismatch (fewer than half of joint's chip-seconds above target). Disclosed in each spec."
+  ],
+  [
+   "2026-10-26T18:49:00+00:00",
+   "Registered E006-20261026T184900-8dd0d3: Joint control under a dynamic coolant loop (thermal mass + setpoint ramp limits) | H: H1: joint uses less energy per successful task than independent (paired 95% CI below 0) in all 3 scenarios under both dynamic plants. H2: under the slow plant (150 kg, 0.25 K/min) joint records chip-seconds above the 80 C target in at least one scenario, because it plans against a steady state the plant cannot reach quickly. H3: the fixed policy's energy changes by less than 0.5% between quasi-steady and dynamic plants (its setpoint never moves). H4: joint_robust records no more chip-seconds above target than joint in every scenario and plant."
+  ],
+  [
+   "2026-10-26T18:54:21+00:00",
+   "Finished E006-20261026T184900-8dd0d3: 360 runs, 0 failed"
+  ],
+  [
+   "2026-10-26T18:54:21+00:00",
+   "Registered E007-20261026T185421-9da2d0: Move suppression for the joint controller: switching, energy cost, and time-step sensitivity | H: H1: thresholds up to 5% cut the number of action changes by less than 25%, because most switching tracks demand rather than chatters. H2: at a 2% threshold the worst per-seed change in grid energy between dt = 1 s and dt = 0.5 s falls below 0.5% in both scenarios. H3: a 2% threshold costs at most 0.3% energy per successful task versus no threshold."
+  ],
+  [
+   "2026-10-26T18:57:11+00:00",
+   "Finished E007-20261026T185421-9da2d0: 140 runs, 0 failed"
+  ],
+  [
+   "2026-10-26T18:57:11+00:00",
+   "Registered E008-20261026T185711-ac8eb3: Self-correcting joint control under digital-twin mismatch | H: H1: in every mismatch case where joint exceeded the 80 C target, joint_robust has zero chip-seconds throttled and at least 80% fewer chip-seconds above target than joint. H2: joint_robust uses no more energy per successful task than independent (paired 95% CI upper bound <= 0) in every case. H3: with a correct twin (default and *_twin_correct variants), joint_robust is within +/-0.5% of joint on energy per successful task."
+  ],
+  [
+   "2026-10-26T19:00:10+00:00",
+   "Finished E008-20261026T185711-ac8eb3: 210 runs, 0 failed"
+  ],
+  [
+   "2026-10-26T19:08:12+00:00",
+   "E006 v1 CONFOUND found in analysis: with a cold start, the joint controller's first decision (zero demand) chose 12 C supply and the dynamic plant used that as the initial tank temperature. Joint runs then used up that stored coldness (E_loop_storage up to +4.87 kWh per run in S3 with the 150 kg loop), lowering leakage and fan energy and making joint look 4.8% better than independent; independent started near its own steady state. Fix: warm_start option (controllers start with the initial-load demand and heat estimates, so every policy starts in its own steady state) plus a run warning when loop storage change exceeds 0.5% of grid energy; regression test added; legacy results still reproduce bitwise. E006 v1 is kept and superseded by v2 (warm start in every variant, hypotheses unchanged, v1 results seen before v2 registration). E007 and E008 use the quasi-steady plant (no loop storage) and are unaffected."
+  ],
+  [
+   "2026-10-26T19:08:21+00:00",
+   "Registered E006-20261026T190821-9afd6b: Joint control under a dynamic coolant loop (thermal mass + setpoint ramp limits) | H: H1: joint uses less energy per successful task than independent (paired 95% CI below 0) in all 3 scenarios under both dynamic plants. H2: under the slow plant (150 kg, 0.25 K/min) joint records chip-seconds above the 80 C target in at least one scenario, because it plans against a steady state the plant cannot reach quickly. H3: the fixed policy's energy changes by less than 0.5% between quasi-steady and dynamic plants (its setpoint never moves). H4: joint_robust records no more chip-seconds above target than joint in every scenario and plant."
+  ],
+  [
+   "2026-10-26T19:13:23+00:00",
+   "Finished E006-20261026T190821-9afd6b: 360 runs, 0 failed"
+  ],
+  [
+   "2026-10-26T19:18:10+00:00",
+   "Phase 2-4 session summary: E006 v2 (warm start) shows joint beats independent by 0.4-1.5% under dynamic loops (all CIs below 0) and loses thermal margin under loop lag with degraded cooling (131 and 421 chip-s above 80 C, no throttling); self-correcting control does not fix lag (H4 false). E007: move suppression changes switching by 16-25% at 5%, costs 0.4-0.5% energy there, and does not change time-step sensitivity (already <0.5% on 4 h runs). E008: temperature-feedback correction cut overheating under twin mismatch by 84-85% with no throttling; energy no worse than independent not confirmed in one case (CI -0.17%..+0.31%). Phase 2 lab and API, and Phase 4 calibration tooling added; 73 tests pass."
   ]
  ],
  "experiments": [
@@ -128501,6 +130830,54 @@
     "runs": 300
    },
    "created": "2026-10-26T18:16:52+00:00"
+  },
+  {
+   "id": "E006-20261026T184900-8dd0d3",
+   "key": "E006",
+   "status": "completed",
+   "title": "Joint control under a dynamic coolant loop (thermal mass + setpoint ramp limits)",
+   "hypothesis": "H1: joint uses less energy per successful task than independent (paired 95% CI below 0) in all 3 scenarios under both dynamic plants. H2: under the slow plant (150 kg, 0.25 K/min) joint records chip-seconds above the 80 C target in at least one scenario, because it plans against a steady state the plant cannot reach quickly. H3: the fixed policy's energy changes by less than 0.5% between quasi-steady and dynamic plants (its setpoint never moves). H4: joint_robust records no more chip-seconds above target than joint in every scenario and plant.",
+   "summary": {
+    "failed": 0,
+    "runs": 360
+   },
+   "created": "2026-10-26T18:49:00+00:00"
+  },
+  {
+   "id": "E007-20261026T185421-9da2d0",
+   "key": "E007",
+   "status": "completed",
+   "title": "Move suppression for the joint controller: switching, energy cost, and time-step sensitivity",
+   "hypothesis": "H1: thresholds up to 5% cut the number of action changes by less than 25%, because most switching tracks demand rather than chatters. H2: at a 2% threshold the worst per-seed change in grid energy between dt = 1 s and dt = 0.5 s falls below 0.5% in both scenarios. H3: a 2% threshold costs at most 0.3% energy per successful task versus no threshold.",
+   "summary": {
+    "failed": 0,
+    "runs": 140
+   },
+   "created": "2026-10-26T18:54:21+00:00"
+  },
+  {
+   "id": "E008-20261026T185711-ac8eb3",
+   "key": "E008",
+   "status": "completed",
+   "title": "Self-correcting joint control under digital-twin mismatch",
+   "hypothesis": "H1: in every mismatch case where joint exceeded the 80 C target, joint_robust has zero chip-seconds throttled and at least 80% fewer chip-seconds above target than joint. H2: joint_robust uses no more energy per successful task than independent (paired 95% CI upper bound <= 0) in every case. H3: with a correct twin (default and *_twin_correct variants), joint_robust is within +/-0.5% of joint on energy per successful task.",
+   "summary": {
+    "failed": 0,
+    "runs": 210
+   },
+   "created": "2026-10-26T18:57:11+00:00"
+  },
+  {
+   "id": "E006-20261026T190821-9afd6b",
+   "key": "E006",
+   "status": "completed",
+   "title": "Joint control under a dynamic coolant loop (thermal mass + setpoint ramp limits)",
+   "hypothesis": "H1: joint uses less energy per successful task than independent (paired 95% CI below 0) in all 3 scenarios under both dynamic plants. H2: under the slow plant (150 kg, 0.25 K/min) joint records chip-seconds above the 80 C target in at least one scenario, because it plans against a steady state the plant cannot reach quickly. H3: the fixed policy's energy changes by less than 0.5% between quasi-steady and dynamic plants (its setpoint never moves). H4: joint_robust records no more chip-seconds above target than joint in every scenario and plant.",
+   "summary": {
+    "failed": 0,
+    "runs": 360
+   },
+   "created": "2026-10-26T19:08:21+00:00"
   }
  ]
 }

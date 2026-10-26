@@ -72,6 +72,10 @@ def _slim(R: dict) -> dict:
         D["E001"]["hypothesis"] = e1["spec"]["hypothesis"]
     else:
         D["E001"] = None
+    for k in ("E006", "E007", "E008"):
+        x = R.get(k)
+        D[k] = ({kk: vv for kk, vv in x.items() if kk != "spec"} | {"hypothesis": x["spec"]["hypothesis"],
+                 "disclosure": x["spec"].get("disclosure", "")}) if x else None
     for k in ("E002", "E003", "E005"):
         x = R[k]
         if x:
@@ -219,8 +223,8 @@ svg .ax{stroke:var(--axis)} svg .gr{stroke:var(--rule)}
 const D = JSON.parse(document.getElementById('data').textContent);
 const NS = 'http://www.w3.org/2000/svg';
 const $ = (s, el = document) => el.querySelector(s);
-const LABEL = {fixed:'Fixed baseline', compute_only:'Compute-only', cooling_only:'Cooling-only', independent:'Independent', joint:'Joint'};
-const PCOL = {fixed:'var(--s1)', compute_only:'var(--s2)', cooling_only:'var(--s3)', independent:'var(--s4)', joint:'var(--s5)'};
+const LABEL = {fixed:'Fixed baseline', compute_only:'Compute-only', cooling_only:'Cooling-only', independent:'Independent', joint:'Joint', joint_robust:'Joint, self-correcting'};
+const PCOL = {fixed:'var(--s1)', compute_only:'var(--s2)', cooling_only:'var(--s3)', independent:'var(--s4)', joint:'var(--s5)', joint_robust:'var(--s3)'};
 const fin = v => v !== null && v !== undefined && isFinite(v);
 const fmt = (v, d = 1) => fin(v) ? Number(v).toFixed(d) : '–';
 const pct = (v, d = 1) => fin(v) ? (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v * 100).toFixed(d) + '%' : '–';
@@ -295,7 +299,7 @@ function lineChart(host, {series, yLabel, xLabel, h = 200, refs = [], yMin, yMax
 
 /* ---------------- tabs ---------------- */
 const TABS = [['overview', 'Overview'], ['energy', 'Energy'], ['thermal', 'Thermal'], ['sensitivity', 'Sensitivity'], ['routing', 'Model routing'],
-  ['robustness', 'Twin mismatch'], ['explorer', 'Cold-plate explorer'], ['assumptions', 'Assumptions'], ['log', 'Experiments & log']];
+  ['robustness', 'Twin mismatch'], ['phase3', 'Phase 3'], ['explorer', 'Cold-plate explorer'], ['assumptions', 'Assumptions'], ['log', 'Experiments & log']];
 const nav = $('#tabs'), main = $('#main'), renderers = {}, sections = {};
 TABS.forEach(([id, name]) => { const b = el('button', {role: 'tab', id: 'tab-' + id, 'aria-controls': id, 'aria-selected': 'false', type: 'button'}, name);
   b.addEventListener('click', () => show(id)); nav.appendChild(b); const sec = el('section', {class: 'tab', id, role: 'tabpanel', 'aria-labelledby': 'tab-' + id}); sec.hidden = true; main.appendChild(sec); sections[id] = sec; });
@@ -439,6 +443,52 @@ renderers.robustness = sec => { const E5 = D.E005; sec.innerHTML = ''; if (!E5) 
   const p = el('div', {class: 'panel'}); p.appendChild(el('div', {class: 'scroll'}, `<table><thead><tr><th>Scenario</th><th>True plant | twin</th><th class="n">Joint vs independent</th><th>Verdict</th><th class="n">Joint chip·s &gt;80 °C</th><th class="n">Indep. chip·s &gt;80 °C</th><th class="n">Joint throttled</th><th class="n">Indep. throttled</th><th class="n">Joint peak °C</th><th class="n">Indep. peak °C</th></tr></thead><tbody>${
     E5.rows.map(r => `<tr><td>${scName(r.scenario)}</td><td class="mono">${r.variant}</td><td class="n">${pct(r.joint_vs_independent, 2)} <span class="note">[${pct(r.lo, 2)}, ${pct(r.hi, 2)}]</span></td><td><span class="pill ${verdictClass(r.verdict)}">${r.verdict}</span></td><td class="n">${fmt(r.joint_chip_s_over_target, 0)}</td><td class="n">${fmt(r.independent_chip_s_over_target, 0)}</td><td class="n">${fmt(r.joint_chip_s_throttled, 0)}</td><td class="n">${fmt(r.independent_chip_s_throttled, 0)}</td><td class="n">${fmt(r.joint_peak_T_j_C, 1)}</td><td class="n">${fmt(r.independent_peak_T_j_C, 1)}</td></tr>`).join('')}</tbody></table>`));
   sec.appendChild(p); };
+
+/* Phase 3 */
+function ciDots(host, rows, groups, series, colors, labels, yLabel) {
+  host.innerHTML = ''; const W = Math.max(520, width(host)), H = 240, m = {l: 58, r: 12, t: 12, b: 30};
+  const svg = S('svg', {viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': yLabel}, host);
+  const vals = rows.flatMap(r => [r.lo, r.hi]).filter(fin).concat([0, -D.threshold]); const lo = Math.min(...vals) * 1.1, hi = Math.max(0.001, Math.max(...vals) * 1.1);
+  const y = lin(lo, hi, H - m.b, m.t), gw = (W - m.l - m.r) / groups.length;
+  ticks(lo * 100, hi * 100, 5).forEach(t => { S('line', {x1: m.l, x2: W - m.r, y1: y(t / 100), y2: y(t / 100), class: 'gr'}, svg); S('text', {x: m.l - 8, y: y(t / 100) + 4, 'text-anchor': 'end', text: t + '%'}, svg); });
+  S('line', {x1: m.l, x2: W - m.r, y1: y(0), y2: y(0), class: 'ax'}, svg);
+  S('line', {x1: m.l, x2: W - m.r, y1: y(-D.threshold), y2: y(-D.threshold), style: 'stroke:var(--muted);stroke-dasharray:4 3'}, svg);
+  S('text', {x: m.l + 4, y: y(-D.threshold) - 4, text: `practical threshold (${(D.threshold * 100).toFixed(0)}%)`, style: 'fill:var(--muted)'}, svg);
+  S('text', {x: 12, y: m.t + (H - m.b - m.t) / 2, transform: `rotate(-90 12 ${m.t + (H - m.b - m.t) / 2})`, 'text-anchor': 'middle', text: yLabel}, svg);
+  groups.forEach((g, i) => { S('text', {x: m.l + i * gw + gw / 2, y: H - 8, 'text-anchor': 'middle', text: scName(g)}, svg);
+    series.forEach((sr, j) => { const r = rows.find(x => x.g === g && x.s === sr); if (!r) return; const x = m.l + i * gw + gw / 2 + (j - (series.length - 1) / 2) * 22;
+      S('line', {x1: x, x2: x, y1: y(r.lo), y2: y(r.hi), style: `stroke:${colors[j]};stroke-width:2.5`}, svg);
+      const c = S('circle', {cx: x, cy: y(r.mean), r: 5, style: `fill:${colors[j]};stroke:var(--surface);stroke-width:2`}, svg);
+      const hit = S('circle', {cx: x, cy: y(r.mean), r: 12, fill: 'transparent'}, svg);
+      hit.addEventListener('mousemove', ev => showTip(ev, `${labels[j]} · ${scName(g)}`, [['mean', pct(r.mean, 2)], ['95% CI', `${pct(r.lo, 2)} … ${pct(r.hi, 2)}`]])); hit.addEventListener('mouseleave', hideTip); }); }); }
+renderers.phase3 = sec => { sec.innerHTML = ''; const E6 = D.E006, E7 = D.E007, E8 = D.E008;
+  sec.appendChild(el('p', {class: 'lede'}, 'Phase 3 upgraded the simulator: a coolant loop with thermal mass and setpoint ramp limits, move suppression for the joint controller, and a joint controller that corrects its plan with measured temperatures. All three experiments were pre-registered; E006 was re-run after a confound was found (see disclosure).'));
+  if (E6) { const p = el('div', {class: 'panel'}); p.appendChild(el('h3', {}, `E006 · Joint vs independent under three plant models (v${E6.version})`));
+    const plants = ['quasi_steady', 'dyn_40kg_1Kmin', 'dyn_150kg_0.25Kmin'], pl = ['Quasi-steady', '40 kg loop, 1 K/min', '150 kg loop, 0.25 K/min'], cols = ['var(--s1)', 'var(--s2)', 'var(--s3)'];
+    p.appendChild(legend(pl.map((l, i) => ({label: l, color: cols[i]})))); const h = el('div', {class: 'scroll'}); p.appendChild(h);
+    if (E6.disclosure) p.appendChild(el('p', {class: 'note'}, 'Disclosure: ' + E6.disclosure.replace(/</g, '&lt;')));
+    sec.appendChild(p);
+    ciDots(h, E6.joint_vs_independent.map(r => ({g: r.scenario, s: r.plant, mean: r.mean, lo: r.lo, hi: r.hi})), [...new Set(E6.joint_vs_independent.map(r => r.scenario))], plants, cols, pl, 'Joint vs independent');
+    const t = el('div', {class: 'panel'}); t.appendChild(el('h3', {}, 'Thermal guards by plant model (means over 10 seeds)'));
+    t.appendChild(el('div', {class: 'scroll'}, `<table><thead><tr><th>Scenario</th><th>Plant</th><th>Policy</th><th class="n">chip·s &gt; 80 °C</th><th class="n">throttled</th><th class="n">Peak °C</th><th class="n">Loop storage</th></tr></thead><tbody>${
+      E6.thermal.filter(r => r.policy !== 'fixed').map(r => `<tr><td>${scName(r.scenario)}</td><td class="mono">${r.plant}</td><td>${LABEL[r.policy] || r.policy}</td><td class="n"><span class="pill ${r.throttled > 0 ? 'crit' : r.over > 0 ? 'warn' : 'good'}">${fmt(r.over, 0)}</span></td><td class="n">${fmt(r.throttled, 0)}</td><td class="n">${fmt(r.peak, 1)}</td><td class="n">${fmt(r.storage_pct, 2)}%</td></tr>`).join('')}</tbody></table>`));
+    t.appendChild(el('p', {class: 'note'}, 'Loop storage is the change in heat held by the coolant loop over the run, as a share of grid energy. Runs above 0.5% are flagged; a large value means the start and end states differ.'));
+    sec.appendChild(t); }
+  if (E8) { const p = el('div', {class: 'panel'}); p.appendChild(el('h3', {}, 'E008 · Overheating under twin mismatch, hot ambient (chip·s above 80 °C)'));
+    const pols = ['independent', 'joint', 'joint_robust']; p.appendChild(legend(pols.map(k => ({label: LABEL[k], color: k === 'joint_robust' ? 'var(--s3)' : PCOL[k]}))));
+    const h = el('div', {class: 'scroll'}); p.appendChild(h); sec.appendChild(p);
+    const rows = E8.rows.filter(r => r.scenario === 'S3_hot');
+    groupedBars(h, {groups: rows.map(r => r.variant), series: pols, get: (g, k) => { const r = rows.find(x => x.variant === g); return r ? {mean: r[k].over || 0, lo: null, hi: null} : null; },
+      yLabel: 'chip·s above 80 °C', groupLabel: g => g.replace('|', ' · '), minW: 760, h: 260, extra: (g, k, v) => { const r = rows.find(x => x.variant === g); return [['above target', fmt(v.mean, 0) + ' chip·s'], ['throttled', fmt(r[k].throttled, 0) + ' chip·s'], ['peak', fmt(r[k].peak, 1) + ' °C']]; }});
+    const t = el('div', {class: 'panel'}); t.appendChild(el('div', {class: 'scroll'}, `<table><thead><tr><th>Scenario</th><th>Truth | twin</th><th class="n">Self-correcting vs independent</th><th class="n">vs joint</th><th>Verdict vs independent</th></tr></thead><tbody>${
+      E8.rows.map(r => `<tr><td>${scName(r.scenario)}</td><td class="mono">${r.variant}</td><td class="n">${pct(r.joint_robust_vs_independent.mean, 2)} <span class="note">[${pct(r.joint_robust_vs_independent.lo, 2)}, ${pct(r.joint_robust_vs_independent.hi, 2)}]</span></td><td class="n">${pct(r.joint_robust_vs_joint.mean, 2)}</td><td><span class="pill ${verdictClass(r.joint_robust_vs_independent.verdict)}">${r.joint_robust_vs_independent.verdict}</span></td></tr>`).join('')}</tbody></table>`)); sec.appendChild(t); }
+  if (E7) { const t = el('div', {class: 'panel'}); t.appendChild(el('h3', {}, 'E007 · Move suppression: switching and time-step sensitivity'));
+    t.appendChild(el('div', {class: 'scroll'}, `<table><thead><tr><th>Scenario</th><th class="n">Threshold</th><th class="n">dt</th><th class="n">Action changes</th><th class="n">Clock</th><th class="n">Flow</th><th class="n">Supply</th></tr></thead><tbody>${
+      E7.switching.map(x => `<tr><td>${scName(x.scenario)}</td><td class="n">${(x.threshold * 100).toFixed(1)}%</td><td class="n">${x.dt} s</td><td class="n">${fmt(x.action_changes, 1)}</td><td class="n">${fmt(x.clock_changes, 1)}</td><td class="n">${fmt(x.flow_changes, 1)}</td><td class="n">${fmt(x.tsup_changes, 1)}</td></tr>`).join('')}</tbody></table>`));
+    t.appendChild(el('div', {class: 'scroll'}, `<table><thead><tr><th>Scenario</th><th class="n">Threshold</th><th class="n">Worst change, dt 1 s vs 0.5 s</th><th class="n">Mean</th></tr></thead><tbody>${
+      E7.dt_sensitivity.map(d => `<tr><td>${scName(d.scenario)}</td><td class="n">${(d.threshold * 100).toFixed(1)}%</td><td class="n">${(d.max * 100).toFixed(3)}%</td><td class="n">${(d.mean * 100).toFixed(3)}%</td></tr>`).join('')}</tbody></table>`));
+    t.appendChild(el('p', {class: 'note'}, 'Most switching is clock changes that track demand, not chattering; supply temperature barely moves. Thresholds up to 2% cost almost nothing but also do not change time-step sensitivity, which is already under 0.5% on 4-hour runs.'));
+    sec.appendChild(t); } };
 
 /* Explorer */
 const X = D.explorer; const xs = {s: X.s.indexOf(1) >= 0 ? X.s.indexOf(1) : X.s.length - 1, a: X.t_amb.indexOf(20), t: null, f: null};

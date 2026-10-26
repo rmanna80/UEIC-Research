@@ -49,10 +49,14 @@ ueic/
   experiment.py  spec → cells → parallel runs → store
   analysis.py    paired statistics
   results.py     structured results + mechanical hypothesis verdicts from the store
+  api.py         Phase 2 FastAPI service (127.0.0.1) over the store and physics; validated experiment POST
+  telemetry.py   Phase 4 read-only NVML logger (no setter calls; enforced by a test)
+  calibrate.py   Phase 4 calibration sessions, fits with standard errors, ingestion, calibrated specs
   report.py      RESULTS.md + figures from the store
   dashboard.py   self-contained HTML dashboard from the store
   __main__.py    CLI
-tests/           45 validation tests
+web/             Phase 2 lab: index.html, lab.js (ES modules), lab.css, vendor/three (Three.js r185.1, MIT)
+tests/           73 tests
 experiments/     pre-registered specs (JSON) + generator
 results/         ueic.sqlite, time series (gzip CSV), figures, exports, dashboard.html
 docs/            this documentation set
@@ -79,3 +83,17 @@ Data flow: `spec.json → register (frozen) → expand cells → simulate (worke
 * Tamper evidence: SHA-256 hash chain over every finalised run's content and its time-series file (`python -m ueic verify`). It catches edits even if the triggers are dropped (tested).
 * Reproducibility: per-run config hash, code hash, NumPy version and host recorded; bundles contain the code snapshot.
 * Hardware control: none exists. Controllers act only on the simulator. Before any physical actuation (Phase 4+), controllers must run read-only or in shadow mode, behind independent hardware protection. That protection is modelled in `sim.py` as a separate layer the policy cannot override.
+
+## 5. Phase 3 plant model (dynamic loop)
+
+With `loop_mass_kg > 0`, a well-mixed supply tank of that water mass sits between the plant and the chips. It is updated with its exact first-order solution: `M c_p dT/dt = ṁ c_p (T_out − T)`. The plant outlet setpoint moves toward the controller's command at most `tsup_ramp_K_per_min`. When the setpoint is below the return temperature the plant holds its outlet there and removes `Q = Q_in − M c_p ΔT/Δt`. Otherwise it passes water through without heating it, and the tank accumulates the heat. Energy closes exactly; the loop-storage term is reported and flagged above 0.5% of grid energy.
+
+With `loop_mass_kg = 0` the original quasi-steady plant runs unchanged. A test confirms that stored E001 results reproduce bitwise.
+
+## 6. Phase 2 decision: no front-end build step
+
+| Decision | Alternative | Why |
+|---|---|---|
+| Plain ES modules plus vendored Three.js (import map), served by FastAPI | React + TypeScript + bundler (charter suggestion) | No Node toolchain needed on the owner's Windows machine; the lab works offline; about 1,000 lines of front-end code do not justify a build pipeline. Revisit if the UI grows past a few views or needs shared component state. |
+| 2-D energy-flow diagram | 3-D energy-flow model (charter model 5) | A flow diagram reads more accurately flat. The numbers come from the same stored accounting either way. |
+
