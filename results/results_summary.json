@@ -1,6 +1,6 @@
 {
- "generated_utc": "2026-10-26T19:47:15+00:00",
- "code_sha256": "9163ff28dd15ba250a36c71aa753a0e892b531a7734a9cfffb01afcf286808b5",
+ "generated_utc": "2026-10-26T20:03:58+00:00",
+ "code_sha256": "05fbfe6b2c74e03440f70776f848ddac62fadb39b376f2ad62dc1c2a307de386",
  "chain_ok": true,
  "chain_msg": "2861 finalised runs verified",
  "threshold": 0.01,
@@ -130724,6 +130724,10 @@
   [
    "2026-10-26T19:46:53+00:00",
    "Phase 4 calibration attempt 1 on the user's RTX 4060 Laptop GPU (driver 610.88; NVML max SM clock 3105 MHz; power limit 125 W). 'nvidia-smi -lgc 1500,1500' was accepted. The warm-up session stopped before measuring with 'PyTorch cannot see a CUDA GPU'; the Administrator window had no venv active, so the likely cause is a different interpreter or a CPU-only PyTorch build (not yet confirmed). No data recorded; an empty session folder was left. Review found the fit normalised clocks by NVML's table maximum (3105 MHz), which this GPU does not sustain: the planned 900-1800 MHz sweep would have sat at s = 0.29-0.58, mostly below s_min = 0.5. Fixed before any data: environment checked before the folder is created (calib check names the cause); s relative to the highest measured compute clock; power fit uses only s >= 0.5 and needs >= 4 clocks; unheld locks and power/thermal limits flagged; calib probe suggests sweep clocks from the sustained clock. 82 tests pass."
+  ],
+  [
+   "2026-10-26T20:03:23+00:00",
+   "Phase 4, RTX 4060 Laptop, first measurement (user-reported console output; data stays on the user's machine until committed): calib probe at default clocks gave sustained SM clock 1860 MHz median (2.1% variation), 51.4 W median board power, 58 C, clock held down by a limit in 100% of steady samples. NVML had reported a 125 W enforced limit when listing devices. The tool version used did not say which limit; low power and temperature point to a power budget set outside the GPU (battery, quiet/balanced mode, or CPU-GPU sharing), not yet confirmed. Tooling now decodes each NVML clock-event reason, logs the enforced power limit per sample, and adds 'calib show' to decode recorded sessions."
   ]
  ],
  "experiments": [

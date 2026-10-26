@@ -26,7 +26,8 @@ from pathlib import Path
 from typing import Any, Callable
 
 FIELDS = ["t_unix", "gpu", "power_W", "energy_J", "temp_C", "sm_clock_MHz", "mem_clock_MHz",
-          "util_gpu_pct", "util_mem_pct", "pstate", "clock_event_reasons", "fan_pct", "label"]
+          "util_gpu_pct", "util_mem_pct", "pstate", "clock_event_reasons", "fan_pct", "label", "power_limit_W"]
+# power_limit_W (enforced limit, per sample) was added after the first sessions; older files lack it.
 
 
 def _load_nvml():
@@ -96,6 +97,7 @@ class Nvml:
         n, h = self.n, dev.handle
         p = _try(lambda: n.nvmlDeviceGetPowerUsage(h))
         e = _try(lambda: n.nvmlDeviceGetTotalEnergyConsumption(h))
+        pl = _try(lambda: n.nvmlDeviceGetEnforcedPowerLimit(h))   # can change at run time on laptops
         u = _try(lambda: n.nvmlDeviceGetUtilizationRates(h))
         reasons_fn = getattr(n, "nvmlDeviceGetCurrentClocksEventReasons", None) or \
             getattr(n, "nvmlDeviceGetCurrentClocksThrottleReasons", None)
@@ -111,6 +113,7 @@ class Nvml:
             "clock_event_reasons": None if reasons_fn is None else _try(lambda: reasons_fn(h)),
             "fan_pct": _try(lambda: n.nvmlDeviceGetFanSpeed(h)),
             "label": label,
+            "power_limit_W": None if pl is None else pl / 1000.0,
         }
 
 

@@ -43,9 +43,19 @@ from .telemetry import Logger, Nvml, read_csv
 T_REF = 60.0
 S_MIN = 0.5   # registry s_min; the v(s) form is anchored here so the fit maps 1:1 onto v_min_ratio
 KINDS = ("compute", "memory", "warmup", "probe")
-# nvml.h clock-event reasons that mean the clock was held down by a limit:
-# SW power cap 0x4, HW slowdown 0x8, SW thermal 0x20, HW thermal 0x40, HW power brake 0x80
-LIMIT_BITS = 0x4 | 0x8 | 0x20 | 0x40 | 0x80
+# nvml.h clock-event ("throttle") reasons that mean a limit held the clock down. Values checked
+# against nvidia-ml-py's nvmlClocksEventReason* / nvmlClocksThrottleReason* constants.
+LIMIT_REASONS = {
+    "sw_power_cap": (0x4, "power cap (the driver holds board power at a limit)"),
+    "hw_slowdown": (0x8, "hardware slowdown (power-supply or temperature protection)"),
+    "sw_thermal": (0x20, "temperature target (the driver holds the GPU at a temperature)"),
+    "hw_thermal": (0x40, "hardware thermal protection"),
+    "power_brake": (0x80, "external power brake signal"),
+    "board_limit": (0x200, "board limit"),
+    "reliability": (0x400, "reliability voltage limit"),
+}
+LIMIT_BITS = sum(bit for bit, _ in LIMIT_REASONS.values())
+USER_CLOCKS_BIT = 0x2   # clocks limited by a user setting (application or locked clocks)
 CLOCK_HELD_TOL = 0.03          # a locked clock counts as held if the median is within 3%
 INSTALL_HINT = ("\n    pip uninstall -y torch"
                 "\n    pip install torch --index-url https://download.pytorch.org/whl/cu130"
@@ -214,6 +224,7 @@ class Session:
     max_clock: float
     tel: list[dict[str, Any]]
     work: np.ndarray            # (n, 2) t_unix, throughput
+    power_limit_W: float | None = None   # enforced limit when the session started
 
 
 def load_session(d: str | Path) -> Session:
@@ -221,7 +232,7 @@ def load_session(d: str | Path) -> Session:
     meta = json.loads((d / "session.json").read_text())
     work = np.loadtxt(d / "workload.csv", delimiter=",", skiprows=1, ndmin=2)
     return Session(d, meta["kind"], meta.get("label", ""), float(meta["device"]["max_sm_clock_MHz"] or np.nan),
-                   read_csv(d / "telemetry.csv"), work)
+                   read_csv(d / "telemetry.csv"), work, meta["device"].get("power_limit_W"))
 
 
 def steady(sess: Session, skip_s: float = 10.0) -> tuple[list[dict], np.ndarray]:
@@ -249,7 +260,38 @@ def summarize(sess: Session, skip_s: float = 10.0) -> dict[str, Any]:
             "label_clock_MHz": float(m.group(1)) if m else None,
             "s_nvml": float(np.median(clk) / sess.max_clock), "power_W": float(np.median(pw)),
             "temp_C": float(np.median(tc)), "throughput": float(np.median(work[:, 1])),
-            "limited_frac": float(np.mean([(x & LIMIT_BITS) != 0 for x in known])) if known else None}
+            "limited_frac": float(np.mean([(x & LIMIT_BITS) != 0 for x in known])) if known else None,
+            "limit_reasons": {k: float(np.mean([(x & bit) != 0 for x in known]))
+                              for k, (bit, _) in LIMIT_REASONS.items() if any(x & bit for x in known)},
+            "user_clocks_frac": float(np.mean([(x & USER_CLOCKS_BIT) != 0 for x in known])) if known else None,
+            "power_p95_W": float(np.percentile(pw, 95)),
+            "power_limit_W": _median_or(tel, "power_limit_W", sess.power_limit_W)}
+
+
+def _median_or(rows: list[dict], key: str, default):
+    v = [r.get(key) for r in rows if r.get(key) is not None]
+    return float(np.median(v)) if v else default
+
+
+def interpret_limits(sm: dict[str, Any]) -> list[str]:
+    """Plain-language reading of which limit held the clock down. Inferences are worded as such."""
+    out = []
+    reasons = sm.get("limit_reasons") or {}
+    for k, frac in sorted(reasons.items(), key=lambda kv: -kv[1]):
+        out.append(f"{100 * frac:.0f}% of samples: {LIMIT_REASONS[k][1]}")
+    if (sm.get("user_clocks_frac") or 0) > 0.5:
+        out.append("the driver reports user-set clocks (a clock lock is active): run `nvidia-smi -i 0 -rgc` "
+                   "and probe again")
+    lim, p = sm.get("power_limit_W"), sm.get("power_p95_W")
+    if reasons.get("sw_power_cap", 0) > 0.5 and lim and p and p < 0.8 * lim:
+        out.append(f"likely cause: power stayed at or below {p:.0f} W although the GPU reports a {lim:.0f} W limit, "
+                   "so a lower budget was set outside the GPU. On laptops that usually means running on battery, "
+                   "a quiet or balanced power mode, or the CPU and GPU sharing one power budget. Plug in, choose "
+                   "the performance mode (Windows and the laptop maker's app), and probe again")
+    if (reasons.get("sw_thermal", 0) > 0.5 or reasons.get("hw_thermal", 0) > 0.1):
+        out.append(f"likely cause: temperature ({sm.get('temp_C', float('nan')):.0f} C median). Clear the vents, "
+                   "raise the laptop for airflow, let it cool, and probe again")
+    return out
 
 
 def _linfit(x, y):
@@ -363,8 +405,10 @@ def calibrate(session_dirs: Iterable[str | Path], cfg=None) -> dict[str, Any]:
             notes.append(f"{x['name']}: locked at {lc:.0f} MHz but ran at {x['clock_MHz']:.0f} MHz (median); the "
                          "lock was not held. Fits use the measured clock")
         if x.get("limited_frac") is not None and x["limited_frac"] > 0.10:
-            notes.append(f"{x['name']}: clock held down by a power or thermal limit in "
-                         f"{100 * x['limited_frac']:.0f}% of samples")
+            which = ", ".join(f"{LIMIT_REASONS[k][1].split(' (')[0]} {100 * v:.0f}%"
+                              for k, v in sorted(x["limit_reasons"].items(), key=lambda kv: -kv[1]))
+            notes.append(f"{x['name']}: clock held down by a limit in {100 * x['limited_frac']:.0f}% of samples "
+                         f"({which})")
     probes = [x for x in by("probe") if x["ok"]]
     if probes and f_ref and f_ref < 0.9 * probes[-1]["clock_MHz"]:
         notes.append(f"highest swept clock {f_ref:.0f} MHz is below the clock the GPU sustains at default settings "
@@ -489,7 +533,23 @@ def probe(seconds: float = 60, gpu: int = 0, out_root: str | Path = "data/calibr
             nv.close()
     except Exception:  # noqa: BLE001 - suggestion falls back to the 15 MHz grid
         supported = None
-    return {**sm, "ok": True, "path": str(d), "suggested_clocks": suggest_clocks(sm["clock_MHz"], supported)}
+    return {**sm, "ok": True, "path": str(d), "suggested_clocks": suggest_clocks(sm["clock_MHz"], supported),
+            "interpretation": interpret_limits(sm)}
+
+
+def latest_session(root: str | Path) -> Path | None:
+    """Most recent session folder (names start with a UTC timestamp)."""
+    ds = sorted(p for p in Path(root).glob("*") if (p / "session.json").exists())
+    return ds[-1] if ds else None
+
+
+def show_session(d: str | Path, skip_s: float = 10.0) -> dict[str, Any]:
+    sess = load_session(d)
+    sm = summarize(sess, skip_s)
+    if sm["ok"]:
+        sm["interpretation"] = interpret_limits(sm)
+        sm["label"] = sess.label
+    return sm
 
 
 def plan_commands(clocks_MHz: list[int], gpu: int = 0, seconds: int = 60) -> str:

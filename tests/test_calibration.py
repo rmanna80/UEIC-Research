@@ -59,6 +59,7 @@ def test_logger_writes_csv_and_metadata_with_hash(tmp_path):
     rows = telemetry.read_csv(tmp_path / "t.csv")
     assert len(rows) >= 5 and rows[0]["power_W"] == pytest.approx(123.4)
     assert rows[0]["energy_J"] is None and rows[0]["fan_pct"] is None      # unsupported -> None, not a crash
+    assert rows[0]["power_limit_W"] == pytest.approx(300.0)                 # enforced limit, every sample
     side = json.loads((tmp_path / "t.meta.json").read_text())
     assert side["provenance"] == "physical_measurement" and "excludes" in side["measurement_boundary"]
     import hashlib
@@ -115,25 +116,25 @@ def _power(s, T, floor=False):
 
 
 def _write_session(root, kind, clk, rng, seconds=60.0, warm=False, f_top=MAXCLK, nvml_max=MAXCLK,
-                   label_clk=None, floor=False):
+                   label_clk=None, floor=False, reasons=0, power=None, temp=62.0, power_limit=None):
     """`clk` is the clock the GPU actually ran at; `label_clk` the clock the user locked (default: same);
     `f_top` the highest clock the GPU sustains (s = 1 in the truth model); `nvml_max` what NVML reports."""
     d = Path(root) / f"{kind}_{clk}"
     d.mkdir()
     s = clk / f_top
     t = np.arange(0, seconds, 0.1)
-    T = 35.0 + 35.0 * (1 - np.exp(-t / 150.0)) if warm else np.full_like(t, 62.0)
-    P = _power(s, T, floor) + rng.normal(0, 0.8, t.size)
+    T = 35.0 + 35.0 * (1 - np.exp(-t / 150.0)) if warm else np.full_like(t, temp)
+    P = (_power(s, T, floor) if power is None else np.full_like(t, power)) + rng.normal(0, 0.8, t.size)
     with open(d / "telemetry.csv", "w") as f:
         f.write(",".join(telemetry.FIELDS) + "\n")
         for ti, Ti, Pi in zip(t, T, P):
-            f.write(f"{1000 + ti},0,{Pi},,{Ti},{clk},9000,99,50,0,0,,{kind}\n")
+            f.write(f"{1000 + ti},0,{Pi},,{Ti},{clk},9000,99,50,0,{reasons},,{kind}\n")   # pre-power_limit format
     beta = TRUE["beta_memory"] if kind == "memory" else TRUE["beta_compute"]
     tw = np.arange(0, seconds, 0.5)
     thr = 100.0 * s ** beta * (1 + rng.normal(0, 0.003, tw.size))
     np.savetxt(d / "workload.csv", np.column_stack([1000 + tw, thr]), delimiter=",", header="t_unix,throughput", comments="")
     (d / "session.json").write_text(json.dumps({"kind": kind, "label": f"clk={label_clk or clk}", "device": {
-        "index": 0, "name": "Synthetic", "max_sm_clock_MHz": nvml_max}}))
+        "index": 0, "name": "Synthetic", "max_sm_clock_MHz": nvml_max, "power_limit_W": power_limit}}))
     return d
 
 
@@ -248,3 +249,44 @@ def test_probe_measures_sustained_clock_and_suggests_a_sweep(tmp_path):
     # probe sessions are evidence only: they never enter a fit
     out = cal.calibrate([r["path"]])
     assert out["clock_reference"]["f_ref_MHz"] is None and not out["overrides"]
+
+
+# ------------------------------------------------------------- which limit held the clock down
+def test_laptop_power_cap_is_named_and_explained(tmp_path, capsys):
+    """Field reading, RTX 4060 Laptop probe 2026-10-26: 1860 MHz, 51.4 W, 58 C, 'power/thermal-limited
+    100%' while NVML reported a 125 W limit. The tool must say which limit, and that the budget came
+    from outside the GPU. This session uses the older telemetry format (no per-sample limit column)."""
+    rng = np.random.default_rng(6)
+    d = _write_session(tmp_path, "probe", 1860, rng, power=51.4, temp=58.0, reasons=0x4, power_limit=125.0)
+    r = cal.show_session(d)
+    assert r["limit_reasons"] == {"sw_power_cap": 1.0} and r["power_limit_W"] == 125.0
+    text = " ".join(r["interpretation"])
+    assert "power cap" in text and "battery" in text and "125 W" in text
+    assert "temperature" not in text.split("likely cause")[1]          # not blamed on heat at 58 C
+    from ueic.__main__ import main
+    assert main(["calib", "show", str(d)]) == 0
+    out = capsys.readouterr().out
+    assert "1860 MHz" in out and "power cap" in out
+
+
+def test_no_power_story_when_power_is_near_the_limit(tmp_path):
+    rng = np.random.default_rng(7)
+    d = _write_session(tmp_path, "probe", 2400, rng, power=118.0, temp=70.0, reasons=0x4, power_limit=125.0)
+    text = " ".join(cal.show_session(d)["interpretation"])
+    assert "power cap" in text and "battery" not in text                # the GPU's own limit, as designed
+
+
+def test_leftover_clock_lock_is_detected(tmp_path):
+    rng = np.random.default_rng(8)
+    d = _write_session(tmp_path, "probe", 1500, rng, power=40.0, reasons=0x2, power_limit=125.0)
+    r = cal.show_session(d)
+    assert r["limited_frac"] == 0.0 and any("-rgc" in x for x in r["interpretation"])
+
+
+def test_latest_session_picks_newest_folder(tmp_path):
+    rng = np.random.default_rng(9)
+    for name in ("20261026T190000_probe", "20261026T195900_probe"):
+        d = _write_session(tmp_path, "probe", 1800, rng)
+        d.rename(tmp_path / name)
+    (tmp_path / "20261026T235959_empty").mkdir()                        # failed start: no session.json
+    assert cal.latest_session(tmp_path).name == "20261026T195900_probe"

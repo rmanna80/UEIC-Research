@@ -56,7 +56,7 @@ ueic/
   dashboard.py   self-contained HTML dashboard from the store
   __main__.py    CLI
 web/             Phase 2 lab: index.html, lab.js (ES modules), lab.css, vendor/three (Three.js r185.1, MIT)
-tests/           82 tests
+tests/           86 tests
 experiments/     pre-registered specs (JSON) + generator
 results/         ueic.sqlite, time series (gzip CSV), figures, exports, dashboard.html
 docs/            this documentation set

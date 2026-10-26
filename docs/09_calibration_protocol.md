@@ -45,7 +45,15 @@ nvidia-smi -i 0 -rgc                         # make sure no clock lock is left f
 python -m ueic calib probe                   # 60 s of the compute kernel at default clocks
 ```
 
-The probe prints the median SM clock the GPU held under load, how much it varied, power, temperature, and how often a power or thermal limit held the clock down. It ends with a `calib plan` command containing five suggested lock clocks, spread from half the sustained clock to the sustained clock and snapped to the clocks your driver supports.
+The probe prints:
+* the median SM clock the GPU held under load, and how much it varied;
+* power, with the limit the GPU reports;
+* temperature;
+* **which** limit held the clock down, if any, and the likely cause.
+
+It ends with a `calib plan` command containing five suggested lock clocks, spread from half the sustained clock to the sustained clock and snapped to the clocks your driver supports. `python -m ueic calib show` prints the same summary for any recorded session, by default the most recent.
+
+**If the probe reports a power cap well below the GPU's limit,** a budget set outside the GPU limited it. On a laptop that usually means battery power, a quiet or balanced mode, or a CPU–GPU shared power budget. Fix what you can and probe again, because the sweep should reach the clock the GPU holds without that budget. If the cap cannot be lifted, the suggested clocks still work. The calibration then describes the GPU only up to the capped clock, and the fit records that.
 
 **Why this step exists.** In the simulator, s = 1 is the accelerator's top clock. NVML's "max SM clock" is the top of the driver's clock table, which many GPUs never reach under load. An RTX 4060 Laptop reports 3105 MHz. The fit therefore uses s = clock / f_ref, where f_ref is the highest steady clock among your compute sessions. The power fit uses only clocks between 0.5 × f_ref and f_ref, because that is the range the simulator models. Lock clocks below that range still count towards `beta_compute` and `beta_memory`.
 
@@ -92,6 +100,8 @@ Commit the `data/calibration/` folder with the results: it is the evidence behin
 | `running scripts is disabled on this system` when activating | PowerShell execution policy | `Set-ExecutionPolicy -Scope Process RemoteSigned` (this window only), then activate |
 | `nvidia-smi -lgc`: insufficient permissions | Not an Administrator window | Reopen PowerShell with *Run as administrator* |
 | Note: `locked at X MHz but ran at Y MHz` | Power or thermal limit below the requested clock | Plug in, use the performance power mode, or drop the top clock to what `calib probe` reported |
+| Probe: power cap with power far below the reported limit (e.g. 51 W of 125 W) | A power budget set outside the GPU: battery, quiet or balanced mode, CPU–GPU sharing | Plug in, choose the performance mode in Windows and in the laptop maker's app, avoid heavy CPU work during the run, probe again |
+| Probe: `user-set clocks (a clock lock is active)` | A lock from an earlier step is still in place | `nvidia-smi -i 0 -rgc`, probe again |
 | `temperature rose only N K` | The GPU was not cold when the warm-up started | Leave it idle longer: `--idle-before 600` |
 | `need compute sessions at >= 4 different clocks between 0.5 x and 1 x` | Too few sweep clocks in the modelled range | Use the clocks `calib probe` suggests |
 | Empty folders in `data\calibration` from earlier failed starts | Older versions created the folder before checking PyTorch | Delete them. `fit` skips them either way |

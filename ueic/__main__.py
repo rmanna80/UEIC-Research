@@ -14,6 +14,7 @@
   python -m ueic telemetry devices         # Phase 4: list NVIDIA GPUs (read-only)
   python -m ueic calib check               # read-only preflight: Python/venv, PyTorch+CUDA, NVML
   python -m ueic calib probe               # sustained clock at default settings -> suggested sweep clocks
+  python -m ueic calib show [SESSION]      # summarise a session (default: latest), incl. which limit applied
   python -m ueic calib plan --clocks <from probe>   # print a procedure to review and run
   python -m ueic calib run --kind compute --seconds 60 --label clk=1200
   python -m ueic calib fit data/calibration/* --out data/calibration/calibration.json
@@ -28,6 +29,19 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DB = ROOT / "results" / "ueic.sqlite"
+
+
+def _print_summary(r: dict) -> None:
+    lim = r.get("power_limit_W")
+    print(f"sustained SM clock {r['clock_MHz']:.0f} MHz (variation {100 * r['clock_cv']:.1f}%), "
+          f"power {r['power_W']:.1f} W median / {r['power_p95_W']:.1f} W 95th percentile"
+          + (f" (reported limit {lim:.0f} W)" if lim else "") + f", {r['temp_C']:.0f} C")
+    if r.get("limited_frac") is None:
+        print("limit reasons: not reported by this GPU")
+    elif not r["interpretation"]:
+        print("no power or thermal limit was active")
+    for line in r["interpretation"]:
+        print("  - " + line)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -58,6 +72,9 @@ def main(argv: list[str] | None = None) -> int:
     pb = csub.add_parser("probe", help="measure the clock the GPU sustains at default settings; suggests sweep clocks")
     pb.add_argument("--seconds", type=float, default=60); pb.add_argument("--gpu", type=int, default=0)
     pb.add_argument("--out", default=str(ROOT / "data" / "calibration"))
+    sh = csub.add_parser("show", help="summarise a recorded session, including which limit held the clock down")
+    sh.add_argument("session", nargs="?", default=None, help="session folder (default: the most recent one)")
+    sh.add_argument("--root", default=str(ROOT / "data" / "calibration"))
     cp = csub.add_parser("plan"); cp.add_argument("--clocks", required=True, help="comma-separated MHz, e.g. 900,1200,1500")
     cp.add_argument("--gpu", type=int, default=0); cp.add_argument("--seconds", type=int, default=60)
     cr = csub.add_parser("run"); cr.add_argument("--kind", choices=["compute", "memory", "warmup"], required=True)
@@ -101,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
             meta = Logger(a.out, interval_s=a.interval, gpus=None if a.gpu is None else [a.gpu], label=a.label).run(a.seconds)
             print(f"{meta['n_samples']} samples -> {a.out} (sha256 {meta['csv_sha256'][:12]})")
         return 0
-    if a.cmd == "calib" and a.ccmd in ("check", "probe", "plan", "run", "fit"):
+    if a.cmd == "calib" and a.ccmd in ("check", "probe", "show", "plan", "run", "fit"):
         from . import calibrate as cal
         if a.ccmd == "check":
             res = cal.check(a.gpu)
@@ -114,6 +131,18 @@ def main(argv: list[str] | None = None) -> int:
         if a.ccmd == "plan":
             print(cal.plan_commands([int(x) for x in a.clocks.split(",")], a.gpu, a.seconds))
             return 0
+        if a.ccmd == "show":
+            d = Path(a.session) if a.session else cal.latest_session(a.root)
+            if d is None or not (d / "session.json").exists():
+                print(f"no session found ({a.session or a.root})")
+                return 1
+            r = cal.show_session(d)
+            print(f"{d.name}  [{r['kind']}]")
+            if not r["ok"]:
+                print(f"  {r['reason']}")
+                return 1
+            _print_summary(r)
+            return 0
         try:
             if a.ccmd == "probe":
                 print(f"Running the compute kernel for {a.seconds:g} s at the GPU's current clock settings ...")
@@ -121,12 +150,15 @@ def main(argv: list[str] | None = None) -> int:
                 if not r["ok"]:
                     print(f"probe failed: {r['reason']} ({r['path']})")
                     return 1
-                lim = "" if r["limited_frac"] is None else f", power/thermal-limited {100 * r['limited_frac']:.0f}% of the time"
-                print(f"sustained SM clock {r['clock_MHz']:.0f} MHz (variation {100 * r['clock_cv']:.1f}%), "
-                      f"{r['power_W']:.1f} W, {r['temp_C']:.0f} C{lim}")
-                print("If clocks were still locked from an earlier step, this measured the locked clock: run "
-                      f"`nvidia-smi -i {a.gpu} -rgc` and probe again.")
-                print("Next:\n  python -m ueic calib plan --clocks " + ",".join(map(str, r["suggested_clocks"])))
+                _print_summary(r)
+                if r["user_clocks_frac"] is None:
+                    print("If clocks were still locked from an earlier step, this measured the locked clock: run "
+                          f"`nvidia-smi -i {a.gpu} -rgc` and probe again.")
+                print("Suggested sweep:\n  python -m ueic calib plan --clocks " + ",".join(map(str, r["suggested_clocks"])))
+                if (r["limited_frac"] or 0) > 0.5:
+                    print("These clocks fit the limited range. If you can lift the limit, probe again first: the "
+                          "sweep should reach the clock the GPU holds without a limit. Otherwise they are usable; "
+                          "the fit will record that its top clock was set by a limit.")
                 return 0
             if a.ccmd == "run":
                 print(cal.run_session(a.kind, a.seconds, a.out, a.label, a.gpu, idle_before_s=a.idle_before))
