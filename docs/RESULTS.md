@@ -1,6 +1,6 @@
 # UEIC · Simulation results (generated)
 
-Generated 2026-10-26T22:23:51+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `06cbf2c1c8303e47…`. Hash-chain check: **OK** (3523 finalised runs verified).
+Generated 2026-10-26T22:36:55+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `dabf4560e2629886…`. Hash-chain check: **OK** (3793 finalised runs verified).
 
 > **Every number on this page is a simulator output** (provenance `simulator_output`) and is conditional on the parameter registry (`04_assumptions_register.md`), most of which is class E/F. E001C uses two parameters measured on a real GPU (M001); every other parameter is still a placeholder. The measurements themselves are reported in `10_calibration_results.md`. Energy boundary: grid → conversion → accelerators + pump + fans + chiller (see `00_problem_statement.md`).
 
@@ -26,6 +26,11 @@ Generated 2026-10-26T22:23:51+00:00 by `python -m ueic report` from `results/uei
 | E009 H2 | **supported** | Joint vs independent with matched leakage: moderate -0.10% [-0.12, -0.08], high_load -0.06% [-0.07, -0.04], hot -0.03% [-0.05, -0.01], cool -0.43% [-0.49, -0.38], memory_heavy -0.18% [-0.22, -0.15], degraded_cooling -0.23% [-0.29, -0.18]; inside +/-1% in 6/6 (registry: moderate -0.56%, high_load -0.98%, hot -0.32%, cool -1.44%, memory_heavy -0.50%, degraded_cooling -1.45%). |
 | E009 H3 | **supported** | Inside +/-1% in all scenarios for: matched_k0.01, matched_k0.02, matched_k0.03, matched_k0.02_low, matched_k0.02_high. Not for: none. |
 | E009 H4 | **supported** | Independent's chip-seconds over target fell with matched leakage in 2/2 scenarios where it had any. |
+| E010 H1 | **supported** | Quasi-steady plant: joint throttled in 0/9 conditions and exceeded 80 C in 0/9. |
+| E010 H2 | **supported** | Quasi-steady plant: independent throttled in 3/9 conditions: moderate|amb40|quasi, severe|amb30|quasi, severe|amb40|quasi; worst 246 chip-s throttled. |
+| E010 H3 | **supported** | Dynamic loop, severe degradation: joint exceeded 80 C in severe|amb40|dyn40. |
+| E010 H4 | **supported** | Joint vs independent energy -2.41% to -0.04%; CI upper bound below +1% in all 18 conditions. |
+| E010 H5 | **supported** | Joint vs fixed energy -35.4% to -40.5%; at least 10% below fixed in every condition. |
 
 ## E004 · Time-step convergence
 
@@ -468,6 +473,33 @@ Experiment `E009-20261026T221745-087238`: 360 runs, 0 failed. Leakage set so the
 | S5_memory_heavy | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
 | S6_degraded_cooling | 1263 / 0 | 844 / 0 | 395 / 0 | 453 / 0 | 446 / 0 | 533 / 0 |
 
+## E010 · Thermal safety under cooling degradation and heat
+
+Experiment `E010-20261026T223109-050d5a`: 270 runs, 0 failed. S6 load profile; leakage matched to the measured slope and clock sensitivity from M001 in every cell; the twin knows the true cold-plate state. Thermal values are seed means over 5 seeds; energy is paired.
+
+![E010](../results/figures/e010_thermal_safety.png)
+
+| Plant | Cold plate | Ambient | chip·s > 80 °C (F / I / J) | throttled (F / I / J) | peak °C (F / I / J) | Joint vs independent | Joint vs fixed |
+|---|---|---|---|---|---|---|---|
+| quasi | clean | 20 °C | 0 / 0 / 0 | 0 / 0 / 0 | 49.0 / 64.8 / 63.5 | -0.07% [-0.08%, -0.06%] | -35.6% [-37.1%, -34.0%] |
+| quasi | clean | 30 °C | 0 / 0 / 0 | 0 / 0 / 0 | 49.0 / 74.6 / 69.3 | -0.04% [-0.05%, -0.03%] | -38.3% [-39.8%, -36.8%] |
+| quasi | clean | 40 °C | 0 / 699 / 0 | 0 / 0 / 0 | 49.0 / 84.2 / 79.8 | -0.18% [-0.26%, -0.11%] | -40.5% [-41.9%, -39.1%] |
+| quasi | moderate | 20 °C | 0 / 0 / 0 | 0 / 0 / 0 | 56.1 / 73.7 / 67.0 | -0.12% [-0.13%, -0.11%] | -35.5% [-37.0%, -33.9%] |
+| quasi | moderate | 30 °C | 0 / 173 / 0 | 0 / 0 / 0 | 56.1 / 82.4 / 77.6 | -0.05% [-0.07%, -0.03%] | -38.1% [-39.6%, -36.7%] |
+| quasi | moderate | 40 °C | 0 / 1624 / 0 | 0 / 141 / 0 | 56.1 / 85.3 / 79.9 | -1.50% [-1.77%, -1.24%] | -39.6% [-41.1%, -38.0%] |
+| quasi | severe | 20 °C | 0 / 8 / 0 | 0 / 0 / 0 | 63.4 / 80.1 / 75.1 | -0.12% [-0.14%, -0.10%] | -35.4% [-37.0%, -33.8%] |
+| quasi | severe | 30 °C | 0 / 719 / 0 | 0 / 37 / 0 | 63.4 / 85.3 / 78.4 | -0.63% [-0.79%, -0.48%] | -37.8% [-39.3%, -36.2%] |
+| quasi | severe | 40 °C | 0 / 1985 / 0 | 0 / 246 / 0 | 63.4 / 85.5 / 79.7 | -1.80% [-2.13%, -1.47%] | -37.9% [-39.7%, -36.2%] |
+| dyn40 | clean | 20 °C | 0 / 0 / 0 | 0 / 0 / 0 | 49.0 / 64.2 / 63.5 | -0.04% [-0.05%, -0.03%] | -35.6% [-37.1%, -34.0%] |
+| dyn40 | clean | 30 °C | 0 / 0 / 0 | 0 / 0 / 0 | 49.0 / 74.6 / 69.3 | -0.04% [-0.05%, -0.03%] | -38.3% [-39.8%, -36.8%] |
+| dyn40 | clean | 40 °C | 0 / 704 / 0 | 0 / 0 / 0 | 49.0 / 84.1 / 79.8 | -0.17% [-0.24%, -0.10%] | -40.5% [-41.9%, -39.1%] |
+| dyn40 | moderate | 20 °C | 0 / 0 / 0 | 0 / 0 / 0 | 56.1 / 73.8 / 67.0 | -0.09% [-0.11%, -0.07%] | -35.5% [-37.0%, -33.9%] |
+| dyn40 | moderate | 30 °C | 0 / 173 / 0 | 0 / 0 / 0 | 56.1 / 82.4 / 77.6 | -0.05% [-0.07%, -0.03%] | -38.1% [-39.6%, -36.7%] |
+| dyn40 | moderate | 40 °C | 0 / 1602 / 1473 | 0 / 108 / 0 | 56.1 / 85.3 / 81.5 | -1.60% [-2.00%, -1.19%] | -39.6% [-41.2%, -38.1%] |
+| dyn40 | severe | 20 °C | 0 / 8 / 0 | 0 / 0 / 0 | 63.4 / 80.2 / 75.1 | -0.07% [-0.09%, -0.05%] | -35.4% [-37.0%, -33.8%] |
+| dyn40 | severe | 30 °C | 0 / 709 / 0 | 0 / 36 / 0 | 63.4 / 85.3 / 78.4 | -0.62% [-0.77%, -0.46%] | -37.8% [-39.3%, -36.2%] |
+| dyn40 | severe | 40 °C | 0 / 1785 / 5493 | 0 / 170 / 212 | 63.4 / 85.5 / 85.1 | -2.41% [-3.17%, -1.64%] | -38.1% [-40.0%, -36.1%] |
+
 ## Experiment register (including superseded and failed)
 
 | Id | Status | Runs | Title |
@@ -489,3 +521,4 @@ Experiment `E009-20261026T221745-087238`: 360 runs, 0 failed. Leakage set so the
 | `E001C-20261026T213353-ac0b5f` | completed | {"failed": 0, "runs": 300} | Policy benchmark with measured clock sensitivity (M001: RTX 5070) |
 | `M002-20261026T221416-c4ad2d` | completed | {"failed": 0, "measurement": true, "runs": 1} | Leakage warm-up, attempt 2 (RTX 5070, 2347 MHz, automatic fan) |
 | `E009-20261026T221745-087238` | completed | {"failed": 0, "runs": 360} | Joint vs independent control with leakage matched to a real GPU's measured temperature slope |
+| `E010-20261026T223109-050d5a` | completed | {"failed": 0, "runs": 270} | Thermal safety: joint vs independent control under cooling degradation and heat (measured leakage) |

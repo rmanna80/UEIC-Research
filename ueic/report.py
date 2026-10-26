@@ -307,7 +307,9 @@ def fig_e010(R, out):
             xs = [i + (j - 1) * 0.26 for i in range(len(conds))]
             ys = [c["by_policy"].get(pol, {}).get("chip_s_over_target") or 0 for c in conds]
             thr = [c["by_policy"].get(pol, {}).get("chip_s_throttled") or 0 for c in conds]
-            ax.bar(xs, ys, width=0.24, color=POLICY_COLOR.get(pol, SLOTS[j]), label=name if pl == "quasi" else None)
+            allzero = all((c["by_policy"].get(pol, {}).get("chip_s_over_target") or 0) == 0 for c in e["conditions"])
+            ax.bar(xs, ys, width=0.24, color=POLICY_COLOR.get(pol, SLOTS[j]),
+                   label=(name + (" (0 in every condition)" if allzero else "")) if pl == "quasi" else None)
             for x, y, t in zip(xs, ys, thr):
                 if t > 0:
                     ax.text(x, y, f"{t:.0f}", ha="center", va="bottom", fontsize=7, color=INK2)

@@ -1,8 +1,8 @@
 {
- "generated_utc": "2026-10-26T22:23:51+00:00",
- "code_sha256": "06cbf2c1c8303e47457459d94918dcba2912d08feea057098afe4e4963b00391",
+ "generated_utc": "2026-10-26T22:36:55+00:00",
+ "code_sha256": "dabf4560e2629886ef4b5dfadbbff9e281c72e03518fe2c39bd78f628eb6fd46",
  "chain_ok": true,
- "chain_msg": "3523 finalised runs verified",
+ "chain_msg": "3793 finalised runs verified",
  "threshold": 0.01,
  "E001": {
   "id": "E001-20261026T181652-ada586",
@@ -139701,6 +139701,1833 @@
    ]
   }
  },
+ "E010": {
+  "id": "E010-20261026T223109-050d5a",
+  "spec": {
+   "baseline": "independent within each condition (safety and energy); fixed within each condition (energy)",
+   "configuration": "Every cell: {'beta_compute': 0.983, 'beta_memory': 0.0} (M001) and {'kappa_leak': 0.02, 'p_leak_ref': 28.962} (E009 matched_k0.02). Cold-plate states: {'clean': {'r_cond': 0.035, 'r_conv_ref': 0.015}, 'moderate': {'r_cond': 0.04, 'r_conv_ref': 0.0225}, 'severe': {'r_cond': 0.045, 'r_conv_ref': 0.03}}. Plants: {'quasi': {'loop_mass_kg': 0.0, 'tsup_ramp_K_per_min': 0.0}, 'dyn40': {'loop_mass_kg': 40.0, 'tsup_ramp_K_per_min': 1.0}}. Dynamic-loop values are class F placeholders, as in E006.",
+   "controlled_variables": [
+    "S6 load profile (mean 0.65, amplitude 0.15)",
+    "seeds 0-4",
+    "warm start",
+    "leakage matched to the measured slope (kappa 0.02)",
+    "clock sensitivity from M001",
+    "twin knows the true cold-plate state"
+   ],
+   "data_collection": "Simulator outputs written to the append-only SQLite store; every metric labelled with provenance; per-run config SHA-256 and code SHA-256 recorded; time series for selected seeds.",
+   "dependent_variables": [
+    "chip_s_over_target",
+    "chip_s_throttled",
+    "peak_T_j_C",
+    "slo_violations",
+    "success_rate",
+    "E_per_success_kJ"
+   ],
+   "design": {
+    "param_overrides": {
+     "beta_compute": 0.983,
+     "beta_memory": 0.0,
+     "kappa_leak": 0.02,
+     "p_leak_ref": 28.962
+    },
+    "policies": [
+     "fixed",
+     "independent",
+     "joint"
+    ],
+    "scenarios": [
+     "S6_degraded_cooling"
+    ],
+    "seeds": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "timeseries_seeds": [
+     0
+    ],
+    "variants": [
+     {
+      "label": "clean|amb20|quasi",
+      "param_overrides": {
+       "loop_mass_kg": 0.0,
+       "r_cond": 0.035,
+       "r_conv_ref": 0.015,
+       "tsup_ramp_K_per_min": 0.0,
+       "warm_start": 1.0
+      },
+      "scenario_overrides": {
+       "t_amb": 20.0
+      }
+     },
+     {
+      "label": "clean|amb30|quasi",
+      "param_overrides": {
+       "loop_mass_kg": 0.0,
+       "r_cond": 0.035,
+       "r_conv_ref": 0.015,
+       "tsup_ramp_K_per_min": 0.0,
+       "warm_start": 1.0
+      },
+      "scenario_overrides": {
+       "t_amb": 30.0
+      }
+     },
+     {
+      "label": "clean|amb40|quasi",
+      "param_overrides": {
+       "loop_mass_kg": 0.0,
+       "r_cond": 0.035,
+       "r_conv_ref": 0.015,
+       "tsup_ramp_K_per_min": 0.0,
+       "warm_start": 1.0
+      },
+      "scenario_overrides": {
+       "t_amb": 40.0
+      }
+     },
+     {
+      "label": "moderate|amb20|quasi",
+      "param_overrides": {
+       "loop_mass_kg": 0.0,
+       "r_cond": 0.04,
+       "r_conv_ref": 0.0225,
+       "tsup_ramp_K_per_min": 0.0,
+       "warm_start": 1.0
+      },
+      "scenario_overrides": {
+       "t_amb": 20.0
+      }
+     },
+     {
+      "label": "moderate|amb30|quasi",
+      "param_overrides": {
+       "loop_mass_kg": 0.0,
+       "r_cond": 0.04,
+       "r_conv_ref": 0.0225,
+       "tsup_ramp_K_per_min": 0.0,
+       "warm_start": 1.0
+      },
+      "scenario_overrides": {
+       "t_amb": 30.0
+      }
+     },
+     {
+      "label": "moderate|amb40|quasi",
+      "param_overrides": {
+       "loop_mass_kg": 0.0,
+       "r_cond": 0.04,
+       "r_conv_ref": 0.0225,
+       "tsup_ramp_K_per_min": 0.0,
+       "warm_start": 1.0
+      },
+      "scenario_overrides": {
+       "t_amb": 40.0
+      }
+     },
+     {
+      "label": "severe|amb20|quasi",
+      "param_overrides": {
+       "loop_mass_kg": 0.0,
+       "r_cond": 0.045,
+       "r_conv_ref": 0.03,
+       "tsup_ramp_K_per_min": 0.0,
+       "warm_start": 1.0
+      },
+      "scenario_overrides": {
+       "t_amb": 20.0
+      }
+     },
+     {
+      "label": "severe|amb30|quasi",
+      "param_overrides": {
+       "loop_mass_kg": 0.0,
+       "r_cond": 0.045,
+       "r_conv_ref": 0.03,
+       "tsup_ramp_K_per_min": 0.0,
+       "warm_start": 1.0
+      },
+      "scenario_overrides": {
+       "t_amb": 30.0
+      }
+     },
+     {
+      "label": "severe|amb40|quasi",
+      "param_overrides": {
+       "loop_mass_kg": 0.0,
+       "r_cond": 0.045,
+       "r_conv_ref": 0.03,
+       "tsup_ramp_K_per_min": 0.0,
+       "warm_start": 1.0
+      },
+      "scenario_overrides": {
+       "t_amb": 40.0
+      }
+     },
+     {
+      "label": "clean|amb20|dyn40",
+      "param_overrides": {
+       "loop_mass_kg": 40.0,
+       "r_cond": 0.035,
+       "r_conv_ref": 0.015,
+       "tsup_ramp_K_per_min": 1.0,
+       "warm_start": 1.0
+      },
+      "scenario_overrides": {
+       "t_amb": 20.0
+      }
+     },
+     {
+      "label": "clean|amb30|dyn40",
+      "param_overrides": {
+       "loop_mass_kg": 40.0,
+       "r_cond": 0.035,
+       "r_conv_ref": 0.015,
+       "tsup_ramp_K_per_min": 1.0,
+       "warm_start": 1.0
+      },
+      "scenario_overrides": {
+       "t_amb": 30.0
+      }
+     },
+     {
+      "label": "clean|amb40|dyn40",
+      "param_overrides": {
+       "loop_mass_kg": 40.0,
+       "r_cond": 0.035,
+       "r_conv_ref": 0.015,
+       "tsup_ramp_K_per_min": 1.0,
+       "warm_start": 1.0
+      },
+      "scenario_overrides": {
+       "t_amb": 40.0
+      }
+     },
+     {
+      "label": "moderate|amb20|dyn40",
+      "param_overrides": {
+       "loop_mass_kg": 40.0,
+       "r_cond": 0.04,
+       "r_conv_ref": 0.0225,
+       "tsup_ramp_K_per_min": 1.0,
+       "warm_start": 1.0
+      },
+      "scenario_overrides": {
+       "t_amb": 20.0
+      }
+     },
+     {
+      "label": "moderate|amb30|dyn40",
+      "param_overrides": {
+       "loop_mass_kg": 40.0,
+       "r_cond": 0.04,
+       "r_conv_ref": 0.0225,
+       "tsup_ramp_K_per_min": 1.0,
+       "warm_start": 1.0
+      },
+      "scenario_overrides": {
+       "t_amb": 30.0
+      }
+     },
+     {
+      "label": "moderate|amb40|dyn40",
+      "param_overrides": {
+       "loop_mass_kg": 40.0,
+       "r_cond": 0.04,
+       "r_conv_ref": 0.0225,
+       "tsup_ramp_K_per_min": 1.0,
+       "warm_start": 1.0
+      },
+      "scenario_overrides": {
+       "t_amb": 40.0
+      }
+     },
+     {
+      "label": "severe|amb20|dyn40",
+      "param_overrides": {
+       "loop_mass_kg": 40.0,
+       "r_cond": 0.045,
+       "r_conv_ref": 0.03,
+       "tsup_ramp_K_per_min": 1.0,
+       "warm_start": 1.0
+      },
+      "scenario_overrides": {
+       "t_amb": 20.0
+      }
+     },
+     {
+      "label": "severe|amb30|dyn40",
+      "param_overrides": {
+       "loop_mass_kg": 40.0,
+       "r_cond": 0.045,
+       "r_conv_ref": 0.03,
+       "tsup_ramp_K_per_min": 1.0,
+       "warm_start": 1.0
+      },
+      "scenario_overrides": {
+       "t_amb": 30.0
+      }
+     },
+     {
+      "label": "severe|amb40|dyn40",
+      "param_overrides": {
+       "loop_mass_kg": 40.0,
+       "r_cond": 0.045,
+       "r_conv_ref": 0.03,
+       "tsup_ramp_K_per_min": 1.0,
+       "warm_start": 1.0
+      },
+      "scenario_overrides": {
+       "t_amb": 40.0
+      }
+     }
+    ]
+   },
+   "disclosure": "Known when these hypotheses were written: E009 (S6 profile, matched leakage: independent 395 chip-s above 80 C and 20 throttled, joint 0), E006 v2 (registry leakage: joint exceeded 80 C under the slow loop with degraded cooling, never throttled), and E001/E001C thermal outcomes. No E010 cells were run before registration.",
+   "evaluation_criteria": "Thermal outcomes as seed means over 5 seeds; energy as paired relative differences with 95% t-CI; practical threshold 1%.",
+   "hypothesis": "Conditions: 3 cold-plate states (clean, moderate, severe) x 3 ambient temperatures (20, 30, 40 C) x 2 plants (quasi-steady; 40 kg loop with 1 K/min ramp), high load (S6 profile). H1: with the quasi-steady plant, joint records zero chip-seconds throttled in all 9 conditions and zero chip-seconds above 80 C in at least 8 of 9. H2: with the quasi-steady plant, independent throttles (seed-mean chip-seconds throttled > 0) in at least 3 of the 9 conditions, all of them with moderate or severe degradation. H3: with the dynamic loop, joint exceeds 80 C (seed mean > 0) in at least one severe-degradation condition. H4: safety costs no energy: joint vs independent energy per successful task has a 95% CI upper bound below +1% in all 18 conditions. H5: joint uses at least 10% less energy per successful task than fixed in every condition (95% CI upper bound below -10%).",
+   "independent_variables": [
+    "cold-plate state (3)",
+    "ambient temperature (3)",
+    "plant (2)",
+    "policy (fixed, independent, joint)"
+   ],
+   "key": "E010",
+   "known_limitations": "The controllers' twin knows the true cold-plate state; an unnoticed fouling case is E005/E008 territory. Leakage matched at one operating point from one consumer card. Voltage-frequency form is the rejected registry placeholder. No facility power cap. 5 seeds.",
+   "null_hypothesis": "Joint and independent control are equally safe under cooling degradation and heat.",
+   "practical_significance_threshold": 0.01,
+   "research_question": "With leakage and clock sensitivity as measured on real hardware, in which conditions does joint control keep chips below the 80 C target where independent control does not, and does that safety cost energy?",
+   "statistics": "Paired by seed (identical workload realisation across levels). Per-seed relative difference d=(A-B)/B; mean with two-sided 95% Student-t CI.",
+   "title": "Thermal safety: joint vs independent control under cooling degradation and heat (measured leakage)"
+  },
+  "conditions": [
+   {
+    "label": "clean|amb20|quasi",
+    "degradation": "clean",
+    "t_amb": 20.0,
+    "plant": "quasi",
+    "by_policy": {
+     "fixed": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 48.977950836301126,
+      "slo_violations": 1.2,
+      "success_rate": 0.9702976516838394,
+      "E_per_success_kJ": 12.99311075971345
+     },
+     "independent": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 64.84402433184029,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.380842963254953
+     },
+     "joint": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 63.50185801441626,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.374885288019522
+     }
+    },
+    "joint_vs_independent": {
+     "group": [
+      "S6_degraded_cooling",
+      "clean|amb20|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "independent",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.0007116307548480328,
+     "lo": -0.0007807913917152293,
+     "hi": -0.0006424701179808363,
+     "mean_a": 8.374885288019522,
+     "mean_b": 8.380842963254953,
+     "relative": true
+    },
+    "joint_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "clean|amb20|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.35552410254724975,
+     "lo": -0.3709452021258313,
+     "hi": -0.3401030029686682,
+     "mean_a": 8.374885288019522,
+     "mean_b": 12.99311075971345,
+     "relative": true
+    },
+    "independent_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "clean|amb20|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "independent",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.3550654811853592,
+     "lo": -0.3704700824932859,
+     "hi": -0.3396608798774325,
+     "mean_a": 8.380842963254953,
+     "mean_b": 12.99311075971345,
+     "relative": true
+    }
+   },
+   {
+    "label": "clean|amb30|quasi",
+    "degradation": "clean",
+    "t_amb": 30.0,
+    "plant": "quasi",
+    "by_policy": {
+     "fixed": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 48.977950836301126,
+      "slo_violations": 1.2,
+      "success_rate": 0.9702976516838394,
+      "E_per_success_kJ": 13.77637222385631
+     },
+     "independent": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 74.59053431612438,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.505279976008408
+     },
+     "joint": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 69.33142156148872,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.501779398923132
+     }
+    },
+    "joint_vs_independent": {
+     "group": [
+      "S6_degraded_cooling",
+      "clean|amb30|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "independent",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.0004095118627871019,
+     "lo": -0.0005346942661190116,
+     "hi": -0.00028432945945519215,
+     "mean_a": 8.501779398923132,
+     "mean_b": 8.505279976008408,
+     "relative": true
+    },
+    "joint_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "clean|amb30|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.38295579666528834,
+     "lo": -0.397602963135207,
+     "hi": -0.3683086301953697,
+     "mean_a": 8.501779398923132,
+     "mean_b": 13.77637222385631,
+     "relative": true
+    },
+    "independent_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "clean|amb30|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "independent",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.3827020909553114,
+     "lo": -0.39742850375033023,
+     "hi": -0.36797567816029253,
+     "mean_a": 8.505279976008408,
+     "mean_b": 13.77637222385631,
+     "relative": true
+    }
+   },
+   {
+    "label": "clean|amb40|quasi",
+    "degradation": "clean",
+    "t_amb": 40.0,
+    "plant": "quasi",
+    "by_policy": {
+     "fixed": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 48.977950836301126,
+      "slo_violations": 1.2,
+      "success_rate": 0.9702976516838394,
+      "E_per_success_kJ": 14.559633687999177
+     },
+     "independent": {
+      "chip_s_over_target": 698.6,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 84.15838103752182,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.674074670857511
+     },
+     "joint": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 79.82122801640644,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.658415747068164
+     }
+    },
+    "joint_vs_independent": {
+     "group": [
+      "S6_degraded_cooling",
+      "clean|amb40|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "independent",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.0018177558286698425,
+     "lo": -0.002556879804475075,
+     "hi": -0.0010786318528646103,
+     "mean_a": 8.658415747068164,
+     "mean_b": 8.674074670857511,
+     "relative": true
+    },
+    "joint_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "clean|amb40|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.40539331396748385,
+     "lo": -0.41936400631339293,
+     "hi": -0.39142262162157476,
+     "mean_a": 8.658415747068164,
+     "mean_b": 14.559633687999177,
+     "relative": true
+    },
+    "independent_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "clean|amb40|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "independent",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.4043149793168753,
+     "lo": -0.4179328059719646,
+     "hi": -0.39069715266178606,
+     "mean_a": 8.674074670857511,
+     "mean_b": 14.559633687999177,
+     "relative": true
+    }
+   },
+   {
+    "label": "moderate|amb20|quasi",
+    "degradation": "moderate",
+    "t_amb": 20.0,
+    "plant": "quasi",
+    "by_policy": {
+     "fixed": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 56.12920150359387,
+      "slo_violations": 1.2,
+      "success_rate": 0.9702976516838394,
+      "E_per_success_kJ": 13.055454683783017
+     },
+     "independent": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 73.72973102572463,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.436709703338728
+     },
+     "joint": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 66.99213341960436,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.426555542462001
+     }
+    },
+    "joint_vs_independent": {
+     "group": [
+      "S6_degraded_cooling",
+      "moderate|amb20|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "independent",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.0012013386647821342,
+     "lo": -0.0013458616608188912,
+     "hi": -0.0010568156687453772,
+     "mean_a": 8.426555542462001,
+     "mean_b": 8.436709703338728,
+     "relative": true
+    },
+    "joint_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "moderate|amb20|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.3546450397617191,
+     "lo": -0.3701385844440879,
+     "hi": -0.33915149507935033,
+     "mean_a": 8.426555542462001,
+     "mean_b": 13.055454683783017,
+     "relative": true
+    },
+    "independent_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "moderate|amb20|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "independent",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.35386786085330896,
+     "lo": -0.3694550835100187,
+     "hi": -0.3382806381965992,
+     "mean_a": 8.436709703338728,
+     "mean_b": 13.055454683783017,
+     "relative": true
+    }
+   },
+   {
+    "label": "moderate|amb30|quasi",
+    "degradation": "moderate",
+    "t_amb": 30.0,
+    "plant": "quasi",
+    "by_policy": {
+     "fixed": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 56.12920150359387,
+      "slo_violations": 1.2,
+      "success_rate": 0.9702976516838394,
+      "E_per_success_kJ": 13.842318344529158
+     },
+     "independent": {
+      "chip_s_over_target": 172.6,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 82.38955201289406,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.568799235045507
+     },
+     "joint": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 77.5661719856966,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.564624637138673
+     }
+    },
+    "joint_vs_independent": {
+     "group": [
+      "S6_degraded_cooling",
+      "moderate|amb30|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "independent",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.0004902231012119088,
+     "lo": -0.0006728608848112112,
+     "hi": -0.0003075853176126064,
+     "mean_a": 8.564624637138673,
+     "mean_b": 8.568799235045507,
+     "relative": true
+    },
+    "joint_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "moderate|amb30|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.38135669921215215,
+     "lo": -0.39612366172129115,
+     "hi": -0.36658973670301315,
+     "mean_a": 8.564624637138673,
+     "mean_b": 13.842318344529158,
+     "relative": true
+    },
+    "independent_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "moderate|amb30|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "independent",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.3810544654670024,
+     "lo": -0.3957325374183597,
+     "hi": -0.3663763935156451,
+     "mean_a": 8.568799235045507,
+     "mean_b": 13.842318344529158,
+     "relative": true
+    }
+   },
+   {
+    "label": "moderate|amb40|quasi",
+    "degradation": "moderate",
+    "t_amb": 40.0,
+    "plant": "quasi",
+    "by_policy": {
+     "fixed": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 56.12920150359387,
+      "slo_violations": 1.2,
+      "success_rate": 0.9702976516838394,
+      "E_per_success_kJ": 14.629182005275307
+     },
+     "independent": {
+      "chip_s_over_target": 1623.6,
+      "chip_s_throttled": 140.6,
+      "peak_T_j_C": 85.34794261782424,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.974372731864928
+     },
+     "joint": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 79.91275820954138,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.83974442897269
+     }
+    },
+    "joint_vs_independent": {
+     "group": [
+      "S6_degraded_cooling",
+      "moderate|amb40|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "independent",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.015036704771846413,
+     "lo": -0.017701116865365213,
+     "hi": -0.012372292678327613,
+     "mean_a": 8.83974442897269,
+     "mean_b": 8.974372731864928,
+     "relative": true
+    },
+    "joint_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "moderate|amb40|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.3958337709210059,
+     "lo": -0.4112227015231319,
+     "hi": -0.38044484031887993,
+     "mean_a": 8.83974442897269,
+     "mean_b": 14.629182005275307,
+     "relative": true
+    },
+    "independent_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "moderate|amb40|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "independent",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.38662460445811875,
+     "lo": -0.40103678274462273,
+     "hi": -0.37221242617161476,
+     "mean_a": 8.974372731864928,
+     "mean_b": 14.629182005275307,
+     "relative": true
+    }
+   },
+   {
+    "label": "severe|amb20|quasi",
+    "degradation": "severe",
+    "t_amb": 20.0,
+    "plant": "quasi",
+    "by_policy": {
+     "fixed": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 63.40513051311494,
+      "slo_violations": 1.2,
+      "success_rate": 0.9702976516838394,
+      "E_per_success_kJ": 13.1252665603779
+     },
+     "independent": {
+      "chip_s_over_target": 8.2,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 80.11484593750649,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.491834138459106
+     },
+     "joint": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 75.14020063111622,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.481466596966737
+     }
+    },
+    "joint_vs_independent": {
+     "group": [
+      "S6_degraded_cooling",
+      "severe|amb20|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "independent",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.0012221647437247027,
+     "lo": -0.001433954037692839,
+     "hi": -0.0010103754497565664,
+     "mean_a": 8.481466596966737,
+     "mean_b": 8.491834138459106,
+     "relative": true
+    },
+    "joint_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "severe|amb20|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.3538954664886199,
+     "lo": -0.3695100659720338,
+     "hi": -0.33828086700520604,
+     "mean_a": 8.481466596966737,
+     "mean_b": 13.1252665603779,
+     "relative": true
+    },
+    "independent_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "severe|amb20|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "independent",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.35310551732027246,
+     "lo": -0.3686876095044922,
+     "hi": -0.3375234251360527,
+     "mean_a": 8.491834138459106,
+     "mean_b": 13.1252665603779,
+     "relative": true
+    }
+   },
+   {
+    "label": "severe|amb30|quasi",
+    "degradation": "severe",
+    "t_amb": 30.0,
+    "plant": "quasi",
+    "by_policy": {
+     "fixed": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 63.40513051311494,
+      "slo_violations": 1.2,
+      "success_rate": 0.9702976516838394,
+      "E_per_success_kJ": 13.916171694538082
+     },
+     "independent": {
+      "chip_s_over_target": 718.8,
+      "chip_s_throttled": 36.8,
+      "peak_T_j_C": 85.27885287251016,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.718303063267573
+     },
+     "joint": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 78.3762084884253,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.663380659181431
+     }
+    },
+    "joint_vs_independent": {
+     "group": [
+      "S6_degraded_cooling",
+      "severe|amb30|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "independent",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.006315213719177061,
+     "lo": -0.007852325666993286,
+     "hi": -0.004778101771360836,
+     "mean_a": 8.663380659181431,
+     "mean_b": 8.718303063267573,
+     "relative": true
+    },
+    "joint_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "severe|amb30|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.37754733440905436,
+     "lo": -0.39286891862702844,
+     "hi": -0.3622257501910803,
+     "mean_a": 8.663380659181431,
+     "mean_b": 13.916171694538082,
+     "relative": true
+    },
+    "independent_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "severe|amb30|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "independent",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.37359912387107785,
+     "lo": -0.3883697353474087,
+     "hi": -0.358828512394747,
+     "mean_a": 8.718303063267573,
+     "mean_b": 13.916171694538082,
+     "relative": true
+    }
+   },
+   {
+    "label": "severe|amb40|quasi",
+    "degradation": "severe",
+    "t_amb": 40.0,
+    "plant": "quasi",
+    "by_policy": {
+     "fixed": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 63.40513051311494,
+      "slo_violations": 1.2,
+      "success_rate": 0.9702976516838394,
+      "E_per_success_kJ": 14.707076828698257
+     },
+     "independent": {
+      "chip_s_over_target": 1985.0,
+      "chip_s_throttled": 246.2,
+      "peak_T_j_C": 85.46598665711531,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 9.297790839379399
+     },
+     "joint": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 79.73746970606153,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 9.130990525834545
+     }
+    },
+    "joint_vs_independent": {
+     "group": [
+      "S6_degraded_cooling",
+      "severe|amb40|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "independent",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.01798324035785757,
+     "lo": -0.02128674297662871,
+     "hi": -0.014679737739086433,
+     "mean_a": 9.130990525834545,
+     "mean_b": 9.297790839379399,
+     "relative": true
+    },
+    "joint_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "severe|amb40|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.3792437957542986,
+     "lo": -0.39694160808039025,
+     "hi": -0.361545983428207,
+     "mean_a": 9.130990525834545,
+     "mean_b": 14.707076828698257,
+     "relative": true
+    },
+    "independent_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "severe|amb40|quasi"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "independent",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.3678960722678958,
+     "lo": -0.38436996432828574,
+     "hi": -0.3514221802075058,
+     "mean_a": 9.297790839379399,
+     "mean_b": 14.707076828698257,
+     "relative": true
+    }
+   },
+   {
+    "label": "clean|amb20|dyn40",
+    "degradation": "clean",
+    "t_amb": 20.0,
+    "plant": "dyn40",
+    "by_policy": {
+     "fixed": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 48.977950836301126,
+      "slo_violations": 1.2,
+      "success_rate": 0.9702976516838394,
+      "E_per_success_kJ": 12.99311075971345
+     },
+     "independent": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 64.2196628731254,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.378004986506642
+     },
+     "joint": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 63.50185801441626,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.374885288019522
+     }
+    },
+    "joint_vs_independent": {
+     "group": [
+      "S6_degraded_cooling",
+      "clean|amb20|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "independent",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.0003711676477833434,
+     "lo": -0.00046186920722488293,
+     "hi": -0.00028046608834180386,
+     "mean_a": 8.374885288019522,
+     "mean_b": 8.378004986506642,
+     "relative": true
+    },
+    "joint_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "clean|amb20|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.35552410254724975,
+     "lo": -0.3709452021258313,
+     "hi": -0.3401030029686682,
+     "mean_a": 8.374885288019522,
+     "mean_b": 12.99311075971345,
+     "relative": true
+    },
+    "independent_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "clean|amb20|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "independent",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.35528426110382777,
+     "lo": -0.3707538808670874,
+     "hi": -0.33981464134056816,
+     "mean_a": 8.378004986506642,
+     "mean_b": 12.99311075971345,
+     "relative": true
+    }
+   },
+   {
+    "label": "clean|amb30|dyn40",
+    "degradation": "clean",
+    "t_amb": 30.0,
+    "plant": "dyn40",
+    "by_policy": {
+     "fixed": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 48.977950836301126,
+      "slo_violations": 1.2,
+      "success_rate": 0.9702976516838394,
+      "E_per_success_kJ": 13.77637222385631
+     },
+     "independent": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 74.59053431612438,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.505279976008408
+     },
+     "joint": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 69.33142156148872,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.501779398923132
+     }
+    },
+    "joint_vs_independent": {
+     "group": [
+      "S6_degraded_cooling",
+      "clean|amb30|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "independent",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.0004095118627871019,
+     "lo": -0.0005346942661190116,
+     "hi": -0.00028432945945519215,
+     "mean_a": 8.501779398923132,
+     "mean_b": 8.505279976008408,
+     "relative": true
+    },
+    "joint_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "clean|amb30|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.38295579666528834,
+     "lo": -0.397602963135207,
+     "hi": -0.3683086301953697,
+     "mean_a": 8.501779398923132,
+     "mean_b": 13.77637222385631,
+     "relative": true
+    },
+    "independent_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "clean|amb30|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "independent",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.3827020909553114,
+     "lo": -0.39742850375033023,
+     "hi": -0.36797567816029253,
+     "mean_a": 8.505279976008408,
+     "mean_b": 13.77637222385631,
+     "relative": true
+    }
+   },
+   {
+    "label": "clean|amb40|dyn40",
+    "degradation": "clean",
+    "t_amb": 40.0,
+    "plant": "dyn40",
+    "by_policy": {
+     "fixed": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 48.977950836301126,
+      "slo_violations": 1.2,
+      "success_rate": 0.9702976516838394,
+      "E_per_success_kJ": 14.559633687999177
+     },
+     "independent": {
+      "chip_s_over_target": 704.2,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 84.12638298238588,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.67325667915149
+     },
+     "joint": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 79.8212176738898,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.658334327308776
+     }
+    },
+    "joint_vs_independent": {
+     "group": [
+      "S6_degraded_cooling",
+      "clean|amb40|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "independent",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.0017322868207648831,
+     "lo": -0.0024166166647574495,
+     "hi": -0.0010479569767723165,
+     "mean_a": 8.658334327308776,
+     "mean_b": 8.67325667915149,
+     "relative": true
+    },
+    "joint_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "clean|amb40|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.40539890844415155,
+     "lo": -0.41936974270948857,
+     "hi": -0.39142807417881453,
+     "mean_a": 8.658334327308776,
+     "mean_b": 14.559633687999177,
+     "relative": true
+    },
+    "independent_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "clean|amb40|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "independent",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.40437137603290896,
+     "lo": -0.4180072711145919,
+     "hi": -0.390735480951226,
+     "mean_a": 8.67325667915149,
+     "mean_b": 14.559633687999177,
+     "relative": true
+    }
+   },
+   {
+    "label": "moderate|amb20|dyn40",
+    "degradation": "moderate",
+    "t_amb": 20.0,
+    "plant": "dyn40",
+    "by_policy": {
+     "fixed": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 56.12920150359387,
+      "slo_violations": 1.2,
+      "success_rate": 0.9702976516838394,
+      "E_per_success_kJ": 13.055454683783017
+     },
+     "independent": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 73.83129399811335,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.433897203308977
+     },
+     "joint": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 66.99213341960436,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.426555542462001
+     }
+    },
+    "joint_vs_independent": {
+     "group": [
+      "S6_degraded_cooling",
+      "moderate|amb20|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "independent",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.0008671800976625479,
+     "lo": -0.0010502879478512472,
+     "hi": -0.0006840722474738487,
+     "mean_a": 8.426555542462001,
+     "mean_b": 8.433897203308977,
+     "relative": true
+    },
+    "joint_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "moderate|amb20|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.3546450397617191,
+     "lo": -0.3701385844440879,
+     "hi": -0.33915149507935033,
+     "mean_a": 8.426555542462001,
+     "mean_b": 13.055454683783017,
+     "relative": true
+    },
+    "independent_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "moderate|amb20|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "independent",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.35408345706933486,
+     "lo": -0.36970599672498194,
+     "hi": -0.3384609174136878,
+     "mean_a": 8.433897203308977,
+     "mean_b": 13.055454683783017,
+     "relative": true
+    }
+   },
+   {
+    "label": "moderate|amb30|dyn40",
+    "degradation": "moderate",
+    "t_amb": 30.0,
+    "plant": "dyn40",
+    "by_policy": {
+     "fixed": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 56.12920150359387,
+      "slo_violations": 1.2,
+      "success_rate": 0.9702976516838394,
+      "E_per_success_kJ": 13.842318344529158
+     },
+     "independent": {
+      "chip_s_over_target": 172.6,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 82.38955201289406,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.568799235045507
+     },
+     "joint": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 77.5661719856966,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.564624637138673
+     }
+    },
+    "joint_vs_independent": {
+     "group": [
+      "S6_degraded_cooling",
+      "moderate|amb30|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "independent",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.0004902231012119088,
+     "lo": -0.0006728608848112112,
+     "hi": -0.0003075853176126064,
+     "mean_a": 8.564624637138673,
+     "mean_b": 8.568799235045507,
+     "relative": true
+    },
+    "joint_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "moderate|amb30|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.38135669921215215,
+     "lo": -0.39612366172129115,
+     "hi": -0.36658973670301315,
+     "mean_a": 8.564624637138673,
+     "mean_b": 13.842318344529158,
+     "relative": true
+    },
+    "independent_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "moderate|amb30|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "independent",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.3810544654670024,
+     "lo": -0.3957325374183597,
+     "hi": -0.3663763935156451,
+     "mean_a": 8.568799235045507,
+     "mean_b": 13.842318344529158,
+     "relative": true
+    }
+   },
+   {
+    "label": "moderate|amb40|dyn40",
+    "degradation": "moderate",
+    "t_amb": 40.0,
+    "plant": "dyn40",
+    "by_policy": {
+     "fixed": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 56.12920150359387,
+      "slo_violations": 1.2,
+      "success_rate": 0.9702976516838394,
+      "E_per_success_kJ": 14.629182005275307
+     },
+     "independent": {
+      "chip_s_over_target": 1601.8,
+      "chip_s_throttled": 107.6,
+      "peak_T_j_C": 85.33338757535155,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.97447557951156
+     },
+     "joint": {
+      "chip_s_over_target": 1472.8,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 81.52703776853238,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.831382482414408
+     }
+    },
+    "joint_vs_independent": {
+     "group": [
+      "S6_degraded_cooling",
+      "moderate|amb40|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "independent",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.01598176137638104,
+     "lo": -0.020037095026735854,
+     "hi": -0.011926427726026229,
+     "mean_a": 8.831382482414408,
+     "mean_b": 8.97447557951156,
+     "relative": true
+    },
+    "joint_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "moderate|amb40|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.3964062149965312,
+     "lo": -0.41198436139029837,
+     "hi": -0.3808280686027641,
+     "mean_a": 8.831382482414408,
+     "mean_b": 14.629182005275307,
+     "relative": true
+    },
+    "independent_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "moderate|amb40|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "independent",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.38661885075432784,
+     "lo": -0.40099712329536574,
+     "hi": -0.37224057821328993,
+     "mean_a": 8.97447557951156,
+     "mean_b": 14.629182005275307,
+     "relative": true
+    }
+   },
+   {
+    "label": "severe|amb20|dyn40",
+    "degradation": "severe",
+    "t_amb": 20.0,
+    "plant": "dyn40",
+    "by_policy": {
+     "fixed": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 63.40513051311494,
+      "slo_violations": 1.2,
+      "success_rate": 0.9702976516838394,
+      "E_per_success_kJ": 13.1252665603779
+     },
+     "independent": {
+      "chip_s_over_target": 8.2,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 80.24416957917506,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.48743519110678
+     },
+     "joint": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 75.14020063111622,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.481466596966737
+     }
+    },
+    "joint_vs_independent": {
+     "group": [
+      "S6_degraded_cooling",
+      "severe|amb20|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "independent",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.0007059403444424234,
+     "lo": -0.000882547517408321,
+     "hi": -0.0005293331714765259,
+     "mean_a": 8.481466596966737,
+     "mean_b": 8.48743519110678,
+     "relative": true
+    },
+    "joint_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "severe|amb20|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.3538954664886199,
+     "lo": -0.3695100659720338,
+     "hi": -0.33828086700520604,
+     "mean_a": 8.481466596966737,
+     "mean_b": 13.1252665603779,
+     "relative": true
+    },
+    "independent_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "severe|amb20|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "independent",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.3534400481398203,
+     "lo": -0.36898455493645665,
+     "hi": -0.3378955413431839,
+     "mean_a": 8.48743519110678,
+     "mean_b": 13.1252665603779,
+     "relative": true
+    }
+   },
+   {
+    "label": "severe|amb30|dyn40",
+    "degradation": "severe",
+    "t_amb": 30.0,
+    "plant": "dyn40",
+    "by_policy": {
+     "fixed": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 63.40513051311494,
+      "slo_violations": 1.2,
+      "success_rate": 0.9702976516838394,
+      "E_per_success_kJ": 13.916171694538082
+     },
+     "independent": {
+      "chip_s_over_target": 709.2,
+      "chip_s_throttled": 36.0,
+      "peak_T_j_C": 85.27600283659595,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.717044426273876
+     },
+     "joint": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 78.3762084884253,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 8.663380659181431
+     }
+    },
+    "joint_vs_independent": {
+     "group": [
+      "S6_degraded_cooling",
+      "severe|amb30|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "independent",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.0061717679708185565,
+     "lo": -0.0077077610360893715,
+     "hi": -0.0046357749055477415,
+     "mean_a": 8.663380659181431,
+     "mean_b": 8.717044426273876,
+     "relative": true
+    },
+    "joint_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "severe|amb30|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.37754733440905436,
+     "lo": -0.39286891862702844,
+     "hi": -0.3622257501910803,
+     "mean_a": 8.663380659181431,
+     "mean_b": 13.916171694538082,
+     "relative": true
+    },
+    "independent_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "severe|amb30|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "independent",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.3736895299865697,
+     "lo": -0.3884586008585321,
+     "hi": -0.35892045911460724,
+     "mean_a": 8.717044426273876,
+     "mean_b": 13.916171694538082,
+     "relative": true
+    }
+   },
+   {
+    "label": "severe|amb40|dyn40",
+    "degradation": "severe",
+    "t_amb": 40.0,
+    "plant": "dyn40",
+    "by_policy": {
+     "fixed": {
+      "chip_s_over_target": 0.0,
+      "chip_s_throttled": 0.0,
+      "peak_T_j_C": 63.40513051311494,
+      "slo_violations": 1.2,
+      "success_rate": 0.9702976516838394,
+      "E_per_success_kJ": 14.707076828698257
+     },
+     "independent": {
+      "chip_s_over_target": 1785.4,
+      "chip_s_throttled": 169.8,
+      "peak_T_j_C": 85.49058506982225,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 9.331251323648788
+     },
+     "joint": {
+      "chip_s_over_target": 5493.2,
+      "chip_s_throttled": 211.6,
+      "peak_T_j_C": 85.14521335870536,
+      "slo_violations": 2.0,
+      "success_rate": 0.9700862770192075,
+      "E_per_success_kJ": 9.10779058206424
+     }
+    },
+    "joint_vs_independent": {
+     "group": [
+      "S6_degraded_cooling",
+      "severe|amb40|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "independent",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.02406821642093828,
+     "lo": -0.03171110990777174,
+     "hi": -0.01642532293410482,
+     "mean_a": 9.10779058206424,
+     "mean_b": 9.331251323648788,
+     "relative": true
+    },
+    "joint_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "severe|amb40|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "joint",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.3808343230120589,
+     "lo": -0.40036569317872145,
+     "hi": -0.3613029528453963,
+     "mean_a": 9.10779058206424,
+     "mean_b": 14.707076828698257,
+     "relative": true
+    },
+    "independent_vs_fixed": {
+     "group": [
+      "S6_degraded_cooling",
+      "severe|amb40|dyn40"
+     ],
+     "metric": "E_per_success_kJ",
+     "a": "independent",
+     "b": "fixed",
+     "factor": "policy",
+     "n": 5,
+     "mean": -0.3656143710710075,
+     "lo": -0.3815428490534155,
+     "hi": -0.34968589308859954,
+     "mean_a": 9.331251323648788,
+     "mean_b": 14.707076828698257,
+     "relative": true
+    }
+   }
+  ],
+  "n_runs": 270,
+  "n_failed": 0,
+  "H1": {
+   "supported": true,
+   "throttled": [],
+   "over": []
+  },
+  "H2": {
+   "supported": true,
+   "conditions": [
+    "moderate|amb40|quasi",
+    "severe|amb30|quasi",
+    "severe|amb40|quasi"
+   ]
+  },
+  "H3": {
+   "supported": true,
+   "conditions": [
+    "severe|amb40|dyn40"
+   ]
+  },
+  "H4": {
+   "supported": true,
+   "failures": []
+  },
+  "H5": {
+   "supported": true,
+   "failures": []
+  }
+ },
  "assumptions": [
   {
    "name": "water_cp",
@@ -140581,6 +142408,22 @@
   [
    "2026-10-26T22:23:50+00:00",
    "E009 completed (360 runs, 0 failed). With the simulator's leakage matched to the RTX 5070's measured temperature slope (0.135%/K vs 0.366%/K registry), joint vs independent energy per successful task is -0.03% to -0.43% (kappa 0.02) instead of -0.32% to -1.45%; inside +/-1% in all 6 scenarios for all five matched variants (largest -0.56%); still below zero with CI in most cases. H1-H4 supported. Independent's overheating: hot ambient 559 -> 0 chip-s above 80 C; degraded cooling 1263 -> 395 (throttled 186 -> 20); joint 0 throughout. Interpretation: on real silicon joint control's energy benefit over well-run independent control is likely small; its thermal-safety benefit under degraded cooling remains. Next steps re-ordered accordingly."
+  ],
+  [
+   "2026-10-26T22:31:02+00:00",
+   "E010 pre-registered (experiments/E010_thermal_safety.json, committed before running): thermal safety of joint vs independent control with measured leakage slope (E009 matched_k0.02) and M001 clock sensitivity. 3 cold-plate states x 3 ambients (20/30/40 C) x 2 plants (quasi-steady; 40 kg, 1 K/min) on the S6 load profile; fixed, independent, joint; 5 seeds; 270 runs. H1: joint never throttles and exceeds 80 C in at most 1 of 9 quasi-steady conditions. H2: independent throttles in >= 3 of 9 quasi-steady conditions, all moderate or severe. H3: joint exceeds 80 C in >= 1 severe condition with the dynamic loop. H4: joint vs independent energy CI upper < +1% everywhere. H5: joint >= 10% below fixed everywhere. Disclosed: E009, E006 v2 and E001/E001C thermal outcomes known; no E010 cells run before registration."
+  ],
+  [
+   "2026-10-26T22:31:09+00:00",
+   "Registered E010-20261026T223109-050d5a: Thermal safety: joint vs independent control under cooling degradation and heat (measured leakage) | H: Conditions: 3 cold-plate states (clean, moderate, severe) x 3 ambient temperatures (20, 30, 40 C) x 2 plants (quasi-steady; 40 kg loop with 1 K/min ramp), high load (S6 profile). H1: with the quasi-steady plant, joint records zero chip-seconds throttled in all 9 conditions and zero chip-seconds above 80 C in at least 8 of 9. H2: with the quasi-steady plant, independent throttles (seed-mean chip-seconds throttled > 0) in at least 3 of the 9 conditions, all of them with moderate or severe degradation. H3: with the dynamic loop, joint exceeds 80 C (seed mean > 0) in at least one severe-degradation condition. H4: safety costs no energy: joint vs independent energy per successful task has a 95% CI upper bound below +1% in all 18 conditions. H5: joint uses at least 10% less energy per successful task than fixed in every condition (95% CI upper bound below -10%)."
+  ],
+  [
+   "2026-10-26T22:34:42+00:00",
+   "Finished E010-20261026T223109-050d5a: 270 runs, 0 failed"
+  ],
+  [
+   "2026-10-26T22:35:47+00:00",
+   "E010 completed (270 runs, 0 failed). H1-H5 supported. Instant plant: joint never exceeded 80 C in 9 conditions (peak <= 79.9 C); independent exceeded in 6/9 (incl. clean plates at 40 C) and throttled in 3 (worst 246 chip-s). Energy: joint vs independent -0.04% to -2.41% (largest where independent overheats); joint vs fixed -35% to -41%; fixed never above 64 C. Slow loop (40 kg, 1 K/min): joint exceeded 80 C at moderate/40 C (1473 chip-s) and severe/40 C (5493 chip-s, 212 throttled), worse than independent there (1785, 170). Joint control's real-silicon case is thermal safety under stress, conditional on anticipating loop lag; lag-aware planning is next."
   ]
  ],
  "experiments": [
@@ -140789,6 +142632,18 @@
     "runs": 360
    },
    "created": "2026-10-26T22:17:45+00:00"
+  },
+  {
+   "id": "E010-20261026T223109-050d5a",
+   "key": "E010",
+   "status": "completed",
+   "title": "Thermal safety: joint vs independent control under cooling degradation and heat (measured leakage)",
+   "hypothesis": "Conditions: 3 cold-plate states (clean, moderate, severe) x 3 ambient temperatures (20, 30, 40 C) x 2 plants (quasi-steady; 40 kg loop with 1 K/min ramp), high load (S6 profile). H1: with the quasi-steady plant, joint records zero chip-seconds throttled in all 9 conditions and zero chip-seconds above 80 C in at least 8 of 9. H2: with the quasi-steady plant, independent throttles (seed-mean chip-seconds throttled > 0) in at least 3 of the 9 conditions, all of them with moderate or severe degradation. H3: with the dynamic loop, joint exceeds 80 C (seed mean > 0) in at least one severe-degradation condition. H4: safety costs no energy: joint vs independent energy per successful task has a 95% CI upper bound below +1% in all 18 conditions. H5: joint uses at least 10% less energy per successful task than fixed in every condition (95% CI upper bound below -10%).",
+   "summary": {
+    "failed": 0,
+    "runs": 270
+   },
+   "created": "2026-10-26T22:31:09+00:00"
   }
  ]
 }

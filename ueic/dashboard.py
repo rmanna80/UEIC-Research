@@ -375,6 +375,10 @@ renderers.overview = sec => { sec.innerHTML = '';
        const th = Object.fromEntries(D.E009.thermal.filter(t => t.policy === 'independent' && t.metric === 'chip_s_over_target' && t.variant === 'matched_k0.02').map(t => [t.scenario, t.mean]));
        const still = Object.entries(th).filter(([, v]) => v > 0).map(([k]) => scName(k));
        return `Real hardware changes this picture. With the simulator's leakage only as temperature-sensitive as measured on an RTX 5070 (E009, Hardware tab), joint control's energy advantage over independent control shrinks to ${mag(m1, 2)}–${mag(m0, 2)}, inside the 1% practical threshold in every scenario. What remains is thermal safety: ${still.length ? `independent control still exceeded 80 °C in ${still.join(', ')}, joint control never did` : 'neither policy exceeded 80 °C'}.`; })()] : [])
+     .concat(D.E010 ? [(() => { const q = D.E010.conditions.filter(c => c.plant === 'quasi'), dy = D.E010.conditions.filter(c => c.plant === 'dyn40');
+       const v = (c, p, m) => ((c.by_policy[p] || {})[m] || 0); const io = q.filter(c => v(c, 'independent', 'chip_s_over_target') > 0).length, it = q.filter(c => v(c, 'independent', 'chip_s_throttled') > 0).length;
+       const jo = q.filter(c => v(c, 'joint', 'chip_s_over_target') > 0).length, jd = dy.filter(c => v(c, 'joint', 'chip_s_over_target') > 0);
+       return `Thermal safety is where coordination earns its keep (E010). Across clean and fouled cold plates and 20–40 °C ambient, independent control went above 80 °C in ${io} of 9 conditions and throttled in ${it}; joint control in ${jo}, at no energy cost. But with a slow coolant loop joint control overheated with ${jd.map(c => c.degradation + ' plates at ' + c.t_amb + ' °C').join(' and ') || 'no condition'}, in the worst case more than independent control: it plans for a steady state the loop cannot reach in time.`; })()] : [])
      .forEach(t => ul.appendChild(el('li', {}, t)));
     sec.appendChild(el('h2', {}, 'What the simulation shows')); sec.appendChild(ul);
     const p = el('div', {class: 'panel'}); p.appendChild(el('h3', {}, 'Energy per successful task, all scenarios (kJ, mean and 95% CI over 10 paired seeds)'));
@@ -384,7 +388,7 @@ renderers.overview = sec => { sec.innerHTML = '';
   const oq = el('ul', {class: 'findings'});
   ['How temperature-sensitive is real leakage? The first warm-up on a real GPU could not separate leakage from its temperature coefficient. The slope it did measure suggests the registry overstates temperature sensitivity 2.5–4× (Hardware tab). If so, the benefit of colder coolant is overstated. A better warm-up is the next measurement.',
    'The simulator’s straight-line voltage–frequency model gets the shape of the measured power curve wrong: small clock cuts from the top save more than modelled, deep cuts less. DVFS magnitudes need a measured voltage–frequency form before they can be trusted.',
-   'Under a slow coolant loop the joint controller loses thermal margin (E006). Planning over a short horizon with the loop model is the next controller change.',
+   'Under a slow coolant loop the joint controller loses thermal margin (E006), and in the hottest fouled conditions it overheated more than independent control (E010). Planning over a short horizon with the loop model is the next controller change.',
    'Is there any workload where a custom accelerator would beat software and existing parts? Current evidence does not justify one; see docs/08_hardware_feasibility.md.'].forEach(t => oq.appendChild(el('li', {}, t)));
   sec.appendChild(el('h2', {}, 'Open questions')); sec.appendChild(oq); };
 

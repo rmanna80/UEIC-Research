@@ -51,5 +51,6 @@
 | E001C | E001 with M001's measured clock sensitivity | 6 scenarios × 5 policies × 10 seeds, seed-paired against E001 |
 | M002 | Leakage warm-up, attempt 2 (RTX 5070, 2347 MHz) | 1 session; leakage slope measured, coefficient not identified (`10`) |
 | E009 | Joint vs independent with leakage matched to the measured temperature slope | 6 leakage variants × 2 policies × 6 scenarios × 5 seeds |
+| E010 | Thermal safety under cooling degradation and heat (measured leakage) | 3 cold-plate states × 3 ambients × 2 plants × 3 policies × 5 seeds |
 
 Full pre-registered specs, including hypotheses, variables, controls and limitations, are in `experiments/*.json`. They are frozen in the database at registration.

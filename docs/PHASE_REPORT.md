@@ -162,6 +162,18 @@ What this means: with clock sensitivity measured rather than assumed, energy-awa
 
 What this means for the main research question: **with a real chip's temperature sensitivity, joint control's energy advantage over well-run independent control is real but small, under 0.6% in every scenario.** The advantage in Phase 1 came mostly from cutting leakage by running chips cooler, which pays off far less when leakage barely changes with temperature. What survives is thermal safety. Under degraded cooling, independent control still exceeds 80 °C and throttles, while joint control does not. These conclusions still rest on one consumer card's slope over a 4 K window and on the placeholder voltage–frequency form.
 
+**E010: thermal safety under cooling degradation and heat (pre-registered, 270 runs, 0 failed).** Measured leakage slope and clock sensitivity throughout; 3 cold-plate states × 3 ambient temperatures × 2 plants, high load.
+
+| Hypothesis | Verdict | Result |
+|---|---|---|
+| H1: instant plant, joint never throttles and exceeds 80 °C in ≤ 1 of 9 | **supported** | 0 of 9 above target, 0 throttled; peak ≤ 79.9 °C |
+| H2: instant plant, independent throttles in ≥ 3 of 9, all fouled | **supported** | above target in 6 of 9 (including clean plates at 40 °C), throttled in 3 (worst 246 chip·s) |
+| H3: slow loop, joint exceeds 80 °C with severe fouling | **supported** | moderate/40 °C: 1,473 chip·s; severe/40 °C: 5,493 chip·s and 212 throttled, *worse* than independent (1,785 and 170) |
+| H4: safety costs no energy | **supported** | joint vs independent −0.04% to −2.41%; the larger savings (1.5–2.4%) are where independent overheats |
+| H5: joint ≥ 10% below fixed | **supported** | −35% to −41%; fixed never exceeded 64 °C |
+
+What this means: **joint control's case on real silicon is thermal safety under stress, and it holds only if the controller can anticipate a slow coolant loop.** With an instant plant it kept every chip below 80 °C where independent control overheated in 6 of 9 conditions, and saved energy while doing it. With a 40 kg loop and a 1 K/min ramp, in the two hottest fouled conditions it planned for a steady state the loop could not reach in time and overheated, in the worst case more than independent control. This repeats E006's finding under harsher conditions and makes lag-aware planning the next step.
+
 **Failures and corrections during this measurement:**
 * The first desktop fit reported two failed fits (`v_min_ratio` = 0.3 and `kappa_leak` = 0.2, both exactly at their bounds) as class-B measurements. Acceptance rules R1–R3 now stop that. They were set after seeing that fit summary and before examining the raw data, and this is disclosed.
 * The tool reported "clock held down by a power cap" at 35% of the power limit. On this GPU the driver sets that flag whenever clocks are locked. A flag now counts as a limit only if the clock was not held or power was near the limit.
@@ -192,9 +204,9 @@ What this means for the main research question: **with a real chip's temperature
 
 ## What should happen next
 
-1. **Reframe joint control around thermal safety and degraded cooling.** E009 suggests its energy advantage is small on real silicon, but its protection against overheating under fouled cold plates and warm ambient is not. A pre-registered study of when coordination prevents throttling (cooling degradation, heat waves, power caps) is now the most informative simulation work.
-2. **Make the joint controller lag-aware.** Plan over a short horizon with the tank and ramp model. E006 shows steady-state planning loses thermal margin under loop lag, which matters more now that thermal safety is its main benefit.
-3. **Give the simulator a measured voltage–frequency form** (a voltage floor plus a steep top section), then re-run E001C and E009 with it. DVFS is the largest lever in every experiment, and the straight-line form misstates its shape.
-4. **Leakage over a wide temperature range** only if the fan can be held at a fixed speed; with automatic fan control this card stays within a few kelvin.
+1. **Make the joint controller lag-aware.** Plan over a short horizon with the tank and ramp model instead of a steady state. E010 shows that this is what decides whether joint control is safe in the conditions where it matters most: with a slow loop at 40 °C and fouled cold plates it overheated more than independent control. Re-run E010's dynamic-loop half with it (pre-registered).
+2. **Unnoticed degradation.** E010's controllers knew the true cold-plate state. Combine fouling the twin does not know about (E005/E008) with the self-correcting controller and the lag-aware planner.
+3. **Give the simulator a measured voltage–frequency form** (a voltage floor plus a steep top section), then re-run E001C, E009 and E010.
+4. **Leakage over a wide temperature range** only if the fan can be held at a fixed speed.
 5. **Remaining Phase 3 items:** routing decided jointly with clocks and cooling; a facility power-cap scenario; multi-node placement with migration cost.
 6. **Operation-level energy model** (FLOPs and bytes per prefill and decode phase) for gate 1 of the hardware feasibility assessment.
