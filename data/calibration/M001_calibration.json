@@ -1,0 +1,585 @@
+{
+ "kind": "ueic_calibration",
+ "created_utc": "2026-10-26T21:29:16+00:00",
+ "device": {
+  "index": 0,
+  "name": "NVIDIA GeForce RTX 5070",
+  "uuid": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+  "max_sm_clock_MHz": 3090,
+  "max_mem_clock_MHz": 14001,
+  "power_limit_W": 250.0
+ },
+ "sessions": [
+  {
+   "kind": "probe",
+   "path": "data/calibration/20261026T203035_probe_default-clocks",
+   "name": "20261026T203035_probe_default-clocks",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 2685.0,
+   "clock_cv": 0.004019419464393208,
+   "label_clock_MHz": null,
+   "s_nvml": 0.8689320388349514,
+   "power_W": 250.002,
+   "temp_C": 70.0,
+   "throughput": 63.7688,
+   "limited_frac": 0.0,
+   "limit_reasons": {},
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 250.08085,
+   "energy_per_work": 3.9204438534204815,
+   "power_limit_W": 250.0,
+   "at_power_limit": true,
+   "device": "NVIDIA GeForce RTX 5070 (GPU-91145432-3fb5-4033-dd9a-1e510e536d51)",
+   "device_key": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+   "nvml_max_clock_MHz": 3090.0,
+   "s": 1.0056179775280898
+  },
+  {
+   "kind": "warmup",
+   "path": "data/calibration/20261026T204001_warmup_clk=2017",
+   "name": "20261026T204001_warmup_clk=2017",
+   "ok": true,
+   "n": 5900,
+   "clock_MHz": 1995.0,
+   "clock_cv": 0.001636514412648153,
+   "label_clock_MHz": 2017.0,
+   "s_nvml": 0.6456310679611651,
+   "power_W": 131.6275,
+   "temp_C": 56.0,
+   "throughput": 47.6189,
+   "limited_frac": 0.9991525423728813,
+   "limit_reasons": {
+    "sw_power_cap": 0.9991525423728813
+   },
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 132.07,
+   "energy_per_work": 2.764186068976814,
+   "power_limit_W": 250.0,
+   "at_power_limit": false,
+   "device": "NVIDIA GeForce RTX 5070 (GPU-91145432-3fb5-4033-dd9a-1e510e536d51)",
+   "device_key": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+   "nvml_max_clock_MHz": 3090.0,
+   "s": 0.7471910112359551
+  },
+  {
+   "kind": "compute",
+   "path": "data/calibration/20261026T205519_compute_clk=1342",
+   "name": "20261026T205519_compute_clk=1342",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 1335.0,
+   "clock_cv": 0.0,
+   "label_clock_MHz": 1342.0,
+   "s_nvml": 0.4320388349514563,
+   "power_W": 87.40350000000001,
+   "temp_C": 47.0,
+   "throughput": 31.8604,
+   "limited_frac": 1.0,
+   "limit_reasons": {
+    "sw_power_cap": 1.0
+   },
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 87.57045,
+   "energy_per_work": 2.743327139646709,
+   "power_limit_W": 250.0,
+   "at_power_limit": false,
+   "device": "NVIDIA GeForce RTX 5070 (GPU-91145432-3fb5-4033-dd9a-1e510e536d51)",
+   "device_key": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+   "nvml_max_clock_MHz": 3090.0,
+   "s": 0.5
+  },
+  {
+   "kind": "memory",
+   "path": "data/calibration/20261026T205622_memory_clk=1342",
+   "name": "20261026T205622_memory_clk=1342",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 1335.0,
+   "clock_cv": 0.0,
+   "label_clock_MHz": 1342.0,
+   "s_nvml": 0.4320388349514563,
+   "power_W": 85.0445,
+   "temp_C": 41.0,
+   "throughput": 580.956,
+   "limited_frac": 0.0,
+   "limit_reasons": {},
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 85.32424999999999,
+   "energy_per_work": 0.14638716185046716,
+   "power_limit_W": 250.0,
+   "at_power_limit": false,
+   "device": "NVIDIA GeForce RTX 5070 (GPU-91145432-3fb5-4033-dd9a-1e510e536d51)",
+   "device_key": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+   "nvml_max_clock_MHz": 3090.0,
+   "s": 0.5
+  },
+  {
+   "kind": "compute",
+   "path": "data/calibration/20261026T205725_compute_clk=1680",
+   "name": "20261026T205725_compute_clk=1680",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 1657.0,
+   "clock_cv": 0.00048035698317841984,
+   "label_clock_MHz": 1680.0,
+   "s_nvml": 0.5362459546925566,
+   "power_W": 105.397,
+   "temp_C": 49.0,
+   "throughput": 39.5944,
+   "limited_frac": 1.0,
+   "limit_reasons": {
+    "sw_power_cap": 1.0
+   },
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 105.6151,
+   "energy_per_work": 2.6619168367243855,
+   "power_limit_W": 250.0,
+   "at_power_limit": false,
+   "device": "NVIDIA GeForce RTX 5070 (GPU-91145432-3fb5-4033-dd9a-1e510e536d51)",
+   "device_key": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+   "nvml_max_clock_MHz": 3090.0,
+   "s": 0.6205992509363296
+  },
+  {
+   "kind": "memory",
+   "path": "data/calibration/20261026T205827_memory_clk=1680",
+   "name": "20261026T205827_memory_clk=1680",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 1657.0,
+   "clock_cv": 0.00048035698317841984,
+   "label_clock_MHz": 1680.0,
+   "s_nvml": 0.5362459546925566,
+   "power_W": 87.114,
+   "temp_C": 41.0,
+   "throughput": 582.7115,
+   "limited_frac": 0.0,
+   "limit_reasons": {},
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 87.33795,
+   "energy_per_work": 0.14949765020940894,
+   "power_limit_W": 250.0,
+   "at_power_limit": false,
+   "device": "NVIDIA GeForce RTX 5070 (GPU-91145432-3fb5-4033-dd9a-1e510e536d51)",
+   "device_key": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+   "nvml_max_clock_MHz": 3090.0,
+   "s": 0.6205992509363296
+  },
+  {
+   "kind": "compute",
+   "path": "data/calibration/20261026T205930_compute_clk=2017",
+   "name": "20261026T205930_compute_clk=2017",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 2002.0,
+   "clock_cv": 0.0016559029215127195,
+   "label_clock_MHz": 2017.0,
+   "s_nvml": 0.6478964401294498,
+   "power_W": 131.991,
+   "temp_C": 53.0,
+   "throughput": 47.644149999999996,
+   "limited_frac": 1.0,
+   "limit_reasons": {
+    "sw_power_cap": 1.0
+   },
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 132.2132,
+   "energy_per_work": 2.7703506096761097,
+   "power_limit_W": 250.0,
+   "at_power_limit": false,
+   "device": "NVIDIA GeForce RTX 5070 (GPU-91145432-3fb5-4033-dd9a-1e510e536d51)",
+   "device_key": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+   "nvml_max_clock_MHz": 3090.0,
+   "s": 0.749812734082397
+  },
+  {
+   "kind": "memory",
+   "path": "data/calibration/20261026T210032_memory_clk=2017",
+   "name": "20261026T210032_memory_clk=2017",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 2002.0,
+   "clock_cv": 0.0,
+   "label_clock_MHz": 2017.0,
+   "s_nvml": 0.6478964401294498,
+   "power_W": 91.638,
+   "temp_C": 43.0,
+   "throughput": 584.019,
+   "limited_frac": 0.0,
+   "limit_reasons": {},
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 91.93225,
+   "energy_per_work": 0.1569092786364827,
+   "power_limit_W": 250.0,
+   "at_power_limit": false,
+   "device": "NVIDIA GeForce RTX 5070 (GPU-91145432-3fb5-4033-dd9a-1e510e536d51)",
+   "device_key": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+   "nvml_max_clock_MHz": 3090.0,
+   "s": 0.749812734082397
+  },
+  {
+   "kind": "compute",
+   "path": "data/calibration/20261026T210135_compute_clk=2347",
+   "name": "20261026T210135_compute_clk=2347",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 2340.0,
+   "clock_cv": 0.001308532183296877,
+   "label_clock_MHz": 2347.0,
+   "s_nvml": 0.7572815533980582,
+   "power_W": 168.498,
+   "temp_C": 60.0,
+   "throughput": 55.35595,
+   "limited_frac": 0.91,
+   "limit_reasons": {
+    "sw_power_cap": 0.91
+   },
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 170.4314,
+   "energy_per_work": 3.043900429854424,
+   "power_limit_W": 250.0,
+   "at_power_limit": false,
+   "device": "NVIDIA GeForce RTX 5070 (GPU-91145432-3fb5-4033-dd9a-1e510e536d51)",
+   "device_key": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+   "nvml_max_clock_MHz": 3090.0,
+   "s": 0.8764044943820225
+  },
+  {
+   "kind": "memory",
+   "path": "data/calibration/20261026T210237_memory_clk=2347",
+   "name": "20261026T210237_memory_clk=2347",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 2340.0,
+   "clock_cv": 0.0,
+   "label_clock_MHz": 2347.0,
+   "s_nvml": 0.7572815533980582,
+   "power_W": 97.995,
+   "temp_C": 47.0,
+   "throughput": 581.554,
+   "limited_frac": 0.0,
+   "limit_reasons": {},
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 98.302,
+   "energy_per_work": 0.16850541824147028,
+   "power_limit_W": 250.0,
+   "at_power_limit": false,
+   "device": "NVIDIA GeForce RTX 5070 (GPU-91145432-3fb5-4033-dd9a-1e510e536d51)",
+   "device_key": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+   "nvml_max_clock_MHz": 3090.0,
+   "s": 0.8764044943820225
+  },
+  {
+   "kind": "compute",
+   "path": "data/calibration/20261026T210340_compute_clk=2685",
+   "name": "20261026T210340_compute_clk=2685",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 2670.0,
+   "clock_cv": 0.0014140914844110789,
+   "label_clock_MHz": 2685.0,
+   "s_nvml": 0.8640776699029126,
+   "power_W": 247.72750000000002,
+   "temp_C": 72.0,
+   "throughput": 63.079800000000006,
+   "limited_frac": 0.0,
+   "limit_reasons": {},
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 250.04555,
+   "energy_per_work": 3.927208076119455,
+   "power_limit_W": 250.0,
+   "at_power_limit": true,
+   "device": "NVIDIA GeForce RTX 5070 (GPU-91145432-3fb5-4033-dd9a-1e510e536d51)",
+   "device_key": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+   "nvml_max_clock_MHz": 3090.0,
+   "s": 1.0
+  },
+  {
+   "kind": "memory",
+   "path": "data/calibration/20261026T210442_memory_clk=2685",
+   "name": "20261026T210442_memory_clk=2685",
+   "ok": true,
+   "n": 500,
+   "clock_MHz": 2677.0,
+   "clock_cv": 0.0,
+   "label_clock_MHz": 2685.0,
+   "s_nvml": 0.8663430420711974,
+   "power_W": 116.642,
+   "temp_C": 51.0,
+   "throughput": 551.2170000000001,
+   "limited_frac": 0.0,
+   "limit_reasons": {},
+   "user_clocks_frac": 0.0,
+   "power_p95_W": 118.35695,
+   "energy_per_work": 0.21160813255033856,
+   "power_limit_W": 250.0,
+   "at_power_limit": false,
+   "device": "NVIDIA GeForce RTX 5070 (GPU-91145432-3fb5-4033-dd9a-1e510e536d51)",
+   "device_key": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+   "nvml_max_clock_MHz": 3090.0,
+   "s": 1.002621722846442
+  }
+ ],
+ "fits": {
+  "beta_compute": {
+   "ok": true,
+   "value": 0.9830328266120814,
+   "se": 0.004464978812446927,
+   "n": 5,
+   "r2": 0.9999381133263365,
+   "method": "log-log least squares of median throughput vs median SM clock / max clock"
+  },
+  "beta_memory": {
+   "ok": true,
+   "value": -0.055709503045625115,
+   "se": 0.04026529367244904,
+   "n": 5,
+   "r2": 0.3895294457583357,
+   "method": "log-log least squares of median throughput vs median SM clock / max clock"
+  },
+  "power_vs_clock": {
+   "ok": true,
+   "A_W": 79.74109678504655,
+   "P_dyn_W": 163.21503143579173,
+   "v_min_ratio": 0.30000000000000004,
+   "v_min_ratio_se": 0.18484999800856275,
+   "n": 5,
+   "excluded_s": [],
+   "s_range": [
+    0.5,
+    1.0
+   ],
+   "at_bound": [
+    "v_min_ratio"
+   ],
+   "r2": 0.9927430082905103,
+   "rms_resid_W": 4.835312728944079,
+   "points": [
+    {
+     "s": 0.5,
+     "P_W": 87.40350000000001,
+     "fit_W": 87.08577319965718
+    },
+    {
+     "s": 0.6205992509363296,
+     "P_W": 105.397,
+     "fit_W": 102.00589542409917
+    },
+    {
+     "s": 0.749812734082397,
+     "P_W": 131.991,
+     "fit_W": 131.40524445509556
+    },
+    {
+     "s": 0.8764044943820225,
+     "P_W": 168.498,
+     "fit_W": 177.56395870030985
+    },
+    {
+     "s": 1.0,
+     "P_W": 247.72750000000002,
+     "fit_W": 242.95612822083828
+    }
+   ],
+   "method": "P = A + P_d * s * v(s)^2 with v linear between s_min = 0.5 and 1 (registry form); temperature differences between sessions are not removed"
+  },
+  "leakage": {
+   "ok": true,
+   "kappa": 0.0014642693704841525,
+   "kappa_se": 0.03640985257427554,
+   "L_ref_W": 132.2060719733002,
+   "L_ref_se": 3260.969177065336,
+   "c_W": 0.002704636449135128,
+   "leak_fraction_at_ref": 0.999979542686057,
+   "n": 4636,
+   "T_range_C": [
+    48.0,
+    57.0
+   ],
+   "clock_MHz": 1995.0,
+   "resid_std_W": 0.8440246737397407,
+   "at_bound": [
+    "c_W"
+   ],
+   "r2": 0.09539815351048675,
+   "n_load_excluded": 1345,
+   "dPdT_W_per_K": 0.1923140571382562,
+   "dPdT_se": 0.008692489636976752,
+   "P_range_W": [
+    123.439,
+    132.329
+   ],
+   "fan_pct_range": [
+    0.0,
+    31.0
+   ],
+   "method": "P(T) = c + L*exp(kappa*(T-60)) at constant clock and load during warm-up; assumes the temperature-dependent part of board power is leakage (fan and VR losses are not separated)"
+  }
+ },
+ "overrides": {
+  "beta_compute": {
+   "value": 0.983,
+   "se": 0.004464978812446927,
+   "evidence": "B",
+   "status": "accepted"
+  },
+  "beta_memory": {
+   "value": 0.0,
+   "se": 0.04026529367244904,
+   "evidence": "B",
+   "measured": -0.0557,
+   "status": "at physical limit",
+   "note": "measured -0.05571 +/- 0.079 (95% CI) reaches the physical limit 0; transferred at the limit"
+  }
+ },
+ "notes": [
+  "the driver set a limit flag in 5 session(s) although each locked clock held (within 3%) and power stayed at or below 68% of the limit; the flag does not indicate a limit on this GPU and was not treated as one",
+  "fan speed rose from 0% to 31% during the warm-up. On desktop cards the fans draw from the board power NVML reports, so part of the power rise is fan power and kappa_leak is an upper bound. A fixed fan speed during the warm-up removes this",
+  "beta_memory = 0.0 lies outside the registry range [0.15, 0.6] swept in E002"
+ ],
+ "clock_reference": {
+  "f_ref_MHz": 2670.0,
+  "nvml_max_sm_clock_MHz": 3090.0,
+  "method": "s = median SM clock / f_ref, f_ref = highest steady median SM clock among compute sessions"
+ },
+ "rejected": {
+  "v_min_ratio": {
+   "value": 0.3,
+   "se": 0.18484999800856275,
+   "evidence": "B",
+   "reason": "fit ended at the edge of its allowed range (v_min_ratio): the model does not describe these data"
+  },
+  "kappa_leak": {
+   "value": 0.00146,
+   "se": 0.03640985257427554,
+   "evidence": "B",
+   "reason": "fit ended at the edge of its allowed range (c_W): the model does not describe these data"
+  },
+  "p_leak_ref": {
+   "value": 25907074.56,
+   "se": null,
+   "evidence": "E",
+   "note": "measured leak fraction 1.000 at 60 C scaled to the simulated accelerator",
+   "reason": "derived from kappa_leak, which was rejected"
+  }
+ },
+ "energy_per_work": {
+  "compute": {
+   "unit": "J/TFLOP",
+   "points": [
+    {
+     "clock_MHz": 1335.0,
+     "s": 0.5,
+     "power_W": 87.40350000000001,
+     "temp_C": 47.0,
+     "throughput": 31.8604,
+     "energy_per_work": 2.743327139646709,
+     "energy_rel_top": 0.698543873019695,
+     "power_rel_top": 0.35282114420078514
+    },
+    {
+     "clock_MHz": 1657.0,
+     "s": 0.6205992509363296,
+     "power_W": 105.397,
+     "temp_C": 49.0,
+     "throughput": 39.5944,
+     "energy_per_work": 2.6619168367243855,
+     "energy_rel_top": 0.6778140564822512,
+     "power_rel_top": 0.42545538949046835
+    },
+    {
+     "clock_MHz": 2002.0,
+     "s": 0.749812734082397,
+     "power_W": 131.991,
+     "temp_C": 53.0,
+     "throughput": 47.644149999999996,
+     "energy_per_work": 2.7703506096761097,
+     "energy_rel_top": 0.7054249624617657,
+     "power_rel_top": 0.5328072176080573
+    },
+    {
+     "clock_MHz": 2340.0,
+     "s": 0.8764044943820225,
+     "power_W": 168.498,
+     "temp_C": 60.0,
+     "throughput": 55.35595,
+     "energy_per_work": 3.043900429854424,
+     "energy_rel_top": 0.775079998527136,
+     "power_rel_top": 0.6801747888304689
+    },
+    {
+     "clock_MHz": 2670.0,
+     "s": 1.0,
+     "power_W": 247.72750000000002,
+     "temp_C": 72.0,
+     "throughput": 63.079800000000006,
+     "energy_per_work": 3.927208076119455,
+     "energy_rel_top": 1.0,
+     "power_rel_top": 1.0
+    }
+   ],
+   "min_at_clock_MHz": 1657.0,
+   "min_at_s": 0.6205992509363296,
+   "saving_vs_top": 0.32218594351774876
+  },
+  "memory": {
+   "unit": "J/GB",
+   "points": [
+    {
+     "clock_MHz": 1335.0,
+     "s": 0.5,
+     "power_W": 85.0445,
+     "temp_C": 41.0,
+     "throughput": 580.956,
+     "energy_per_work": 0.14638716185046716,
+     "energy_rel_top": 0.6917841960334097,
+     "power_rel_top": 0.729107011196653
+    },
+    {
+     "clock_MHz": 1657.0,
+     "s": 0.6205992509363296,
+     "power_W": 87.114,
+     "temp_C": 41.0,
+     "throughput": 582.7115,
+     "energy_per_work": 0.14949765020940894,
+     "energy_rel_top": 0.7064834815544984,
+     "power_rel_top": 0.7468493338591589
+    },
+    {
+     "clock_MHz": 2002.0,
+     "s": 0.749812734082397,
+     "power_W": 91.638,
+     "temp_C": 43.0,
+     "throughput": 584.019,
+     "energy_per_work": 0.1569092786364827,
+     "energy_rel_top": 0.7415087347796344,
+     "power_rel_top": 0.7856346770460041
+    },
+    {
+     "clock_MHz": 2340.0,
+     "s": 0.8764044943820225,
+     "power_W": 97.995,
+     "temp_C": 47.0,
+     "throughput": 581.554,
+     "energy_per_work": 0.16850541824147028,
+     "energy_rel_top": 0.7963088006619276,
+     "power_rel_top": 0.8401347713516573
+    },
+    {
+     "clock_MHz": 2677.0,
+     "s": 1.002621722846442,
+     "power_W": 116.642,
+     "temp_C": 51.0,
+     "throughput": 551.2170000000001,
+     "energy_per_work": 0.21160813255033856,
+     "energy_rel_top": 1.0,
+     "power_rel_top": 1.0
+    }
+   ],
+   "min_at_clock_MHz": 1335.0,
+   "min_at_s": 0.5,
+   "saving_vs_top": 0.3082158039665903
+  }
+ }
+}

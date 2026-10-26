@@ -278,6 +278,7 @@ def summarize(sess: Session, skip_s: float = 10.0) -> dict[str, Any]:
                               for k, (bit, _) in LIMIT_REASONS.items() if any(x & bit for x in known)},
             "user_clocks_frac": float(np.mean([(x & USER_CLOCKS_BIT) != 0 for x in known])) if known else None,
             "power_p95_W": float(np.percentile(pw, 95)),
+            "energy_per_work": float(np.median(pw) / np.median(work[:, 1])) if np.median(work[:, 1]) > 0 else None,
             "power_limit_W": (lim_w := _median_or(tel, "power_limit_W", sess.power_limit_W)),
             "at_power_limit": bool(lim_w and float(np.median(pw)) >= 0.98 * lim_w),
             "device": device_label(sess.device), "device_key": device_key(sess.device),
@@ -289,10 +290,23 @@ def _median_or(rows: list[dict], key: str, default):
     return float(np.median(v)) if v else default
 
 
+def flag_without_limit(sm: dict[str, Any]) -> bool:
+    """True when the driver set a limit flag but the measurements show no limit: the locked clock
+    held (within CLOCK_HELD_TOL) and power stayed below 90% of the limit. Seen on an RTX 5070,
+    2026-10-26: the power-cap flag at 87 W of 250 W at every locked clock below 2.4 GHz, and no
+    flag while the card actually sat at its 250 W limit."""
+    lc, lim, p95 = sm.get("label_clock_MHz"), sm.get("power_limit_W"), sm.get("power_p95_W")
+    return bool(lc and lim and p95 and abs(sm["clock_MHz"] - lc) / lc <= CLOCK_HELD_TOL and p95 < 0.9 * lim)
+
+
 def interpret_limits(sm: dict[str, Any]) -> list[str]:
     """Plain-language reading of which limit held the clock down. Inferences are worded as such."""
     out = []
     reasons = sm.get("limit_reasons") or {}
+    if reasons and flag_without_limit(sm):
+        return [f"driver flags set ({', '.join(reasons)}) although the locked clock held and power stayed at "
+                f"{100 * sm['power_p95_W'] / sm['power_limit_W']:.0f}% of the limit: not a limit. On some GPUs the "
+                "power-cap flag is set whenever clocks are locked"]
     for k, frac in sorted(reasons.items(), key=lambda kv: -kv[1]):
         out.append(f"{100 * frac:.0f}% of samples: {LIMIT_REASONS[k][1]}")
     if (sm.get("user_clocks_frac") or 0) > 0.5:
@@ -392,14 +406,29 @@ def _leak_model(T, c, L, kappa):
     return c + L * np.exp(kappa * (np.asarray(T) - T_REF))
 
 
-def fit_leakage(sess: Session, clock_tol_MHz: float = 15.0) -> dict[str, Any]:
-    tel, _ = steady(sess, skip_s=2.0)
+def fit_leakage(sess: Session, clock_tol_MHz: float = 15.0, load_tol: float = 0.02) -> dict[str, Any]:
+    """Constant clock AND constant load are both required: telemetry samples are kept only when the
+    clock is within clock_tol_MHz of its median and the workload throughput at that moment is within
+    load_tol of its median. (The load rule was added on 2026-10-26 after the first desktop warm-up
+    showed a 4-10% throughput drop for several minutes, with power falling with it.)"""
+    tel, work = steady(sess, skip_s=2.0)
     if len(tel) < 30:
         return {"ok": False, "reason": "too few samples in warm-up session"}
     clk = np.array([r["sm_clock_MHz"] for r in tel], dtype=float)
     keep = np.abs(clk - np.median(clk)) <= clock_tol_MHz
+    n_load_excluded = 0
+    if len(work) >= 3:
+        ts = np.array([r["t_unix"] for r in tel])
+        idx = np.clip(np.searchsorted(work[:, 0], ts), 0, len(work) - 1)
+        rel = work[idx, 1] / np.median(work[:, 1]) - 1.0
+        steady_load = np.abs(rel) <= load_tol
+        n_load_excluded = int((keep & ~steady_load).sum())
+        keep &= steady_load
     T = np.array([r["temp_C"] for r in tel], dtype=float)[keep]
     P = np.array([r["power_W"] for r in tel], dtype=float)[keep]
+    if len(T) < 30:
+        return {"ok": False, "reason": f"too few samples at constant clock and load ({len(T)})",
+                "n_load_excluded": n_load_excluded}
     if T.max() - T.min() < 8.0:
         return {"ok": False, "reason": f"temperature rose only {T.max() - T.min():.1f} K at constant clock; "
                                        "need >= 8 K (start from a cold GPU)"}
@@ -410,11 +439,15 @@ def fit_leakage(sess: Session, clock_tol_MHz: float = 15.0) -> dict[str, Any]:
     c, L, k = popt
     resid = P - _leak_model(T, *popt)
     at_bound = _at_bounds(popt, lo, hi, ["c_W", "L_ref_W", "kappa"], float(P.max()))
+    slope, slope_se, _ = _linfit(T, P)
     r2 = _r2(P, _leak_model(T, *popt))
     return {"ok": True, "kappa": float(k), "kappa_se": float(se[2]), "L_ref_W": float(L), "L_ref_se": float(se[1]),
             "c_W": float(c), "leak_fraction_at_ref": float(L / (c + L)), "n": int(keep.sum()),
             "T_range_C": [float(T.min()), float(T.max())], "clock_MHz": float(np.median(clk[keep])),
             "resid_std_W": float(resid.std()), "at_bound": at_bound, "r2": r2,
+            "n_load_excluded": n_load_excluded,
+            # identifiable over any temperature range: the local slope of board power with temperature
+            "dPdT_W_per_K": float(slope[0]), "dPdT_se": float(slope_se[0]),
             "P_range_W": [float(P.min()), float(P.max())],
             "fan_pct_range": _range_or_none([r.get("fan_pct") for r, k in zip(tel, keep) if k]),
             "method": "P(T) = c + L*exp(kappa*(T-60)) at constant clock and load during warm-up; assumes the "
@@ -486,6 +519,7 @@ def calibrate(session_dirs: Iterable[str | Path], cfg=None, device: str | None =
         if x["ok"] and f_ref:
             x["s"] = x["clock_MHz"] / f_ref
     # sessions whose locked clock was not held, or that ran into power or thermal limits
+    spurious: list[dict] = []
     for x in summ:
         if not x["ok"]:
             notes.append(f"{x['path']}: skipped ({x['reason']})")
@@ -495,10 +529,18 @@ def calibrate(session_dirs: Iterable[str | Path], cfg=None, device: str | None =
             notes.append(f"{x['name']}: locked at {lc:.0f} MHz but ran at {x['clock_MHz']:.0f} MHz (median); the "
                          "lock was not held. Fits use the measured clock")
         if x.get("limited_frac") is not None and x["limited_frac"] > 0.10:
+            if flag_without_limit(x):
+                spurious.append(x)
+                continue
             which = ", ".join(f"{LIMIT_REASONS[k][1].split(' (')[0]} {100 * v:.0f}%"
                               for k, v in sorted(x["limit_reasons"].items(), key=lambda kv: -kv[1]))
             notes.append(f"{x['name']}: clock held down by a limit in {100 * x['limited_frac']:.0f}% of samples "
                          f"({which})")
+    if spurious:
+        worst = max(x["power_p95_W"] / x["power_limit_W"] for x in spurious)
+        notes.append(f"the driver set a limit flag in {len(spurious)} session(s) although each locked clock held "
+                     f"(within {100 * CLOCK_HELD_TOL:.0f}%) and power stayed at or below {100 * worst:.0f}% of the "
+                     "limit; the flag does not indicate a limit on this GPU and was not treated as one")
     probes = [x for x in by("probe") if x["ok"]]
     if probes and f_ref and f_ref < 0.9 * probes[-1]["clock_MHz"]:
         notes.append(f"highest swept clock {f_ref:.0f} MHz is below the clock the GPU sustains at default settings "
@@ -539,6 +581,7 @@ def calibrate(session_dirs: Iterable[str | Path], cfg=None, device: str | None =
                       "derived_from": "kappa_leak",
                       "note": f"measured leak fraction {f:.3f} at 60 C scaled to the simulated accelerator"})
     out["overrides"], out["rejected"] = accept_estimates(cands)
+    out["energy_per_work"] = energy_curves(summ)
     for k, v in out["overrides"].items():
         from .params import REGISTRY
         lo, hi = REGISTRY[k].low, REGISTRY[k].high
@@ -546,6 +589,26 @@ def calibrate(session_dirs: Iterable[str | Path], cfg=None, device: str | None =
             notes.append(f"{k} = {v['value']} lies outside the registry range [{lo}, {hi}] swept in E002")
     # every transferred value must yield a valid configuration
     make_config({k: v["value"] for k, v in out["overrides"].items()})
+    return out
+
+
+def energy_curves(summ: list[dict]) -> dict[str, Any]:
+    """Model-free result: measured board energy per unit of work at each clock (J/TFLOP for the
+    compute kernel, J/GB for the memory kernel), normalised to the highest clock."""
+    out: dict[str, Any] = {}
+    for kind, unit in (("compute", "J/TFLOP"), ("memory", "J/GB")):
+        pts = sorted((x for x in summ if x["kind"] == kind and x["ok"] and x.get("energy_per_work")),
+                     key=lambda x: x["clock_MHz"])
+        if len(pts) < 2:
+            continue
+        top = pts[-1]
+        rows = [{"clock_MHz": x["clock_MHz"], "s": x.get("s"), "power_W": x["power_W"], "temp_C": x["temp_C"],
+                 "throughput": x["throughput"], "energy_per_work": x["energy_per_work"],
+                 "energy_rel_top": x["energy_per_work"] / top["energy_per_work"],
+                 "power_rel_top": x["power_W"] / top["power_W"]} for x in pts]
+        best = min(rows, key=lambda r: r["energy_per_work"])
+        out[kind] = {"unit": unit, "points": rows, "min_at_clock_MHz": best["clock_MHz"], "min_at_s": best["s"],
+                     "saving_vs_top": 1.0 - best["energy_rel_top"]}
     return out
 
 

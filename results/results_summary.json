@@ -1,8 +1,8 @@
 {
- "generated_utc": "2026-10-26T20:38:31+00:00",
- "code_sha256": "17d8a777e2cc0b5b28e3d161d8a36cc241f9205048eb7dbd2c759973de435483",
+ "generated_utc": "2026-10-26T21:33:39+00:00",
+ "code_sha256": "40dc323b76b1cc51e62348f7caed2e4a772b2b2dd2926514a95df6900b095966",
  "chain_ok": true,
- "chain_msg": "2861 finalised runs verified",
+ "chain_msg": "2862 finalised runs verified",
  "threshold": 0.01,
  "E001": {
   "id": "E001-20261026T181652-ada586",
@@ -130732,6 +130732,22 @@
   [
    "2026-10-26T20:37:56+00:00",
    "Phase 4: calibration moved to the user's desktop PC (laptop readings above stay recorded; the two machines' sessions are never fitted together). Probe at default clocks (user-reported console output): sustained SM clock 2685 MHz median (0.4% variation), board power 250.0 W median / 250.1 W 95th percentile against a reported 250 W limit, 70 C. The driver set no clock-event limit flag, yet power pinned at the limit indicates the clock is set by the power limit. Suggested sweep 1342, 1680, 2017, 2347, 2685 MHz. Tooling: power-at-limit detection, one-GPU-per-calibration guard (fit --device), fan-speed range in the leakage fit with a note when the fan ramps (desktop fans are inside the NVML board-power boundary)."
+  ],
+  [
+   "2026-10-26T21:32:41+00:00",
+   "Registered M001-20261026T213241-115dce: GPU calibration measurement (NVIDIA GeForce RTX 5070) | H: Measurement, not a test: no hypothesis. Values are compared with the registry ranges."
+  ],
+  [
+   "2026-10-26T21:32:54+00:00",
+   "M001 recorded (RTX 5070, desktop PC; 12 sessions: probe, warm-up at 2017 MHz, compute and memory kernels at 1342-2685 MHz locked). Accepted: beta_compute = 0.983 +/- 0.009 (95% CI); beta_memory measured -0.056 +/- 0.079, transferred as 0 (rule R3). Rejected: v_min_ratio (registry linear V-f form ran to its bound: the measured power curve is flat then steep), kappa_leak and p_leak_ref (warm-up held at 53-57 C by the fan, too narrow to identify leakage; unsteady load for several minutes). Model-free: compute-kernel energy per TFLOP lowest at 1657 MHz, 32% below the top clock; memory-kernel energy per GB lowest at the lowest clock, 31% below, with no throughput loss. With registry defaults the simulator gets the size of the saving roughly right but understates savings near the top clock (measured 22% vs 13% at s = 0.88) and overstates them for deep cuts. Indicative only: relative temperature sensitivity of board power 0.09-0.15%/K vs 0.37%/K in the registry. The driver's power-cap flag was set at every locked clock below 2.4 GHz at 35-68% of the power limit, and not at the real 250 W limit: not a limit on this GPU. Report: docs/10_calibration_results.md."
+  ],
+  [
+   "2026-10-26T21:32:54+00:00",
+   "Repository incident: the desktop PC's local results database met the repository's in a git stash conflict; the repository's copy was kept, so the PC's local runs are not in the store. Three of their time-series files were committed without records and are now in results/orphaned/2026-10-26-pc with a forensic note: two are identical to stored E001 S1 seed-0 runs (compute_only, fixed); the third is close to E001 S1 cooling_only (1.8% max difference) and unexplained. The stored E001 runs still reproduce bitwise with current code."
+  ],
+  [
+   "2026-10-26T21:32:54+00:00",
+   "E001C pre-registered (experiments/E001C_calibrated.json, committed before running): E001 design with beta_compute = 0.983 and beta_memory = 0 from M001. Inherited H1-H2 plus HC1 (compute_only saves more vs fixed than in E001 in all 6 scenarios), HC2 (largest change in S5_memory_heavy), HC3 (joint vs independent changes by < 0.5 pp in >= 5 of 6 scenarios). Disclosed: calibration values known, results not; acceptance rules set after the first fit summary; a forensic re-run of 24 seed-0 cells with the rejected first-fit values preceded registration (time series compared, outcomes not examined)."
   ]
  ],
  "experiments": [
@@ -130890,6 +130906,19 @@
     "runs": 360
    },
    "created": "2026-10-26T19:08:21+00:00"
+  },
+  {
+   "id": "M001-20261026T213241-115dce",
+   "key": "M001",
+   "status": "completed",
+   "title": "GPU calibration measurement (NVIDIA GeForce RTX 5070)",
+   "hypothesis": "Measurement, not a test: no hypothesis. Values are compared with the registry ranges.",
+   "summary": {
+    "failed": 0,
+    "measurement": true,
+    "runs": 1
+   },
+   "created": "2026-10-26T21:32:41+00:00"
   }
  ]
 }

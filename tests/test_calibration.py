@@ -117,7 +117,7 @@ def _power(s, T, floor=False):
 
 def _write_session(root, kind, clk, rng, seconds=60.0, warm=False, f_top=MAXCLK, nvml_max=MAXCLK,
                    label_clk=None, floor=False, reasons=0, power=None, temp=62.0, power_limit=None,
-                   name="Synthetic", uuid=None, folder=None, fan_ramp=False):
+                   name="Synthetic", uuid=None, folder=None, fan_ramp=False, dip=None):
     """`clk` is the clock the GPU actually ran at; `label_clk` the clock the user locked (default: same);
     `f_top` the highest clock the GPU sustains (s = 1 in the truth model); `nvml_max` what NVML reports."""
     d = Path(root) / (folder or f"{kind}_{clk}")
@@ -126,6 +126,8 @@ def _write_session(root, kind, clk, rng, seconds=60.0, warm=False, f_top=MAXCLK,
     t = np.arange(0, seconds, 0.1)
     T = 35.0 + 35.0 * (1 - np.exp(-t / 150.0)) if warm else np.full_like(t, temp)
     P = (_power(s, T, floor) if power is None else np.full_like(t, power)) + rng.normal(0, 0.8, t.size)
+    if dip:                                    # (t_start, t_end, fraction): load drops, power falls with it
+        P[(t >= dip[0]) & (t < dip[1])] -= 8.0
     with open(d / "telemetry.csv", "w") as f:
         f.write(",".join(telemetry.FIELDS) + "\n")
         for ti, Ti, Pi in zip(t, T, P):
@@ -134,8 +136,11 @@ def _write_session(root, kind, clk, rng, seconds=60.0, warm=False, f_top=MAXCLK,
     beta = TRUE["beta_memory"] if kind == "memory" else TRUE["beta_compute"]
     tw = np.arange(0, seconds, 0.5)
     thr = 100.0 * s ** beta * (1 + rng.normal(0, 0.003, tw.size))
+    if dip:
+        thr[(tw >= dip[0]) & (tw < dip[1])] *= 1.0 - dip[2]
     np.savetxt(d / "workload.csv", np.column_stack([1000 + tw, thr]), delimiter=",", header="t_unix,throughput", comments="")
-    (d / "session.json").write_text(json.dumps({"kind": kind, "label": f"clk={label_clk or clk}", "device": {
+    label = "default-clocks" if kind == "probe" else f"clk={label_clk or clk}"   # probes run unlocked
+    (d / "session.json").write_text(json.dumps({"kind": kind, "label": label, "device": {
         "index": 0, "name": name, "uuid": uuid, "max_sm_clock_MHz": nvml_max, "power_limit_W": power_limit}}))
     return d
 
@@ -412,3 +417,39 @@ def test_ingest_preserves_rejected_estimates(tmp_path):
     st.close()
     with pytest.raises(ValueError, match="no accepted"):
         cal.apply_calibration({"key": "E001", "title": "t", "design": {}}, {"overrides": {}}, "abc")
+
+
+
+# ------------------------------------------------------------- lessons from the RTX 5070 data
+def test_power_cap_flag_on_a_held_lock_far_below_the_limit_is_not_a_limit(tmp_path):
+    """RTX 5070, 2026-10-26: power-cap flag in 100% of samples at 1342 MHz locked (measured 1335),
+    87 W of a 250 W limit. Reporting that as 'clock held down by a limit' was wrong."""
+    rng = np.random.default_rng(15)
+    ds = [_write_session(tmp_path, "compute", c, rng, label_clk=lc, power=p, reasons=0x4, power_limit=250.0)
+          for c, lc, p in ((1335, 1342, 87.4), (1657, 1680, 105.4), (2002, 2017, 132.0))]
+    ds.append(_write_session(tmp_path, "compute", 2340, rng, label_clk=2347, power=168.5, reasons=0x4, power_limit=250.0))
+    ds.append(_write_session(tmp_path, "compute", 2670, rng, label_clk=2685, power=247.7, reasons=0, power_limit=250.0))
+    out = cal.calibrate(ds)
+    assert not any("held down" in n for n in out["notes"])
+    assert any("does not indicate a limit" in n and "4 session" in n for n in out["notes"])
+    assert "not a limit" in cal.interpret_limits(out["sessions"][0])[0]
+
+
+def test_unsteady_load_is_left_out_of_the_leakage_fit(tmp_path):
+    rng = np.random.default_rng(16)
+    d = _write_session(tmp_path, "warmup", 1400, rng, seconds=900, warm=True, dip=(300.0, 450.0, 0.08))
+    good = cal.fit_leakage(cal.load_session(d))
+    bad = cal.fit_leakage(cal.load_session(d), load_tol=1.0)
+    assert good["n_load_excluded"] > 1000 and bad["n_load_excluded"] == 0
+    assert good["kappa"] == pytest.approx(TRUE["kappa"], abs=0.003)
+    assert abs(bad["kappa"] - TRUE["kappa"]) > abs(good["kappa"] - TRUE["kappa"])
+    assert good["dPdT_W_per_K"] > 0
+
+
+def test_energy_per_work_curve_finds_the_most_efficient_clock(tmp_path):
+    """Measured on the RTX 5070: energy per FP16 TFLOP lowest at 1657 MHz, 32% below the top clock."""
+    rng = np.random.default_rng(17)
+    pts = [(1335, 87.4), (1657, 105.4), (2002, 132.0), (2340, 168.5), (2670, 247.7)]
+    ds = [_write_session(tmp_path, "compute", c, rng, power=p, f_top=2670.0) for c, p in pts]
+    e = cal.calibrate(ds)["energy_per_work"]["compute"]
+    assert e["min_at_clock_MHz"] == 1657.0 and e["saving_vs_top"] == pytest.approx(0.32, abs=0.02)

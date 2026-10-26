@@ -1,6 +1,6 @@
 # UEIC · Phase 1 results (generated)
 
-Generated 2026-10-26T20:38:31+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `17d8a777e2cc0b5b…`. Hash-chain check: **OK** (2861 finalised runs verified).
+Generated 2026-10-26T21:33:39+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `40dc323b76b1cc51…`. Hash-chain check: **OK** (2862 finalised runs verified).
 
 > **Every number on this page is a simulator output** (provenance `simulator_output`) and is conditional on the parameter registry (`04_assumptions_register.md`), most of which is class E/F. None of it is a measurement of real hardware. Energy boundary: grid → conversion → accelerators + pump + fans + chiller (see `00_problem_statement.md`).
 
@@ -424,3 +424,4 @@ Experiment `E008-20261026T185711-ac8eb3`: 210 runs, 0 failed. 5 seeds.
 | `E007-20261026T185421-9da2d0` | completed | {"failed": 0, "runs": 140} | Move suppression for the joint controller: switching, energy cost, and time-step sensitivity |
 | `E008-20261026T185711-ac8eb3` | completed | {"failed": 0, "runs": 210} | Self-correcting joint control under digital-twin mismatch |
 | `E006-20261026T190821-9afd6b` | completed | {"failed": 0, "runs": 360} | Joint control under a dynamic coolant loop (thermal mass + setpoint ramp limits) |
+| `M001-20261026T213241-115dce` | completed | {"failed": 0, "measurement": true, "runs": 1} | GPU calibration measurement (NVIDIA GeForce RTX 5070) |

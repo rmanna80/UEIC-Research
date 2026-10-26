@@ -198,6 +198,12 @@ def main(argv: list[str] | None = None) -> int:
             if fl.get("ok"):
                 print(f"  leakage warm-up: {fl['T_range_C'][0]:.0f}-{fl['T_range_C'][1]:.0f} C, power "
                       f"{fl['P_range_W'][0]:.0f}-{fl['P_range_W'][1]:.0f} W, R^2 {fl['r2']:.3f}")
+            if fl.get("ok"):
+                print(f"  leakage slope dP/dT {fl['dPdT_W_per_K']:.3f} +/- {1.96 * fl['dPdT_se']:.3f} W/K (95% CI); "
+                      f"{fl['n_load_excluded']} samples left out for unsteady load")
+            for kind, e in out.get("energy_per_work", {}).items():
+                print(f"  {kind} kernel: lowest energy per unit of work at {e['min_at_clock_MHz']:.0f} MHz, "
+                      f"{100 * e['saving_vs_top']:.0f}% below the highest clock")
             fmt = lambda v: f"{v['value']}" + (f" +/- {1.96 * v['se']:.2g} (95% CI)" if v.get("se") else "")
             print("  accepted (transferred to calibrated experiments):" if out["overrides"] else
                   "  accepted: none")
