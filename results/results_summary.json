@@ -1,8 +1,8 @@
 {
- "generated_utc": "2026-10-26T21:33:39+00:00",
- "code_sha256": "40dc323b76b1cc51e62348f7caed2e4a772b2b2dd2926514a95df6900b095966",
+ "generated_utc": "2026-10-26T21:40:14+00:00",
+ "code_sha256": "fc542e2731f9b05f8dddabcd1c1b4fda7624731ea14e82a64d91ad7d0cfd311f",
  "chain_ok": true,
- "chain_msg": "2862 finalised runs verified",
+ "chain_msg": "3162 finalised runs verified",
  "threshold": 0.01,
  "E001": {
   "id": "E001-20261026T181652-ada586",
@@ -129904,6 +129904,7040 @@
   "n_runs": 210,
   "n_failed": 0
  },
+ "M001": {
+  "id": "M001-20261026T213241-115dce",
+  "metrics": {
+   "beta_compute": 0.983,
+   "beta_compute_se": 0.004464978812446927,
+   "beta_memory": 0.0,
+   "beta_memory_measured": -0.0557,
+   "beta_memory_se": 0.04026529367244904,
+   "kappa_leak_rejected": 0.00146,
+   "kappa_leak_rejected_se": 0.03640985257427554,
+   "p_leak_ref_rejected": 25907074.56,
+   "v_min_ratio_rejected": 0.3,
+   "v_min_ratio_rejected_se": 0.18484999800856275
+  },
+  "notes": [
+   "the driver set a limit flag in 5 session(s) although each locked clock held (within 3%) and power stayed at or below 68% of the limit; the flag does not indicate a limit on this GPU and was not treated as one",
+   "fan speed rose from 0% to 31% during the warm-up. On desktop cards the fans draw from the board power NVML reports, so part of the power rise is fan power and kappa_leak is an upper bound. A fixed fan speed during the warm-up removes this",
+   "beta_memory = 0.0 lies outside the registry range [0.15, 0.6] swept in E002",
+   "beta_memory: measured -0.05571 +/- 0.079 (95% CI) reaches the physical limit 0; transferred at the limit",
+   "v_min_ratio rejected (not transferred): fit ended at the edge of its allowed range (v_min_ratio): the model does not describe these data",
+   "kappa_leak rejected (not transferred): fit ended at the edge of its allowed range (c_W): the model does not describe these data",
+   "p_leak_ref rejected (not transferred): derived from kappa_leak, which was rejected"
+  ],
+  "device": {
+   "index": 0,
+   "max_mem_clock_MHz": 14001,
+   "max_sm_clock_MHz": 3090,
+   "name": "NVIDIA GeForce RTX 5070",
+   "power_limit_W": 250.0,
+   "uuid": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51"
+  },
+  "accepted": {
+   "beta_compute": {
+    "evidence": "B",
+    "se": 0.004464978812446927,
+    "status": "accepted",
+    "value": 0.983
+   },
+   "beta_memory": {
+    "evidence": "B",
+    "measured": -0.0557,
+    "note": "measured -0.05571 +/- 0.079 (95% CI) reaches the physical limit 0; transferred at the limit",
+    "se": 0.04026529367244904,
+    "status": "at physical limit",
+    "value": 0.0
+   }
+  },
+  "rejected": {
+   "kappa_leak": {
+    "evidence": "B",
+    "reason": "fit ended at the edge of its allowed range (c_W): the model does not describe these data",
+    "se": 0.03640985257427554,
+    "value": 0.00146
+   },
+   "p_leak_ref": {
+    "evidence": "E",
+    "note": "measured leak fraction 1.000 at 60 C scaled to the simulated accelerator",
+    "reason": "derived from kappa_leak, which was rejected",
+    "se": null,
+    "value": 25907074.56
+   },
+   "v_min_ratio": {
+    "evidence": "B",
+    "reason": "fit ended at the edge of its allowed range (v_min_ratio): the model does not describe these data",
+    "se": 0.18484999800856275,
+    "value": 0.3
+   }
+  },
+  "energy_per_work": {
+   "compute": {
+    "min_at_clock_MHz": 1657.0,
+    "min_at_s": 0.6205992509363296,
+    "points": [
+     {
+      "clock_MHz": 1335.0,
+      "energy_per_work": 2.743327139646709,
+      "energy_rel_top": 0.698543873019695,
+      "power_W": 87.40350000000001,
+      "power_rel_top": 0.35282114420078514,
+      "s": 0.5,
+      "temp_C": 47.0,
+      "throughput": 31.8604
+     },
+     {
+      "clock_MHz": 1657.0,
+      "energy_per_work": 2.6619168367243855,
+      "energy_rel_top": 0.6778140564822512,
+      "power_W": 105.397,
+      "power_rel_top": 0.42545538949046835,
+      "s": 0.6205992509363296,
+      "temp_C": 49.0,
+      "throughput": 39.5944
+     },
+     {
+      "clock_MHz": 2002.0,
+      "energy_per_work": 2.7703506096761097,
+      "energy_rel_top": 0.7054249624617657,
+      "power_W": 131.991,
+      "power_rel_top": 0.5328072176080573,
+      "s": 0.749812734082397,
+      "temp_C": 53.0,
+      "throughput": 47.644149999999996
+     },
+     {
+      "clock_MHz": 2340.0,
+      "energy_per_work": 3.043900429854424,
+      "energy_rel_top": 0.775079998527136,
+      "power_W": 168.498,
+      "power_rel_top": 0.6801747888304689,
+      "s": 0.8764044943820225,
+      "temp_C": 60.0,
+      "throughput": 55.35595
+     },
+     {
+      "clock_MHz": 2670.0,
+      "energy_per_work": 3.927208076119455,
+      "energy_rel_top": 1.0,
+      "power_W": 247.72750000000002,
+      "power_rel_top": 1.0,
+      "s": 1.0,
+      "temp_C": 72.0,
+      "throughput": 63.079800000000006
+     }
+    ],
+    "saving_vs_top": 0.32218594351774876,
+    "unit": "J/TFLOP"
+   },
+   "memory": {
+    "min_at_clock_MHz": 1335.0,
+    "min_at_s": 0.5,
+    "points": [
+     {
+      "clock_MHz": 1335.0,
+      "energy_per_work": 0.14638716185046716,
+      "energy_rel_top": 0.6917841960334097,
+      "power_W": 85.0445,
+      "power_rel_top": 0.729107011196653,
+      "s": 0.5,
+      "temp_C": 41.0,
+      "throughput": 580.956
+     },
+     {
+      "clock_MHz": 1657.0,
+      "energy_per_work": 0.14949765020940894,
+      "energy_rel_top": 0.7064834815544984,
+      "power_W": 87.114,
+      "power_rel_top": 0.7468493338591589,
+      "s": 0.6205992509363296,
+      "temp_C": 41.0,
+      "throughput": 582.7115
+     },
+     {
+      "clock_MHz": 2002.0,
+      "energy_per_work": 0.1569092786364827,
+      "energy_rel_top": 0.7415087347796344,
+      "power_W": 91.638,
+      "power_rel_top": 0.7856346770460041,
+      "s": 0.749812734082397,
+      "temp_C": 43.0,
+      "throughput": 584.019
+     },
+     {
+      "clock_MHz": 2340.0,
+      "energy_per_work": 0.16850541824147028,
+      "energy_rel_top": 0.7963088006619276,
+      "power_W": 97.995,
+      "power_rel_top": 0.8401347713516573,
+      "s": 0.8764044943820225,
+      "temp_C": 47.0,
+      "throughput": 581.554
+     },
+     {
+      "clock_MHz": 2677.0,
+      "energy_per_work": 0.21160813255033856,
+      "energy_rel_top": 1.0,
+      "power_W": 116.642,
+      "power_rel_top": 1.0,
+      "s": 1.002621722846442,
+      "temp_C": 51.0,
+      "throughput": 551.2170000000001
+     }
+    ],
+    "saving_vs_top": 0.3082158039665903,
+    "unit": "J/GB"
+   }
+  }
+ },
+ "E001C": {
+  "id": "E001C-20261026T213353-ac0b5f",
+  "spec": {
+   "baseline": "E001 (latest stored version) for HC1-HC3; fixed and independent within E001C for H1-H2",
+   "calibration_source": {
+    "device": {
+     "index": 0,
+     "max_mem_clock_MHz": 14001,
+     "max_sm_clock_MHz": 3090,
+     "name": "NVIDIA GeForce RTX 5070",
+     "power_limit_W": 250.0,
+     "uuid": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51"
+    },
+    "overrides": {
+     "beta_compute": {
+      "evidence": "B",
+      "se": 0.004464978812446927,
+      "status": "accepted",
+      "value": 0.983
+     },
+     "beta_memory": {
+      "evidence": "B",
+      "measured": -0.0557,
+      "note": "measured -0.05571 +/- 0.079 (95% CI) reaches the physical limit 0; transferred at the limit",
+      "se": 0.04026529367244904,
+      "status": "at physical limit",
+      "value": 0.0
+     }
+    },
+    "rejected": {
+     "kappa_leak": {
+      "evidence": "B",
+      "reason": "fit ended at the edge of its allowed range (c_W): the model does not describe these data",
+      "se": 0.03640985257427554,
+      "value": 0.00146
+     },
+     "p_leak_ref": {
+      "evidence": "E",
+      "note": "measured leak fraction 1.000 at 60 C scaled to the simulated accelerator",
+      "reason": "derived from kappa_leak, which was rejected",
+      "se": null,
+      "value": 25907074.56
+     },
+     "v_min_ratio": {
+      "evidence": "B",
+      "reason": "fit ended at the edge of its allowed range (v_min_ratio): the model does not describe these data",
+      "se": 0.18484999800856275,
+      "value": 0.3
+     }
+    },
+    "sha256": "42112c3638fc2ad1937a43a5be71c2a55814e05f641587f6100a9c1b247c15f1"
+   },
+   "configuration": "E001 design with calibrated overrides {'beta_compute': 0.983, 'beta_memory': 0.0}; every other parameter at its registry value.",
+   "controlled_variables": [
+    "workload realisation per seed",
+    "all registry parameters at defaults",
+    "4 h arrival window + drain",
+    "dt=1 s",
+    "60 s control interval",
+    "thermal target 80 C / hardware throttle 85 C",
+    "controller model = true plant"
+   ],
+   "data_collection": "Simulator outputs written to the append-only SQLite store; every metric labelled with provenance; per-run config SHA-256 and code SHA-256 recorded; time series for selected seeds.",
+   "dependent_variables": [
+    "E_per_success_kJ (primary)",
+    "E_grid_kWh",
+    "E_it_kWh",
+    "E_cooling_kWh",
+    "E_chiller_kWh",
+    "success_rate",
+    "slo_violations",
+    "latency_p95_s",
+    "peak_T_j_C",
+    "chip_s_over_target",
+    "chip_s_throttled",
+    "Q_reusable_kWh",
+    "Ex_rejected_kWh",
+    "seed-paired change vs E001 in compute_only/fixed and joint/independent relative energy per successful task"
+   ],
+   "design": {
+    "param_overrides": {
+     "beta_compute": 0.983,
+     "beta_memory": 0.0
+    },
+    "policies": [
+     "fixed",
+     "compute_only",
+     "cooling_only",
+     "independent",
+     "joint"
+    ],
+    "scenarios": [
+     "S1_moderate",
+     "S2_high_load",
+     "S3_hot",
+     "S4_cool",
+     "S5_memory_heavy",
+     "S6_degraded_cooling"
+    ],
+    "seeds": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9
+    ],
+    "timeseries_seeds": [
+     0
+    ]
+   },
+   "disclosure": "The calibration values were known when these hypotheses were written; E001C results were not. Acceptance rules R1-R3 were set after seeing the first desktop fit summary and before examining raw telemetry. Before registration, a forensic check re-ran 24 seed-0 E001 cells with the first (rejected) fit's values to identify orphaned time-series files; only their time series were compared, not their outcomes. No runs with the accepted values preceded registration.",
+   "evaluation_criteria": "As E001 for H1-H2 (paired 95% t-CI, practical threshold 1%). HC1-HC3: for each scenario and seed, d = (a/b - 1) in E001C minus (a/b - 1) in E001 on E_per_success_kJ, with a/b = compute_only/fixed (HC1, HC2) or joint/independent (HC3); 95% t-CI over the 10 seeds.",
+   "hypothesis": "Inherited from E001 and re-tested: H1: joint uses less energy per successful task than independent in at least 4 of 6 scenarios (paired 95% CI entirely below 0), without more SLO violations or thermal-limit exceedances. H2: every optimising policy uses less energy per successful task than fixed in every scenario. New: HC1: compute_only saves more energy per successful task relative to fixed in E001C than in E001, in all 6 scenarios (seed-paired change in relative saving, 95% CI entirely below 0), because with beta_memory = 0 memory-bound phases lose no throughput when the clock drops. HC2: that change is largest in S5_memory_heavy. HC3: joint's advantage over independent changes by less than 0.5 percentage points (95% CI of the seed-paired change within +/-0.5 pp) in at least 5 of 6 scenarios, because both policies use the same DVFS model.",
+   "independent_variables": [
+    "policy (5 levels)",
+    "scenario (6 levels)"
+   ],
+   "inherits": "E001 (same design, seeds and workloads; only the calibrated parameters differ)",
+   "key": "E001C",
+   "known_limitations": "Only clock sensitivity is calibrated. v_min_ratio, kappa_leak and p_leak_ref stay registry placeholders: their fits were rejected (docs/10). The measured power-vs-clock shape is not represented: with registry defaults the simulator misstates normalised power by up to 0.09 and energy per unit of work by up to 0.09 of the top-clock value. beta_memory = 0 comes from a pure streaming kernel and is a bound for LLM decode, not a measurement of it. One consumer GPU.",
+   "null_hypothesis": "Calibrating clock sensitivity changes neither the savings from DVFS nor the policy ranking.",
+   "practical_significance_threshold": 0.01,
+   "research_question": "Do the Phase 1 conclusions survive when the two parameters measured on real hardware (clock sensitivity of compute-bound and memory-bound work) replace the placeholders?",
+   "statistics": "Paired by seed (identical workload realisation across levels). Per-seed relative difference d=(A-B)/B; mean with two-sided 95% Student-t CI.",
+   "title": "Policy benchmark with measured clock sensitivity (M001: RTX 5070)"
+  },
+  "scenarios": [
+   "S1_moderate",
+   "S2_high_load",
+   "S3_hot",
+   "S4_cool",
+   "S5_memory_heavy",
+   "S6_degraded_cooling"
+  ],
+  "policies": [
+   "fixed",
+   "compute_only",
+   "cooling_only",
+   "independent",
+   "joint"
+  ],
+  "scenario_info": {
+   "S1_moderate": {
+    "t_amb": 20.0,
+    "load_mean": 0.5,
+    "load_amp": 0.25,
+    "description": "Moderate, varying load; mild ambient",
+    "overrides": {}
+   },
+   "S2_high_load": {
+    "t_amb": 20.0,
+    "load_mean": 0.75,
+    "load_amp": 0.1,
+    "description": "High sustained load; mild ambient",
+    "overrides": {}
+   },
+   "S3_hot": {
+    "t_amb": 35.0,
+    "load_mean": 0.5,
+    "load_amp": 0.25,
+    "description": "Moderate load; hot ambient (chiller-dominated)",
+    "overrides": {}
+   },
+   "S4_cool": {
+    "t_amb": 8.0,
+    "load_mean": 0.5,
+    "load_amp": 0.25,
+    "description": "Moderate load; cool ambient (free-cooling-dominated)",
+    "overrides": {}
+   },
+   "S5_memory_heavy": {
+    "t_amb": 20.0,
+    "load_mean": 0.5,
+    "load_amp": 0.25,
+    "description": "75% memory-bound jobs",
+    "overrides": {
+     "frac_memory": 0.75
+    }
+   },
+   "S6_degraded_cooling": {
+    "t_amb": 28.0,
+    "load_mean": 0.65,
+    "load_amp": 0.15,
+    "description": "Thermal stress: fouled cold plates, warm ambient, high load",
+    "overrides": {
+     "r_conv_ref": 0.03,
+     "r_cond": 0.045
+    }
+   }
+  },
+  "table": {
+   "S1_moderate": {
+    "fixed": {
+     "E_per_success_kJ": {
+      "mean": 15.42359885636138,
+      "lo": 15.268341463776045,
+      "hi": 15.578856248946716,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 12.031027597878875,
+      "lo": 11.900467348272352,
+      "hi": 12.161587847485398,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 10.049540969913973,
+      "lo": 9.938505075535508,
+      "hi": 10.16057686429244,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.6414600619094021,
+      "lo": 0.6343726643958818,
+      "hi": 0.6485474594229224,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.1922853333333333,
+      "lo": 0.19215477020336869,
+      "hi": 0.19241589646329793,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.22337752316667378,
+      "lo": 0.2209563809267634,
+      "hi": 0.22579866540658416,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.924363709555492,
+      "lo": 0.9143474808639366,
+      "hi": 0.9343799382470473,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 1.3400265660554989,
+      "lo": 1.327587137646397,
+      "hi": 1.3524659944646007,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9708342208535669,
+      "lo": 0.9677088564029735,
+      "hi": 0.9739595853041602,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 47.243340715781116,
+      "lo": 46.075570754685785,
+      "hi": 48.41111067687645,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 51.96218554787547,
+      "lo": 51.95438690079543,
+      "hi": 51.969984194955515,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.023017945758443924,
+      "lo": 0.022257484944480786,
+      "hi": 0.02377840657240706,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 11.392253681500394,
+      "lo": 11.268775427264982,
+      "hi": 11.515731935735806,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.1971764564403031,
+      "lo": 1.1969381738079414,
+      "hi": 1.1974147390726648,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.0022556095440642476,
+      "lo": 0.0020938457038295645,
+      "hi": 0.002417373384298931,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "compute_only": {
+     "E_per_success_kJ": {
+      "mean": 10.239179001443258,
+      "lo": 10.02678501845725,
+      "hi": 10.451572984429266,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 7.985940178113995,
+      "lo": 7.8306177506926025,
+      "hi": 8.141262605535388,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 6.608593420075666,
+      "lo": 6.476556109553766,
+      "hi": 6.740630730597566,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.4218251119197231,
+      "lo": 0.4133971984821543,
+      "hi": 0.43025302535729193,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.19274666666666662,
+      "lo": 0.19258814420120984,
+      "hi": 0.1929051891321234,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.14845411267495423,
+      "lo": 0.14557411605348125,
+      "hi": 0.1513341092964272,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.6143208667769866,
+      "lo": 0.6024067762390927,
+      "hi": 0.6262349573148805,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.9555216461186073,
+      "lo": 0.9406635151614016,
+      "hi": 0.9703797770758131,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9707656884267042,
+      "lo": 0.9676776966054927,
+      "hi": 0.9738536802479156,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.2,
+      "lo": -0.10162095503976065,
+      "hi": 0.5016209550397607,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 67.79346816173978,
+      "lo": 66.46703542348163,
+      "hi": 69.11990089999793,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 51.865678135158,
+      "lo": 51.77918548370782,
+      "hi": 51.95217078660818,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.006827858972001835,
+      "lo": 0.005954293561077304,
+      "hi": 0.007701424382926366,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 7.571159746422687,
+      "lo": 7.424279918727558,
+      "hi": 7.718039574117816,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.2084405792180886,
+      "lo": 1.2077834746379215,
+      "hi": 1.2090976837982557,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.10851978309372239,
+      "lo": 0.09511196103683238,
+      "hi": 0.12192760515061239,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "cooling_only": {
+     "E_per_success_kJ": {
+      "mean": 14.657330886251577,
+      "lo": 14.508494847406686,
+      "hi": 14.806166925096468,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 11.4333284534188,
+      "lo": 11.307251484147109,
+      "hi": 11.559405422690492,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 10.523121333079661,
+      "lo": 10.406792809213675,
+      "hi": 10.639449856945648,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.671688595728489,
+      "lo": 0.6642633708008733,
+      "hi": 0.6791138206561048,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.027609730761251762,
+      "lo": 0.027590983554675076,
+      "hi": 0.027628477967828448,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.21090879384939928,
+      "lo": 0.20858542713709258,
+      "hi": 0.213232160561706,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.23851852461065107,
+      "lo": 0.2361948750329587,
+      "hi": 0.24084217418834344,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9708342208535669,
+      "lo": 0.9677088564029735,
+      "hi": 0.9739595853041602,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 47.243340715781116,
+      "lo": 46.075570754685785,
+      "hi": 48.41111067687645,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 71.20709757226291,
+      "lo": 70.75555685279258,
+      "hi": 71.65863829173324,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.33115427379435664,
+      "lo": 0.32611269243660135,
+      "hi": 0.3361958551521119,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 10.75634848631935,
+      "lo": 10.637856783991703,
+      "hi": 10.874840188646997,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.0864965076686495,
+      "lo": 1.0864662583670284,
+      "hi": 1.0865267569702706,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.10437023692911944,
+      "lo": 0.10001986815300756,
+      "hi": 0.10872060570523132,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "independent": {
+     "E_per_success_kJ": {
+      "mean": 9.644869614732102,
+      "lo": 9.440589176410064,
+      "hi": 9.849150053054139,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 7.522405854797967,
+      "lo": 7.372847343167603,
+      "hi": 7.67196436642833,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 6.9145289304258855,
+      "lo": 6.776545731268874,
+      "hi": 7.0525121295828965,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.4413529104527158,
+      "lo": 0.4325454722086517,
+      "hi": 0.4501603486967799,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.027675972366389866,
+      "lo": 0.02765321055447735,
+      "hi": 0.027698734178302382,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.13884804155297442,
+      "lo": 0.13608922455304923,
+      "hi": 0.14160685855289962,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.16652401391936428,
+      "lo": 0.1637559755204749,
+      "hi": 0.16929205231825364,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9707656884267042,
+      "lo": 0.9676776966054927,
+      "hi": 0.9738536802479156,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.2,
+      "lo": -0.10162095503976065,
+      "hi": 0.5016209550397607,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 67.79346816173978,
+      "lo": 66.46703542348163,
+      "hi": 69.11990089999793,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 69.40063787065687,
+      "lo": 69.06814870748666,
+      "hi": 69.73312703382707,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.19560980943934075,
+      "lo": 0.1898560307528401,
+      "hi": 0.2013635881258414,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 7.081250119201693,
+      "lo": 6.940550452205502,
+      "hi": 7.221949786197883,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.0879158760323824,
+      "lo": 1.0878334525700335,
+      "hi": 1.0879982994947313,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.1804521328742687,
+      "lo": 0.17492043733969787,
+      "hi": 0.18598382840883954,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "joint": {
+     "E_per_success_kJ": {
+      "mean": 9.589717192656899,
+      "lo": 9.389523628533126,
+      "hi": 9.789910756780671,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 7.479408046520076,
+      "lo": 7.332627786906417,
+      "hi": 7.626188306133735,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 6.843658286194379,
+      "lo": 6.709763972461775,
+      "hi": 6.977552599926983,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.4368292523102795,
+      "lo": 0.4282828067528786,
+      "hi": 0.44537569786768044,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.060811986610748284,
+      "lo": 0.05905867118187266,
+      "hi": 0.0625653020396239,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.13810852140467098,
+      "lo": 0.13539675348682442,
+      "hi": 0.14082028932251753,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.19892050801541925,
+      "lo": 0.19453138589495733,
+      "hi": 0.20330963013588116,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9707656884267042,
+      "lo": 0.9676776966054927,
+      "hi": 0.9738536802479156,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.2,
+      "lo": -0.10162095503976065,
+      "hi": 0.5016209550397607,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 67.79346816173978,
+      "lo": 66.46703542348163,
+      "hi": 69.11990089999793,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 60.49116724336627,
+      "lo": 59.5678488734698,
+      "hi": 61.41448561326274,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.1647961839565133,
+      "lo": 0.16088020159458588,
+      "hi": 0.16871216631844071,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 7.043534591638209,
+      "lo": 6.905234427828029,
+      "hi": 7.181834755448389,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.0928938758093572,
+      "lo": 1.092774057255526,
+      "hi": 1.0930136943631883,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.948145447683714,
+      "lo": 0.9009290214638679,
+      "hi": 0.9953618739035601,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    }
+   },
+   "S2_high_load": {
+    "fixed": {
+     "E_per_success_kJ": {
+      "mean": 14.047581544361307,
+      "lo": 13.952305019124628,
+      "hi": 14.142858069597986,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 16.39646191746874,
+      "lo": 16.217896138365678,
+      "hi": 16.575027696571805,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 13.761720009493738,
+      "lo": 13.60983762014621,
+      "hi": 13.913602398841265,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.878407660180452,
+      "lo": 0.8687130395838021,
+      "hi": 0.888102280777102,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.1925493333333333,
+      "lo": 0.19230397375497907,
+      "hi": 0.19279469291168752,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.30434847182977187,
+      "lo": 0.3010441055006253,
+      "hi": 0.3076528381589184,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 1.2594364426314477,
+      "lo": 1.2457633398369727,
+      "hi": 1.2731095454259227,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 1.756334247794553,
+      "lo": 1.7393428969628957,
+      "hi": 1.7733255986262102,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9685360277979308,
+      "lo": 0.9665867128889402,
+      "hi": 0.9704853427069214,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 2.8,
+      "lo": -1.6965807360003415,
+      "hi": 7.296580736000341,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 56.04240757632367,
+      "lo": 53.12937390880362,
+      "hi": 58.955441243843715,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 51.963105046893,
+      "lo": 51.95917529079483,
+      "hi": 51.967034802991165,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.05156191811805318,
+      "lo": 0.050068246132176183,
+      "hi": 0.05305559010393017,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 15.521772063318362,
+      "lo": 15.353249380531883,
+      "hi": 15.690294746104842,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.1914577886741164,
+      "lo": 1.1912819141096336,
+      "hi": 1.1916336632385993,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.0022374560544775974,
+      "lo": 0.0020521027075195214,
+      "hi": 0.0024228094014356735,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 4338.7,
+      "lo": 4288.772791183831,
+      "hi": 4388.627208816169,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "compute_only": {
+     "E_per_success_kJ": {
+      "mean": 11.16220504812556,
+      "lo": 10.968726902775812,
+      "hi": 11.35568319347531,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 13.027142841958144,
+      "lo": 12.70218253191867,
+      "hi": 13.352103151997618,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 10.896039015581291,
+      "lo": 10.619581629126763,
+      "hi": 11.172496402035819,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.6954918520583805,
+      "lo": 0.6778456359017075,
+      "hi": 0.7131380682150534,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.1926493333333333,
+      "lo": 0.19233824105204583,
+      "hi": 0.1929604256146208,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.24190887480332238,
+      "lo": 0.2358902927574681,
+      "hi": 0.24792745684917666,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 1.0010537661818155,
+      "lo": 0.9761478096971963,
+      "hi": 1.0259597226664348,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 1.4356119743184714,
+      "lo": 1.4047535420022637,
+      "hi": 1.4664704066346792,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9682150924228139,
+      "lo": 0.9663003995811937,
+      "hi": 0.970129785264434,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 4.2,
+      "lo": -0.20717656905498583,
+      "hi": 8.607176569054985,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 63.44773733616969,
+      "lo": 61.310372899958615,
+      "hi": 65.58510177238075,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 51.9595242241907,
+      "lo": 51.95007667296857,
+      "hi": 51.96897177541283,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.029932943221335863,
+      "lo": 0.027691115788851448,
+      "hi": 0.03217477065382028,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 12.337352614969436,
+      "lo": 12.030404930630862,
+      "hi": 12.64430029930801,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.1956081595362125,
+      "lo": 1.1950915951228283,
+      "hi": 1.1961247239495967,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.10818588547118166,
+      "lo": 0.1003850335935972,
+      "hi": 0.11598673734876612,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 4338.7,
+      "lo": 4288.772791183831,
+      "hi": 4388.627208816169,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "cooling_only": {
+     "E_per_success_kJ": {
+      "mean": 13.405756909013752,
+      "lo": 13.31423234646817,
+      "hi": 13.497281471559333,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 15.64737617286556,
+      "lo": 15.473550516445785,
+      "hi": 15.821201829285334,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 14.411175019995152,
+      "lo": 14.25078563413563,
+      "hi": 14.571564405854675,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.9198622353188401,
+      "lo": 0.9096246149448293,
+      "hi": 0.930099855692851,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.027647637806966628,
+      "lo": 0.027612407288961874,
+      "hi": 0.027682868324971383,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.28869127974460057,
+      "lo": 0.28549416923183385,
+      "hi": 0.2918883902573673,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.3163389175515672,
+      "lo": 0.31313989780518253,
+      "hi": 0.3195379372979518,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9685360277979308,
+      "lo": 0.9665867128889402,
+      "hi": 0.9704853427069214,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 2.8,
+      "lo": -1.6965807360003415,
+      "hi": 7.296580736000341,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 56.04240757632367,
+      "lo": 53.12937390880362,
+      "hi": 58.955441243843715,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 69.77189983376802,
+      "lo": 69.51702555244778,
+      "hi": 70.02677411508826,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.5024584951475154,
+      "lo": 0.49461049937551693,
+      "hi": 0.5103064909195139,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 14.723255266974622,
+      "lo": 14.560202630823532,
+      "hi": 14.886307903125712,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.085781170941497,
+      "lo": 1.0857585170207529,
+      "hi": 1.0858038248622413,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.09959747209006767,
+      "lo": 0.09677339821027098,
+      "hi": 0.10242154596986436,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 4338.7,
+      "lo": 4288.772791183831,
+      "hi": 4388.627208816169,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "independent": {
+     "E_per_success_kJ": {
+      "mean": 10.597767450147309,
+      "lo": 10.40848695151044,
+      "hi": 10.787047948784178,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 12.368511602814909,
+      "lo": 12.052913570861193,
+      "hi": 12.684109634768625,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 11.385850229814583,
+      "lo": 11.09464314158141,
+      "hi": 11.677057318047757,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.7267563976477371,
+      "lo": 0.708168711164768,
+      "hi": 0.7453440841307063,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.027661996536404082,
+      "lo": 0.027617327637433218,
+      "hi": 0.027706665435374946,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.22824297881618683,
+      "lo": 0.2224299019986191,
+      "hi": 0.23405605563375456,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.2559049753525909,
+      "lo": 0.2501015131362151,
+      "hi": 0.26170843756896667,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9682150924228139,
+      "lo": 0.9663003995811937,
+      "hi": 0.970129785264434,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 4.2,
+      "lo": -0.20717656905498583,
+      "hi": 8.607176569054985,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 63.44773733616969,
+      "lo": 61.310372899958615,
+      "hi": 65.58510177238075,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 69.72847649478742,
+      "lo": 69.36180544099287,
+      "hi": 70.09514754858196,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.37009253648777174,
+      "lo": 0.35701298198166675,
+      "hi": 0.3831720909938767,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 11.640391919625495,
+      "lo": 11.343925001929565,
+      "hi": 11.936858837321425,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.0863084427375942,
+      "lo": 1.086242523881276,
+      "hi": 1.0863743615939123,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.1911877968510967,
+      "lo": 0.1834068383706267,
+      "hi": 0.19896875533156666,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 4338.7,
+      "lo": 4288.772791183831,
+      "hi": 4388.627208816169,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "joint": {
+     "E_per_success_kJ": {
+      "mean": 10.494573547751862,
+      "lo": 10.311409927950107,
+      "hi": 10.677737167553618,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 12.247991472365241,
+      "lo": 11.940858604885836,
+      "hi": 12.555124339844646,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 11.18190996833901,
+      "lo": 10.901966027021118,
+      "hi": 11.461853909656902,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.7137389341492987,
+      "lo": 0.6958701719375175,
+      "hi": 0.7316076963610798,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.12617766172943487,
+      "lo": 0.12211186149127223,
+      "hi": 0.1302434619675975,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.22616490814749585,
+      "lo": 0.22050113555285905,
+      "hi": 0.23182868074213264,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.35234256987693074,
+      "lo": 0.34285036615951087,
+      "hi": 0.3618347735943506,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9682150924228139,
+      "lo": 0.9663003995811937,
+      "hi": 0.970129785264434,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 4.2,
+      "lo": -0.20717656905498583,
+      "hi": 8.607176569054985,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 63.44773733616969,
+      "lo": 61.310372899958615,
+      "hi": 65.58510177238075,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 61.870476482189986,
+      "lo": 61.24042388203544,
+      "hi": 62.500529082344535,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.28711402790653284,
+      "lo": 0.2787213658224935,
+      "hi": 0.29550668999057217,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 11.534410315522257,
+      "lo": 11.245557913195796,
+      "hi": 11.823262717848717,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.095337850871588,
+      "lo": 1.0951649308589353,
+      "hi": 1.0955107708842409,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.9909254979899915,
+      "lo": 0.9680383084293854,
+      "hi": 1.0138126875505977,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 4338.7,
+      "lo": 4288.772791183831,
+      "hi": 4388.627208816169,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    }
+   },
+   "S3_hot": {
+    "fixed": {
+     "E_per_success_kJ": {
+      "mean": 16.818296868658845,
+      "lo": 16.648947922935086,
+      "hi": 16.987645814382603,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 13.118947223447602,
+      "lo": 12.97659236432773,
+      "hi": 13.261302082567473,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 10.049540969913973,
+      "lo": 9.938505075535508,
+      "hi": 10.16057686429244,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.6414600619094021,
+      "lo": 0.6343726643958818,
+      "hi": 0.6485474594229224,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.1922853333333333,
+      "lo": 0.19215477020336869,
+      "hi": 0.19241589646329793,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.24470928053076677,
+      "lo": 0.24205686185751624,
+      "hi": 0.2473616992040173,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 1.9909515777601272,
+      "lo": 1.9693715333460575,
+      "hi": 2.012531622174197,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 2.427946191624227,
+      "lo": 2.4037119640515314,
+      "hi": 2.4521804191969228,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9708342208535669,
+      "lo": 0.9677088564029735,
+      "hi": 0.9739595853041602,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 47.243340715781116,
+      "lo": 46.075570754685785,
+      "hi": 48.41111067687645,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 51.96218554787547,
+      "lo": 51.95438690079543,
+      "hi": 51.969984194955515,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 12.4801733070691,
+      "lo": 12.344899954733306,
+      "hi": 12.615446659404894,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.3054325490466296,
+      "lo": 1.3051701220812457,
+      "hi": 1.3056949760120136,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.0024825261407273066,
+      "lo": 0.00236443522196446,
+      "hi": 0.002600617059490153,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "compute_only": {
+     "E_per_success_kJ": {
+      "mean": 11.166198834211771,
+      "lo": 10.934615140050914,
+      "hi": 11.397782528372629,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 8.70895960887,
+      "lo": 8.539606205986335,
+      "hi": 8.878313011753665,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 6.608593420075666,
+      "lo": 6.476556109553766,
+      "hi": 6.740630730597566,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.4218251119197231,
+      "lo": 0.4133971984821543,
+      "hi": 0.43025302535729193,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.19274666666666662,
+      "lo": 0.19258814420120984,
+      "hi": 0.1929051891321234,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.16263096425840504,
+      "lo": 0.15947584997835149,
+      "hi": 0.1657860785384586,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 1.3231634459495405,
+      "lo": 1.2974934765055497,
+      "hi": 1.3488334153935313,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 1.6785410768746118,
+      "lo": 1.649652263808931,
+      "hi": 1.7074298899402927,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9707656884267042,
+      "lo": 0.9676776966054927,
+      "hi": 0.9738536802479156,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.2,
+      "lo": -0.10162095503976065,
+      "hi": 0.5016209550397607,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 67.79346816173978,
+      "lo": 66.46703542348163,
+      "hi": 69.11990089999793,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 51.86567813515801,
+      "lo": 51.77918548370783,
+      "hi": 51.952170786608185,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 8.294179177178668,
+      "lo": 8.133268348895932,
+      "hi": 8.455090005461404,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.317848785862643,
+      "lo": 1.3171271326071183,
+      "hi": 1.3185704391181678,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.10517873979703449,
+      "lo": 0.10279984536837473,
+      "hi": 0.10755763422569424,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "cooling_only": {
+     "E_per_success_kJ": {
+      "mean": 15.594176460003144,
+      "lo": 15.435619930746554,
+      "hi": 15.752732989259734,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 12.164027609998124,
+      "lo": 12.03390469844877,
+      "hi": 12.294150521547477,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 11.061170152503376,
+      "lo": 10.942927675099817,
+      "hi": 11.179412629906935,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.7060321373938296,
+      "lo": 0.698484745219134,
+      "hi": 0.7135795295685253,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.08592463519482559,
+      "lo": 0.0858662917470045,
+      "hi": 0.08598297864264667,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.22441686040942205,
+      "lo": 0.222014835357691,
+      "hi": 0.22681888546115309,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.08648382449667061,
+      "lo": 0.08308334240737902,
+      "hi": 0.08988430658596219,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.3968253201009183,
+      "lo": 0.39164029116461285,
+      "hi": 0.40201034903722377,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9708342208535669,
+      "lo": 0.9677088564029735,
+      "hi": 0.9739595853041602,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 47.243340715781116,
+      "lo": 46.075570754685785,
+      "hi": 48.41111067687645,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 79.77413885094857,
+      "lo": 79.56396729215695,
+      "hi": 79.9843104097402,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 3.6,
+      "lo": -2.619903859445588,
+      "hi": 9.819903859445589,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 6.139971413365439,
+      "lo": 5.971045936818375,
+      "hi": 6.308896889912503,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.2535572978246491,
+      "lo": 0.25036294774442663,
+      "hi": 0.25675164790487154,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 11.445259880880528,
+      "lo": 11.322756603242215,
+      "hi": 11.56776315851884,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.099705187395641,
+      "lo": 1.0994421881936882,
+      "hi": 1.0999681865975937,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.10283949336190401,
+      "lo": 0.09404904813957396,
+      "hi": 0.11162993858423406,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "independent": {
+     "E_per_success_kJ": {
+      "mean": 10.384611842795152,
+      "lo": 10.170147657856369,
+      "hi": 10.599076027733936,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 8.099329149717994,
+      "lo": 7.943745886300076,
+      "hi": 8.25491241313591,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 7.418572281673336,
+      "lo": 7.276288076673208,
+      "hi": 7.560856486673464,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.4735258903195739,
+      "lo": 0.4644439197876502,
+      "hi": 0.48260786085149765,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.051132289335405534,
+      "lo": 0.04796856792267131,
+      "hi": 0.05429601074813976,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.14934740318967785,
+      "lo": 0.14647584739918482,
+      "hi": 0.15221895898017088,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.006751285200000087,
+      "lo": 0.00322441655159814,
+      "hi": 0.010278153848402034,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.20723097772508345,
+      "lo": 0.20143098189086525,
+      "hi": 0.21303097355930165,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9707656884267042,
+      "lo": 0.9676776966054927,
+      "hi": 0.9738536802479156,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.2,
+      "lo": -0.10162095503976065,
+      "hi": 0.5016209550397607,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 67.79346816173978,
+      "lo": 66.46703542348163,
+      "hi": 69.11990089999793,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 85.07249651883355,
+      "lo": 85.03709781191694,
+      "hi": 85.10789522575016,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 599.3,
+      "lo": 406.6848339054187,
+      "hi": 791.9151660945812,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 9.6,
+      "lo": 5.453397427036274,
+      "hi": 13.746602572963726,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 3.246626662672295,
+      "lo": 2.994631564227161,
+      "hi": 3.4986217611174286,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.1797830178573788,
+      "lo": 0.17547701754396822,
+      "hi": 0.18408901817078938,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 7.616717562673562,
+      "lo": 7.470268217358427,
+      "hi": 7.763166907988698,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.0917631401949586,
+      "lo": 1.091216037189558,
+      "hi": 1.092310243200359,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.18478519347701322,
+      "lo": 0.18009972323439546,
+      "hi": 0.18947066371963098,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "joint": {
+     "E_per_success_kJ": {
+      "mean": 10.348707200510193,
+      "lo": 10.137171441211589,
+      "hi": 10.560242959808797,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 8.071334100342408,
+      "lo": 7.917876857156677,
+      "hi": 8.22479134352814,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 7.3609812262954035,
+      "lo": 7.2219601428088795,
+      "hi": 7.5000023097819275,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.4698498655082168,
+      "lo": 0.46097617932822504,
+      "hi": 0.4787235516882085,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.08326321438627947,
+      "lo": 0.0800289430269134,
+      "hi": 0.08649748574564554,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.14894302091356648,
+      "lo": 0.1461084653075507,
+      "hi": 0.15177757651958226,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.008296773238942044,
+      "lo": 0.006627051270058978,
+      "hi": 0.00996649520782511,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.24050300853878803,
+      "lo": 0.23447903217119082,
+      "hi": 0.24652698490638525,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9707656884267042,
+      "lo": 0.9676776966054927,
+      "hi": 0.9738536802479156,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.2,
+      "lo": -0.10162095503976065,
+      "hi": 0.5016209550397607,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 67.79346816173978,
+      "lo": 66.46703542348163,
+      "hi": 69.11990089999793,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 76.55549358210709,
+      "lo": 76.4326653444888,
+      "hi": 76.67832181972538,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 1.6250036076158376,
+      "lo": 1.4109324179324387,
+      "hi": 1.8390747972992365,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.1666555744311548,
+      "lo": 0.16289051546596012,
+      "hi": 0.1704206333963495,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 7.596094066591897,
+      "lo": 7.451531730685104,
+      "hi": 7.740656402498691,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.0964977773305966,
+      "lo": 1.0961466292363888,
+      "hi": 1.0968489254248044,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.9364153318388236,
+      "lo": 0.9163438923027702,
+      "hi": 0.956486771374877,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    }
+   },
+   "S4_cool": {
+    "fixed": {
+     "E_per_success_kJ": {
+      "mean": 14.21487685444744,
+      "lo": 14.071823892418426,
+      "hi": 14.357929816476453,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 11.088176614132275,
+      "lo": 10.96783244133785,
+      "hi": 11.2085207869267,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 10.049540969913973,
+      "lo": 9.938505075535508,
+      "hi": 10.16057686429244,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.6414600619094021,
+      "lo": 0.6343726643958818,
+      "hi": 0.6485474594229224,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.1922853333333333,
+      "lo": 0.19215477020336869,
+      "hi": 0.19241589646329793,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.20489024897556427,
+      "lo": 0.2026694311905947,
+      "hi": 0.20711106676053384,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.3971755823088975,
+      "lo": 0.39494951996028316,
+      "hi": 0.3994016446575118,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9708342208535669,
+      "lo": 0.9677088564029735,
+      "hi": 0.9739595853041602,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 47.243340715781116,
+      "lo": 46.075570754685785,
+      "hi": 48.41111067687645,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 51.96218554787547,
+      "lo": 51.95438690079543,
+      "hi": 51.969984194955515,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.4239098630533751,
+      "lo": 0.4186790436710012,
+      "hi": 0.42914068243574893,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 10.449402697753769,
+      "lo": 10.336140990720331,
+      "hi": 10.562664404787206,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.1033557615886764,
+      "lo": 1.1031385031346033,
+      "hi": 1.1035730200427496,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.00216990871610932,
+      "lo": 0.001894356908527892,
+      "hi": 0.0024454605236907483,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "compute_only": {
+     "E_per_success_kJ": {
+      "mean": 9.435774016012907,
+      "lo": 9.240003114857318,
+      "hi": 9.631544917168496,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 7.359332894001469,
+      "lo": 7.216162806318158,
+      "hi": 7.5025029816847795,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 6.608593420075666,
+      "lo": 6.476556109553766,
+      "hi": 6.740630730597566,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.4218251119197231,
+      "lo": 0.4133971984821543,
+      "hi": 0.43025302535729193,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.19274666666666662,
+      "lo": 0.19258814420120984,
+      "hi": 0.1929051891321234,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.1361676953394144,
+      "lo": 0.13352598044824068,
+      "hi": 0.1388094102305881,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.32891436200608104,
+      "lo": 0.3262053832983448,
+      "hi": 0.33162334071381727,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9707656884267042,
+      "lo": 0.9676776966054927,
+      "hi": 0.9738536802479156,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.2,
+      "lo": -0.10162095503976065,
+      "hi": 0.5016209550397607,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 67.79346816173978,
+      "lo": 66.46703542348163,
+      "hi": 69.11990089999793,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 51.86567813515801,
+      "lo": 51.77918548370783,
+      "hi": 51.952170786608185,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.2679115340602912,
+      "lo": 0.2617477853049141,
+      "hi": 0.27407528281566834,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 6.944552462310137,
+      "lo": 6.80982500286027,
+      "hi": 7.079279921760003,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.113621539004986,
+      "lo": 1.1130214473490891,
+      "hi": 1.1142216306608828,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.10449960586658222,
+      "lo": 0.09961938624651212,
+      "hi": 0.10937982548665232,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "cooling_only": {
+     "E_per_success_kJ": {
+      "mean": 14.097952715706281,
+      "lo": 13.956086925726652,
+      "hi": 14.23981850568591,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 10.997079485525465,
+      "lo": 10.87223901995246,
+      "hi": 11.12191995109847,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 10.120422066869176,
+      "lo": 10.005245169046173,
+      "hi": 10.23559896469218,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.6459843872469677,
+      "lo": 0.6386326703646479,
+      "hi": 0.6533361041292876,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.027609730761251762,
+      "lo": 0.027590983554675076,
+      "hi": 0.027628477967828448,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.20306330064807207,
+      "lo": 0.2007504609294686,
+      "hi": 0.20537614036667554,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.2306730314093238,
+      "lo": 0.22836064350143126,
+      "hi": 0.23298541931721634,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9708342208535669,
+      "lo": 0.9677088564029735,
+      "hi": 0.9739595853041602,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 47.243340715781116,
+      "lo": 46.075570754685785,
+      "hi": 48.41111067687645,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 71.20090598334552,
+      "lo": 70.28125325679943,
+      "hi": 72.12055870989161,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.3750203484754963,
+      "lo": 0.36537051719300395,
+      "hi": 0.3846701797579887,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 10.356228333051682,
+      "lo": 10.23827350740289,
+      "hi": 10.474183158700473,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.0866232383059407,
+      "lo": 1.0865916544814476,
+      "hi": 1.0866548221304337,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.09724061203395842,
+      "lo": 0.0929704421261808,
+      "hi": 0.10151078194173604,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "independent": {
+     "E_per_success_kJ": {
+      "mean": 9.266857394545651,
+      "lo": 9.070934025700605,
+      "hi": 9.462780763390697,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 7.227579877268484,
+      "lo": 7.084169114725388,
+      "hi": 7.3709906398115805,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 6.6420346289499195,
+      "lo": 6.50969499578238,
+      "hi": 6.774374262117459,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.423959657167016,
+      "lo": 0.41551244653930164,
+      "hi": 0.43240686779473037,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.027675972366389866,
+      "lo": 0.02765321055447735,
+      "hi": 0.027698734178302382,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.1339096187851575,
+      "lo": 0.13129371961871758,
+      "hi": 0.13652551795159742,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.1615855911515474,
+      "lo": 0.15896124269414522,
+      "hi": 0.16420993960894956,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9707656884267042,
+      "lo": 0.9676776966054927,
+      "hi": 0.9738536802479156,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.2,
+      "lo": -0.10162095503976065,
+      "hi": 0.5016209550397607,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 67.79346816173978,
+      "lo": 66.46703542348163,
+      "hi": 69.11990089999793,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 65.58195919734278,
+      "lo": 63.34990782711154,
+      "hi": 67.81401056757403,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.23224000351256296,
+      "lo": 0.22385353496065602,
+      "hi": 0.2406264720644699,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 6.829390558043047,
+      "lo": 6.695979700554631,
+      "hi": 6.962801415531464,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.088160733113612,
+      "lo": 1.0880683530575346,
+      "hi": 1.0882531131696895,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.18486102642015884,
+      "lo": 0.1784968971729645,
+      "hi": 0.19122515566735318,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "joint": {
+     "E_per_success_kJ": {
+      "mean": 9.142571831238167,
+      "lo": 8.94876202542749,
+      "hi": 9.336381637048843,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 7.130686181953388,
+      "lo": 6.987612743529434,
+      "hi": 7.2737596203773425,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 6.529973248016342,
+      "lo": 6.39942193565162,
+      "hi": 6.660524560381063,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.4168068030648723,
+      "lo": 0.4084737405735082,
+      "hi": 0.42513986555623634,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.05208001513684342,
+      "lo": 0.05023382641943852,
+      "hi": 0.05392620385424832,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.13182611573533104,
+      "lo": 0.12918432011299785,
+      "hi": 0.13446791135766423,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.1839061308721745,
+      "lo": 0.17959497446688658,
+      "hi": 0.18821728727746243,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9707656884267042,
+      "lo": 0.9676776966054927,
+      "hi": 0.9738536802479156,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.2,
+      "lo": -0.10162095503976065,
+      "hi": 0.5016209550397607,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 67.79346816173978,
+      "lo": 66.46703542348163,
+      "hi": 69.11990089999793,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 49.215191257753325,
+      "lo": 49.01391094934853,
+      "hi": 49.41647156615812,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.16452189431808328,
+      "lo": 0.16057733868039098,
+      "hi": 0.1684664499557756,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 6.723131902501864,
+      "lo": 6.588400325762888,
+      "hi": 6.85786347924084,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.091990270380206,
+      "lo": 1.0918102095349052,
+      "hi": 1.0921703312255069,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.9526208646914147,
+      "lo": 0.9183867192344276,
+      "hi": 0.9868550101484018,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    }
+   },
+   "S5_memory_heavy": {
+    "fixed": {
+     "E_per_success_kJ": {
+      "mean": 14.104814841664597,
+      "lo": 13.982599328272538,
+      "hi": 14.227030355056655,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 11.002696541487593,
+      "lo": 10.877245090621456,
+      "hi": 11.12814799235373,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 9.174927881880334,
+      "lo": 9.068234229754284,
+      "hi": 9.281621534006385,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.5856336945881064,
+      "lo": 0.5788234614736781,
+      "hi": 0.5924439277025347,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.1922853333333333,
+      "lo": 0.19215477020336869,
+      "hi": 0.19241589646329793,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.20432441953604044,
+      "lo": 0.20199841339068256,
+      "hi": 0.20665042568139833,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.8455252121497778,
+      "lo": 0.8358998485051332,
+      "hi": 0.8551505757944224,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 1.2421349650191518,
+      "lo": 1.2301850416973894,
+      "hi": 1.2540848883409141,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9708342208535669,
+      "lo": 0.9677088564029735,
+      "hi": 0.9739595853041602,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 47.243340715781116,
+      "lo": 46.075570754685785,
+      "hi": 48.41111067687645,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 51.92081228461202,
+      "lo": 51.894316858793964,
+      "hi": 51.947307710430074,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.016321514597341078,
+      "lo": 0.015703063147227022,
+      "hi": 0.016939966047455134,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 10.420545396338067,
+      "lo": 10.301919082924824,
+      "hi": 10.53917170975131,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.1992190011648618,
+      "lo": 1.1989443008695984,
+      "hi": 1.1994937014601252,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.0020504809117294397,
+      "lo": 0.0019020192160012263,
+      "hi": 0.0021989426074576534,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "compute_only": {
+     "E_per_success_kJ": {
+      "mean": 7.977706556275843,
+      "lo": 7.818404051437665,
+      "hi": 8.13700906111402,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 6.222467904515014,
+      "lo": 6.103343892310474,
+      "hi": 6.341591916719554,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 5.109130191438543,
+      "lo": 5.007852759115579,
+      "hi": 5.2104076237615065,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.3261146930705451,
+      "lo": 0.31965017611376034,
+      "hi": 0.3325792100273298,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.19246399999999994,
+      "lo": 0.19229577588646443,
+      "hi": 0.19263222411353545,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.11575352113177928,
+      "lo": 0.11354563659324926,
+      "hi": 0.1179614056703093,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.47900549887414623,
+      "lo": 0.4698689402235371,
+      "hi": 0.48814205752475537,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.7872230200059256,
+      "lo": 0.7758394176856119,
+      "hi": 0.7986066223262392,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9707996904668266,
+      "lo": 0.9676895784097971,
+      "hi": 0.9739098025238561,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.1,
+      "lo": -0.12621571627982048,
+      "hi": 0.3262157162798205,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 60.57852475649936,
+      "lo": 59.126299777472525,
+      "hi": 62.0307497355262,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 51.63844300218435,
+      "lo": 51.46795169998785,
+      "hi": 51.808934304380855,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.0024534655669104593,
+      "lo": 0.001967125826125718,
+      "hi": 0.0029398053076952007,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 5.903429577720738,
+      "lo": 5.790827466255711,
+      "hi": 6.016031689185765,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.2179406004387983,
+      "lo": 1.2171018575453922,
+      "hi": 1.2187793433322043,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.09971355349733291,
+      "lo": 0.09694310146536299,
+      "hi": 0.10248400552930283,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "cooling_only": {
+     "E_per_success_kJ": {
+      "mean": 13.386891680008347,
+      "lo": 13.269403492164312,
+      "hi": 13.504379867852382,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 10.442684112287838,
+      "lo": 10.321979388596995,
+      "hi": 10.56338883597868,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 9.609077378784978,
+      "lo": 9.497706631694179,
+      "hi": 9.720448125875777,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.6133453646032966,
+      "lo": 0.606236593512395,
+      "hi": 0.6204541356941982,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.027609730761251762,
+      "lo": 0.027590983554675076,
+      "hi": 0.027628477967828448,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.19265163813831337,
+      "lo": 0.19042588025829837,
+      "hi": 0.19487739601832837,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.2202613688995651,
+      "lo": 0.21803578440570606,
+      "hi": 0.22248695339342414,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9708342208535669,
+      "lo": 0.9677088564029735,
+      "hi": 0.9739595853041602,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 47.243340715781116,
+      "lo": 46.075570754685785,
+      "hi": 48.41111067687645,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 70.2035047582672,
+      "lo": 69.58808806725546,
+      "hi": 70.81892144927895,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.29079496941312366,
+      "lo": 0.28623772110740914,
+      "hi": 0.2953522177188382,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 9.825233545053997,
+      "lo": 9.711719893173239,
+      "hi": 9.938747196934756,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.0867527038091096,
+      "lo": 1.0867181871353548,
+      "hi": 1.0867872204828644,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.100221344813939,
+      "lo": 0.0963670835261301,
+      "hi": 0.1040756061017479,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "independent": {
+     "E_per_success_kJ": {
+      "mean": 7.4934628773838075,
+      "lo": 7.3407776090476595,
+      "hi": 7.646148145719955,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 5.8447683779855,
+      "lo": 5.730361234064931,
+      "hi": 5.959175521906069,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 5.366687193673978,
+      "lo": 5.261131881951573,
+      "hi": 5.472242505396383,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.34255450172387086,
+      "lo": 0.33581692863520635,
+      "hi": 0.3492920748125354,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.02763538502451334,
+      "lo": 0.027611230179202226,
+      "hi": 0.027659539869824456,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.10789129756313758,
+      "lo": 0.10578234591553569,
+      "hi": 0.11000024921073946,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.13552668258765094,
+      "lo": 0.13341223016773254,
+      "hi": 0.13764113500756933,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9707996904668266,
+      "lo": 0.9676895784097971,
+      "hi": 0.9739098025238561,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.1,
+      "lo": -0.12621571627982048,
+      "hi": 0.3262157162798205,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 60.57852475649936,
+      "lo": 59.126299777472525,
+      "hi": 62.0307497355262,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 68.9571275351816,
+      "lo": 68.22182530726612,
+      "hi": 69.69242976309708,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.14255059459941385,
+      "lo": 0.13838203259328463,
+      "hi": 0.14671915660554308,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 5.5024561757200114,
+      "lo": 5.394899641692317,
+      "hi": 5.610012709747706,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.0890867105994009,
+      "lo": 1.088982440134796,
+      "hi": 1.0891909810640057,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.19419764004279047,
+      "lo": 0.18785023422268443,
+      "hi": 0.2005450458628965,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "joint": {
+     "E_per_success_kJ": {
+      "mean": 7.454595000150057,
+      "lo": 7.30421085931135,
+      "hi": 7.604979140988764,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 5.81445932178685,
+      "lo": 5.701656538449173,
+      "hi": 5.927262105124527,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 5.326904526758621,
+      "lo": 5.224532012369956,
+      "hi": 5.4292770411472855,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.3400151825590606,
+      "lo": 0.33348076674701826,
+      "hi": 0.34654959837110294,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.04017966973097744,
+      "lo": 0.03827211148216504,
+      "hi": 0.04208722797978984,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.10735994273819036,
+      "lo": 0.10527798299010348,
+      "hi": 0.10944190248627723,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.14753961246916783,
+      "lo": 0.14359835693934977,
+      "hi": 0.15148086799898589,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9707996904668266,
+      "lo": 0.9676895784097971,
+      "hi": 0.9739098025238561,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.1,
+      "lo": -0.12621571627982048,
+      "hi": 0.3262157162798205,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 60.57852475649936,
+      "lo": 59.126299777472525,
+      "hi": 62.0307497355262,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 60.61272258329937,
+      "lo": 59.639575073455994,
+      "hi": 61.58587009314275,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.12392812652216748,
+      "lo": 0.12117297324139015,
+      "hi": 0.1266832798029448,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 5.475357079647706,
+      "lo": 5.369177132495283,
+      "hi": 5.581537026800129,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.091520078117914,
+      "lo": 1.0912902557163775,
+      "hi": 1.0917499005194504,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.9406215881198552,
+      "lo": 0.9154810062617174,
+      "hi": 0.965762169977993,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 2893.0,
+      "lo": 2851.995909660211,
+      "hi": 2934.004090339789,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    }
+   },
+   "S6_degraded_cooling": {
+    "fixed": {
+     "E_per_success_kJ": {
+      "mean": 15.687545976665202,
+      "lo": 15.53978195293307,
+      "hi": 15.835310000397333,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 15.935006165194244,
+      "lo": 15.777347291726235,
+      "hi": 16.09266503866225,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 12.746861609649452,
+      "lo": 12.619017808215414,
+      "hi": 12.87470541108349,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.813629464445707,
+      "lo": 0.8054692218009818,
+      "hi": 0.8217897070904323,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.19248666666666664,
+      "lo": 0.19235548177641046,
+      "hi": 0.19261785155692282,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.29644124203294586,
+      "lo": 0.29350094389638287,
+      "hi": 0.29938154016950885,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 1.8855871823994743,
+      "lo": 1.8668846953881677,
+      "hi": 1.904289669410781,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 2.374515091099087,
+      "lo": 2.352857216970053,
+      "hi": 2.3961729652281214,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9705145538468051,
+      "lo": 0.9684588128637236,
+      "hi": 0.9725702948298866,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.6,
+      "lo": -0.7572942976789229,
+      "hi": 1.957294297678923,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 51.28500215430621,
+      "lo": 48.33770982338924,
+      "hi": 54.232294485223186,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 69.70632855542887,
+      "lo": 69.67987317436553,
+      "hi": 69.73278393649221,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 15.11850334368026,
+      "lo": 14.968548138715544,
+      "hi": 15.268458548644976,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.2501151084046023,
+      "lo": 1.2499425844802983,
+      "hi": 1.2502876323289063,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.0021274686093341343,
+      "lo": 0.0019679787026305622,
+      "hi": 0.0022869585160377064,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 3768.3,
+      "lo": 3725.3520329180215,
+      "hi": 3811.247967081979,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "compute_only": {
+     "E_per_success_kJ": {
+      "mean": 10.966418237632876,
+      "lo": 10.730303883189523,
+      "hi": 11.20253259207623,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 11.138676948696347,
+      "lo": 10.884986081116384,
+      "hi": 11.392367816276309,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 8.854440667113288,
+      "lo": 8.648875438628695,
+      "hi": 9.06000589559788,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.5651770638582944,
+      "lo": 0.5520558790614059,
+      "hi": 0.5782982486551829,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.19272933333333328,
+      "lo": 0.19251666976370002,
+      "hi": 0.19294199690296654,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.2073607848617706,
+      "lo": 0.20261285963669157,
+      "hi": 0.21210871008684962,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 1.3189690995296623,
+      "lo": 1.2887687573437898,
+      "hi": 1.3491694417155349,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 1.7190592177247663,
+      "lo": 1.6840522864325862,
+      "hi": 1.7540661490169465,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9704088665144892,
+      "lo": 0.9682981728190457,
+      "hi": 0.9725195602099327,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 1.0,
+      "lo": -1.023334876721938,
+      "hi": 3.023334876721938,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 65.74587736020598,
+      "lo": 63.0876706203702,
+      "hi": 68.40408410004177,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 69.5592614532835,
+      "lo": 69.4693129771948,
+      "hi": 69.64920992937219,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 10.575400027950318,
+      "lo": 10.3332558414713,
+      "hi": 10.817544214429336,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.2579994470287534,
+      "lo": 1.2574299124354336,
+      "hi": 1.2585689816220733,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.10717590697222937,
+      "lo": 0.0958016300432658,
+      "hi": 0.11855018390119293,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 3768.3,
+      "lo": 3725.3520329180215,
+      "hi": 3811.247967081979,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "cooling_only": {
+     "E_per_success_kJ": {
+      "mean": 15.096507901984655,
+      "lo": 14.956345669203014,
+      "hi": 15.236670134766296,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 15.334558270836578,
+      "lo": 15.189926024301283,
+      "hi": 15.479190517371872,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 13.307871182396903,
+      "lo": 13.17703487606256,
+      "hi": 13.438707488731247,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.84943858611044,
+      "lo": 0.841087332514631,
+      "hi": 0.857789839706249,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.5893482624118731,
+      "lo": 0.5868320225154801,
+      "hi": 0.5918645023082661,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.28381092966754967,
+      "lo": 0.281132379769601,
+      "hi": 0.28648947956549836,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.3040893102498123,
+      "lo": 0.2971819357050033,
+      "hi": 0.3109966847946213,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 1.1772485023292352,
+      "lo": 1.169954021904376,
+      "hi": 1.1845429827540943,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9705145538468051,
+      "lo": 0.9684588128637236,
+      "hi": 0.9725702948298866,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 0.6,
+      "lo": -0.7572942976789229,
+      "hi": 1.957294297678923,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 51.28500215430621,
+      "lo": 48.33770982338924,
+      "hi": 54.232294485223186,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 80.02865951788812,
+      "lo": 79.9146329889356,
+      "hi": 80.14268604684064,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 3.7,
+      "lo": -2.7782711574513526,
+      "hi": 10.178271157451352,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.24133318675609475,
+      "lo": 0.238211293759137,
+      "hi": 0.2444550797530525,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 14.474357413045023,
+      "lo": 14.337751368249663,
+      "hi": 14.610963457840384,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.1523004492885198,
+      "lo": 1.1516991055680994,
+      "hi": 1.1529017930089402,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.10788782532422292,
+      "lo": 0.10256506965934084,
+      "hi": 0.113210580989105,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 3768.3,
+      "lo": 3725.3520329180215,
+      "hi": 3811.247967081979,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "independent": {
+     "E_per_success_kJ": {
+      "mean": 10.533115837079986,
+      "lo": 10.29698782661877,
+      "hi": 10.769243847541203,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 10.698432194303061,
+      "lo": 10.449388406029495,
+      "hi": 10.947475982576627,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 9.462875355547663,
+      "lo": 9.256343354652413,
+      "hi": 9.669407356442912,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.6040133205668715,
+      "lo": 0.5908304268927067,
+      "hi": 0.6171962142410363,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.24698163396100847,
+      "lo": 0.22839917575238317,
+      "hi": 0.2655640921696338,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.1977392908672348,
+      "lo": 0.19307800063003216,
+      "hi": 0.20240058110443743,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.1868225933602833,
+      "lo": 0.16778817286238265,
+      "hi": 0.20585701385818397,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.6315435181885266,
+      "lo": 0.5942799511065148,
+      "hi": 0.6688070852705384,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9704088665144892,
+      "lo": 0.9682981728190457,
+      "hi": 0.9725195602099327,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 1.0,
+      "lo": -1.023334876721938,
+      "hi": 3.023334876721938,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 65.91953098674188,
+      "lo": 63.252266630813935,
+      "hi": 68.58679534266982,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 85.51059387420932,
+      "lo": 85.44599121092354,
+      "hi": 85.5751965374951,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 1420.3,
+      "lo": 1170.6435030475059,
+      "hi": 1669.956496952494,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 184.9,
+      "lo": 124.7027647709084,
+      "hi": 245.0972352290916,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0004473893876231403,
+      "lo": -0.0005646757201484493,
+      "hi": 0.0014594544953947298,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.1866546032139615,
+      "lo": 0.18194320752172594,
+      "hi": 0.19136599890619704,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 10.084703834228955,
+      "lo": 9.846978032131636,
+      "hi": 10.322429636326275,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.1305085232594103,
+      "lo": 1.127407860101989,
+      "hi": 1.1336091864168316,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 0.20102152800645928,
+      "lo": 0.19225253101843026,
+      "hi": 0.2097905249944883,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 3768.3,
+      "lo": 3725.3520329180215,
+      "hi": 3811.247967081979,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    },
+    "joint": {
+     "E_per_success_kJ": {
+      "mean": 10.373840346214617,
+      "lo": 10.143516644668892,
+      "hi": 10.604164047760342,
+      "n": 10
+     },
+     "E_grid_kWh": {
+      "mean": 10.536831298823026,
+      "lo": 10.289241334686047,
+      "hi": 10.784421262960006,
+      "n": 10
+     },
+     "E_it_kWh": {
+      "mean": 9.429444818080066,
+      "lo": 9.222860309331397,
+      "hi": 9.636029326828735,
+      "n": 10
+     },
+     "E_conv_loss_kWh": {
+      "mean": 0.6018794564731967,
+      "lo": 0.5886932112339199,
+      "hi": 0.6150657017124735,
+      "n": 10
+     },
+     "E_pump_kWh": {
+      "mean": 0.22511984009824274,
+      "lo": 0.21186219754083496,
+      "hi": 0.2383774826556505,
+      "n": 10
+     },
+     "E_fan_kWh": {
+      "mean": 0.1946290280645296,
+      "lo": 0.1900128427903321,
+      "hi": 0.19924521333872713,
+      "n": 10
+     },
+     "E_chiller_kWh": {
+      "mean": 0.08575815610698845,
+      "lo": 0.0728588227390781,
+      "hi": 0.0986574894748988,
+      "n": 10
+     },
+     "E_cooling_kWh": {
+      "mean": 0.5055070242697608,
+      "lo": 0.4752535699093675,
+      "hi": 0.5357604786301541,
+      "n": 10
+     },
+     "success_rate": {
+      "mean": 0.9704088665144892,
+      "lo": 0.9682981728190457,
+      "hi": 0.9725195602099327,
+      "n": 10
+     },
+     "slo_violations": {
+      "mean": 1.0,
+      "lo": -1.023334876721938,
+      "hi": 3.023334876721938,
+      "n": 10
+     },
+     "latency_p95_s": {
+      "mean": 65.74587736020598,
+      "lo": 63.0876706203702,
+      "hi": 68.40408410004177,
+      "n": 10
+     },
+     "peak_T_j_C": {
+      "mean": 78.832010808512,
+      "lo": 78.77357272208953,
+      "hi": 78.89044889493447,
+      "n": 10
+     },
+     "chip_s_over_target": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "chip_s_throttled": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Q_reusable_kWh": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     },
+     "Ex_rejected_kWh": {
+      "mean": 0.19529335204295686,
+      "lo": 0.19213424368898246,
+      "hi": 0.19845246039693126,
+      "n": 10
+     },
+     "Q_rejected_kWh": {
+      "mean": 9.926080431291002,
+      "lo": 9.690654982306938,
+      "hi": 10.161505880275065,
+      "n": 10
+     },
+     "grid_to_it_ratio": {
+      "mean": 1.1173704782706162,
+      "lo": 1.1151366672521408,
+      "hi": 1.1196042892890916,
+      "n": 10
+     },
+     "controller_wall_mean_ms": {
+      "mean": 1.108760703556812,
+      "lo": 1.074979756796199,
+      "hi": 1.1425416503174253,
+      "n": 10
+     },
+     "tasks": {
+      "mean": 3768.3,
+      "lo": 3725.3520329180215,
+      "hi": 3811.247967081979,
+      "n": 10
+     },
+     "escalations": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 10
+     }
+    }
+   }
+  },
+  "comparisons": [
+   {
+    "group": [
+     "S1_moderate",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "compute_only",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.3362460074451288,
+    "lo": -0.344148390321356,
+    "hi": -0.32834362456890154,
+    "mean_a": 10.239179001443258,
+    "mean_b": 15.42359885636138,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.2,
+    "d_success_rate": -6.853242686273297e-05,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S2_high_load",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "compute_only",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.20542678927359845,
+    "lo": -0.2171964636068843,
+    "hi": -0.1936571149403126,
+    "mean_a": 11.16220504812556,
+    "mean_b": 14.047581544361307,
+    "relative": true,
+    "scenario": "S2_high_load",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 1.4,
+    "d_success_rate": -0.0003209353751168154,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S3_hot",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "compute_only",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.33617878555017594,
+    "lo": -0.3440798516657202,
+    "hi": -0.3282777194346317,
+    "mean_a": 11.166198834211771,
+    "mean_b": 16.818296868658845,
+    "relative": true,
+    "scenario": "S3_hot",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.2,
+    "d_success_rate": -6.853242686273297e-05,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S4_cool",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "compute_only",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.3363148471792236,
+    "lo": -0.3442187816664178,
+    "hi": -0.32841091269202943,
+    "mean_a": 9.435774016012907,
+    "mean_b": 14.21487685444744,
+    "relative": true,
+    "scenario": "S4_cool",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.2,
+    "d_success_rate": -6.853242686273297e-05,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S5_memory_heavy",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "compute_only",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.43448770781185136,
+    "lo": -0.4412379100899431,
+    "hi": -0.4277375055337596,
+    "mean_a": 7.977706556275843,
+    "mean_b": 14.104814841664597,
+    "relative": true,
+    "scenario": "S5_memory_heavy",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.1,
+    "d_success_rate": -3.453038674032794e-05,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "compute_only",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.3010445204306028,
+    "lo": -0.31134190290185,
+    "hi": -0.29074713795935564,
+    "mean_a": 10.966418237632876,
+    "mean_b": 15.687545976665202,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.4,
+    "d_success_rate": -0.00010568733231594018,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "cooling_only",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.04968299323250123,
+    "lo": -0.04989334551466599,
+    "hi": -0.04947264095033647,
+    "mean_a": 14.657330886251577,
+    "mean_b": 15.42359885636138,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S2_high_load",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "cooling_only",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.045689809847222596,
+    "lo": -0.04590457027397475,
+    "hi": -0.04547504942047044,
+    "mean_a": 13.405756909013752,
+    "mean_b": 14.047581544361307,
+    "relative": true,
+    "scenario": "S2_high_load",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S3_hot",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "cooling_only",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.07278661049094223,
+    "lo": -0.07298654433933503,
+    "hi": -0.07258667664254943,
+    "mean_a": 15.594176460003144,
+    "mean_b": 16.818296868658845,
+    "relative": true,
+    "scenario": "S3_hot",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S4_cool",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "cooling_only",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.008224807456149308,
+    "lo": -0.009114211642415186,
+    "hi": -0.0073354032698834315,
+    "mean_a": 14.097952715706281,
+    "mean_b": 14.21487685444744,
+    "relative": true,
+    "scenario": "S4_cool",
+    "verdict": "detectable reduction, not confirmed >= threshold",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S5_memory_heavy",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "cooling_only",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.050900737351141825,
+    "lo": -0.05110198506282786,
+    "hi": -0.050699489639455794,
+    "mean_a": 13.386891680008343,
+    "mean_b": 14.104814841664597,
+    "relative": true,
+    "scenario": "S5_memory_heavy",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "cooling_only",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.03767326143870385,
+    "lo": -0.03817754320815754,
+    "hi": -0.03716897966925016,
+    "mean_a": 15.096507901984655,
+    "mean_b": 15.687545976665202,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "independent",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.37477596398689345,
+    "lo": -0.3825135842195959,
+    "hi": -0.367038343754191,
+    "mean_a": 9.644869614732102,
+    "mean_b": 15.42359885636138,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.2,
+    "d_success_rate": -6.853242686273297e-05,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S2_high_load",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "independent",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.2456066670330186,
+    "lo": -0.2572197831765914,
+    "hi": -0.23399355088944576,
+    "mean_a": 10.597767450147309,
+    "mean_b": 14.047581544361307,
+    "relative": true,
+    "scenario": "S2_high_load",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 1.4,
+    "d_success_rate": -0.0003209353751168154,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S3_hot",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "independent",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.3826441243250222,
+    "lo": -0.3898610678929237,
+    "hi": -0.3754271807571207,
+    "mean_a": 10.384611842795152,
+    "mean_b": 16.818296868658845,
+    "relative": true,
+    "scenario": "S3_hot",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.2,
+    "d_success_rate": -6.853242686273297e-05,
+    "d_throttled": 9.6
+   },
+   {
+    "group": [
+     "S4_cool",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "independent",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.34819839344396153,
+    "lo": -0.35629859181246126,
+    "hi": -0.3400981950754618,
+    "mean_a": 9.266857394545651,
+    "mean_b": 14.21487685444744,
+    "relative": true,
+    "scenario": "S4_cool",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.2,
+    "d_success_rate": -6.853242686273297e-05,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S5_memory_heavy",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "independent",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.46881664024656206,
+    "lo": -0.47539657250681855,
+    "hi": -0.46223670798630556,
+    "mean_a": 7.4934628773838075,
+    "mean_b": 14.104814841664597,
+    "relative": true,
+    "scenario": "S5_memory_heavy",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.1,
+    "d_success_rate": -3.453038674032794e-05,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "independent",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.3286718534243415,
+    "lo": -0.33902616145580206,
+    "hi": -0.318317545392881,
+    "mean_a": 10.533115837079986,
+    "mean_b": 15.687545976665202,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.4,
+    "d_success_rate": -0.00010568733231594018,
+    "d_throttled": 184.9
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.3783483416233169,
+    "lo": -0.38584574732929816,
+    "hi": -0.3708509359173356,
+    "mean_a": 9.589717192656899,
+    "mean_b": 15.42359885636138,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.2,
+    "d_success_rate": -6.853242686273297e-05,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S2_high_load",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.25295184895314016,
+    "lo": -0.26411538410648183,
+    "hi": -0.24178831379979848,
+    "mean_a": 10.494573547751862,
+    "mean_b": 14.047581544361307,
+    "relative": true,
+    "scenario": "S2_high_load",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 1.4,
+    "d_success_rate": -0.0003209353751168154,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S3_hot",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.3847756939263944,
+    "lo": -0.39188269417584,
+    "hi": -0.3776686936769488,
+    "mean_a": 10.348707200510193,
+    "mean_b": 16.818296868658845,
+    "relative": true,
+    "scenario": "S3_hot",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.2,
+    "d_success_rate": -6.853242686273297e-05,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S4_cool",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.356941363492156,
+    "lo": -0.36494096200897813,
+    "hi": -0.34894176497533386,
+    "mean_a": 9.142571831238167,
+    "mean_b": 14.21487685444744,
+    "relative": true,
+    "scenario": "S4_cool",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.2,
+    "d_success_rate": -6.853242686273297e-05,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S5_memory_heavy",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.4715705605696915,
+    "lo": -0.4779982866482905,
+    "hi": -0.46514283449109245,
+    "mean_a": 7.454595000150057,
+    "mean_b": 14.104814841664597,
+    "relative": true,
+    "scenario": "S5_memory_heavy",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.1,
+    "d_success_rate": -3.453038674032794e-05,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "fixed",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.33881586718835144,
+    "lo": -0.34909518854891036,
+    "hi": -0.3285365458277925,
+    "mean_a": 10.373840346214617,
+    "mean_b": 15.687545976665202,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.4,
+    "d_success_rate": -0.00010568733231594018,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.005706811215555269,
+    "lo": -0.006068779044279729,
+    "hi": -0.005344843386830809,
+    "mean_a": 9.589717192656899,
+    "mean_b": 9.644869614732102,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "verdict": "detectable reduction, not confirmed >= threshold",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S2_high_load",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.009724325789538316,
+    "lo": -0.01020129229853742,
+    "hi": -0.009247359280539212,
+    "mean_a": 10.494573547751862,
+    "mean_b": 10.597767450147309,
+    "relative": true,
+    "scenario": "S2_high_load",
+    "verdict": "detectable reduction, not confirmed >= threshold",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S3_hot",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.003449522165541398,
+    "lo": -0.004114068482425296,
+    "hi": -0.0027849758486574996,
+    "mean_a": 10.348707200510193,
+    "mean_b": 10.384611842795152,
+    "relative": true,
+    "scenario": "S3_hot",
+    "verdict": "detectable reduction, not confirmed >= threshold",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": -9.6
+   },
+   {
+    "group": [
+     "S4_cool",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.013412600232696924,
+    "lo": -0.014584959437249304,
+    "hi": -0.012240241028144545,
+    "mean_a": 9.142571831238167,
+    "mean_b": 9.266857394545651,
+    "relative": true,
+    "scenario": "S4_cool",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S5_memory_heavy",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.005179501512136055,
+    "lo": -0.005600535383214287,
+    "hi": -0.004758467641057824,
+    "mean_a": 7.454595000150057,
+    "mean_b": 7.4934628773838075,
+    "relative": true,
+    "scenario": "S5_memory_heavy",
+    "verdict": "detectable reduction, not confirmed >= threshold",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.015111396616040032,
+    "lo": -0.016635736512168927,
+    "hi": -0.013587056719911138,
+    "mean_a": 10.373840346214617,
+    "mean_b": 10.533115837079986,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": -184.9
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "compute_only",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.06343371213052273,
+    "lo": -0.06360264046559039,
+    "hi": -0.06326478379545508,
+    "mean_a": 9.589717192656899,
+    "mean_b": 10.239179001443258,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S2_high_load",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "compute_only",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.05981528140318282,
+    "lo": -0.05994639668266339,
+    "hi": -0.05968416612370225,
+    "mean_a": 10.494573547751862,
+    "mean_b": 11.16220504812556,
+    "relative": true,
+    "scenario": "S2_high_load",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S3_hot",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "compute_only",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.07320083393037123,
+    "lo": -0.07362323780736466,
+    "hi": -0.07277843005337781,
+    "mean_a": 10.348707200510193,
+    "mean_b": 11.166198834211771,
+    "relative": true,
+    "scenario": "S3_hot",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S4_cool",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "compute_only",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.031089653514123506,
+    "lo": -0.03169920816149722,
+    "hi": -0.030480098866749798,
+    "mean_a": 9.142571831238167,
+    "mean_b": 9.435774016012907,
+    "relative": true,
+    "scenario": "S4_cool",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S5_memory_heavy",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "compute_only",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.06557836935306972,
+    "lo": -0.06582251466503473,
+    "hi": -0.06533422404110471,
+    "mean_a": 7.454595000150057,
+    "mean_b": 7.977706556275843,
+    "relative": true,
+    "scenario": "S5_memory_heavy",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "compute_only",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.05405978294847104,
+    "lo": -0.054994494825485685,
+    "hi": -0.05312507107145639,
+    "mean_a": 10.373840346214617,
+    "mean_b": 10.966418237632876,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "cooling_only",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.3458505771081234,
+    "lo": -0.3536240871935638,
+    "hi": -0.338077067022683,
+    "mean_a": 9.589717192656899,
+    "mean_b": 14.657330886251577,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.2,
+    "d_success_rate": -6.853242686273297e-05,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S2_high_load",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "cooling_only",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.2171894495380259,
+    "lo": -0.2287236019898973,
+    "hi": -0.20565529708615451,
+    "mean_a": 10.494573547751862,
+    "mean_b": 13.405756909013752,
+    "relative": true,
+    "scenario": "S2_high_load",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 1.4,
+    "d_success_rate": -0.0003209353751168154,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S3_hot",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "cooling_only",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.336480196271766,
+    "lo": -0.34414995604067494,
+    "hi": -0.3288104365028571,
+    "mean_a": 10.348707200510193,
+    "mean_b": 15.594176460003144,
+    "relative": true,
+    "scenario": "S3_hot",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.2,
+    "d_success_rate": -6.853242686273297e-05,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S4_cool",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "cooling_only",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.3516113761108122,
+    "lo": -0.35952682073521836,
+    "hi": -0.3436959314864061,
+    "mean_a": 9.142571831238167,
+    "mean_b": 14.097952715706281,
+    "relative": true,
+    "scenario": "S4_cool",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.2,
+    "d_success_rate": -6.853242686273297e-05,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S5_memory_heavy",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "cooling_only",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.443232556289204,
+    "lo": -0.4499116982478517,
+    "hi": -0.4365534143305563,
+    "mean_a": 7.454595000150057,
+    "mean_b": 13.386891680008343,
+    "relative": true,
+    "scenario": "S5_memory_heavy",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.1,
+    "d_success_rate": -3.453038674032794e-05,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "cooling_only",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.3129249143921878,
+    "lo": -0.3238457599083191,
+    "hi": -0.30200406887605646,
+    "mean_a": 10.373840346214617,
+    "mean_b": 15.096507901984655,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.4,
+    "d_success_rate": -0.00010568733231594018,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "independent",
+    "b": "compute_only",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.058057929384714144,
+    "lo": -0.05853895980326971,
+    "hi": -0.05757689896615858,
+    "mean_a": 9.644869614732102,
+    "mean_b": 10.239179001443258,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S2_high_load",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "independent",
+    "b": "compute_only",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.050582353868945384,
+    "lo": -0.05115927192417465,
+    "hi": -0.050005435813716116,
+    "mean_a": 10.597767450147309,
+    "mean_b": 11.16220504812556,
+    "relative": true,
+    "scenario": "S2_high_load",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S3_hot",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "independent",
+    "b": "compute_only",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.06999222607320185,
+    "lo": -0.07058568336576988,
+    "hi": -0.06939876878063382,
+    "mean_a": 10.384611842795152,
+    "mean_b": 11.166198834211771,
+    "relative": true,
+    "scenario": "S3_hot",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 9.6
+   },
+   {
+    "group": [
+     "S4_cool",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "independent",
+    "b": "compute_only",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.0179151950162245,
+    "lo": -0.019120084878620346,
+    "hi": -0.016710305153828653,
+    "mean_a": 9.266857394545651,
+    "mean_b": 9.435774016012907,
+    "relative": true,
+    "scenario": "S4_cool",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S5_memory_heavy",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "independent",
+    "b": "compute_only",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.06071294959555371,
+    "lo": -0.06127091986611845,
+    "hi": -0.06015497932498898,
+    "mean_a": 7.4934628773838075,
+    "mean_b": 7.977706556275843,
+    "relative": true,
+    "scenario": "S5_memory_heavy",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 0.0
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "default"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "independent",
+    "b": "compute_only",
+    "factor": "policy",
+    "n": 10,
+    "mean": -0.03954273775728748,
+    "lo": -0.041036711186212625,
+    "hi": -0.03804876432836233,
+    "mean_a": 10.533115837079986,
+    "mean_b": 10.966418237632876,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "verdict": "meaningful reduction (CI beyond threshold)",
+    "d_slo_violations": 0.0,
+    "d_success_rate": 0.0,
+    "d_throttled": 184.9
+   }
+  ],
+  "H1": {
+   "supported": true,
+   "scenarios_ci_below_zero": [
+    "S1_moderate",
+    "S2_high_load",
+    "S3_hot",
+    "S4_cool",
+    "S5_memory_heavy",
+    "S6_degraded_cooling"
+   ],
+   "scenarios_meaningful": [
+    "S4_cool",
+    "S6_degraded_cooling"
+   ],
+   "required": 4
+  },
+  "H2": {
+   "energy_criterion_met": true,
+   "energy_failures": [],
+   "guard_failures": [
+    {
+     "policy": "compute_only",
+     "scenario": "S1_moderate",
+     "d_slo_violations": 0.2,
+     "d_success_rate": -6.853242686273297e-05
+    },
+    {
+     "policy": "compute_only",
+     "scenario": "S2_high_load",
+     "d_slo_violations": 1.4,
+     "d_success_rate": -0.0003209353751168154
+    },
+    {
+     "policy": "compute_only",
+     "scenario": "S3_hot",
+     "d_slo_violations": 0.2,
+     "d_success_rate": -6.853242686273297e-05
+    },
+    {
+     "policy": "compute_only",
+     "scenario": "S4_cool",
+     "d_slo_violations": 0.2,
+     "d_success_rate": -6.853242686273297e-05
+    },
+    {
+     "policy": "compute_only",
+     "scenario": "S5_memory_heavy",
+     "d_slo_violations": 0.1,
+     "d_success_rate": -3.453038674032794e-05
+    },
+    {
+     "policy": "compute_only",
+     "scenario": "S6_degraded_cooling",
+     "d_slo_violations": 0.4,
+     "d_success_rate": -0.00010568733231594018
+    },
+    {
+     "policy": "independent",
+     "scenario": "S1_moderate",
+     "d_slo_violations": 0.2,
+     "d_success_rate": -6.853242686273297e-05
+    },
+    {
+     "policy": "independent",
+     "scenario": "S2_high_load",
+     "d_slo_violations": 1.4,
+     "d_success_rate": -0.0003209353751168154
+    },
+    {
+     "policy": "independent",
+     "scenario": "S3_hot",
+     "d_slo_violations": 0.2,
+     "d_success_rate": -6.853242686273297e-05
+    },
+    {
+     "policy": "independent",
+     "scenario": "S4_cool",
+     "d_slo_violations": 0.2,
+     "d_success_rate": -6.853242686273297e-05
+    },
+    {
+     "policy": "independent",
+     "scenario": "S5_memory_heavy",
+     "d_slo_violations": 0.1,
+     "d_success_rate": -3.453038674032794e-05
+    },
+    {
+     "policy": "independent",
+     "scenario": "S6_degraded_cooling",
+     "d_slo_violations": 0.4,
+     "d_success_rate": -0.00010568733231594018
+    },
+    {
+     "policy": "joint",
+     "scenario": "S1_moderate",
+     "d_slo_violations": 0.2,
+     "d_success_rate": -6.853242686273297e-05
+    },
+    {
+     "policy": "joint",
+     "scenario": "S2_high_load",
+     "d_slo_violations": 1.4,
+     "d_success_rate": -0.0003209353751168154
+    },
+    {
+     "policy": "joint",
+     "scenario": "S3_hot",
+     "d_slo_violations": 0.2,
+     "d_success_rate": -6.853242686273297e-05
+    },
+    {
+     "policy": "joint",
+     "scenario": "S4_cool",
+     "d_slo_violations": 0.2,
+     "d_success_rate": -6.853242686273297e-05
+    },
+    {
+     "policy": "joint",
+     "scenario": "S5_memory_heavy",
+     "d_slo_violations": 0.1,
+     "d_success_rate": -3.453038674032794e-05
+    },
+    {
+     "policy": "joint",
+     "scenario": "S6_degraded_cooling",
+     "d_slo_violations": 0.4,
+     "d_success_rate": -0.00010568733231594018
+    }
+   ],
+   "supported": false
+  },
+  "warnings": [
+   {
+    "scenario": "S1_moderate",
+    "policy": "compute_only",
+    "seed": 0,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x9"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "compute_only",
+    "seed": 1,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x6"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "compute_only",
+    "seed": 2,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x6"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "compute_only",
+    "seed": 3,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x15"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "compute_only",
+    "seed": 4,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x17"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "compute_only",
+    "seed": 5,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x12"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "compute_only",
+    "seed": 6,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x7"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "compute_only",
+    "seed": 7,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x12"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "compute_only",
+    "seed": 8,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x11"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "compute_only",
+    "seed": 9,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x9"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "independent",
+    "seed": 0,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x9"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "independent",
+    "seed": 1,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x6"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "independent",
+    "seed": 2,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x6"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "independent",
+    "seed": 3,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x15"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "independent",
+    "seed": 4,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x17"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "independent",
+    "seed": 5,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x12"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "independent",
+    "seed": 6,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x7"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "independent",
+    "seed": 7,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x12"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "independent",
+    "seed": 8,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x11"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "independent",
+    "seed": 9,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x9"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "joint",
+    "seed": 0,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x9"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "joint",
+    "seed": 1,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x6"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "joint",
+    "seed": 2,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x6"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "joint",
+    "seed": 3,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x15"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "joint",
+    "seed": 4,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x17"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "joint",
+    "seed": 5,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x12"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "joint",
+    "seed": 6,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x7"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "joint",
+    "seed": 7,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x12"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "joint",
+    "seed": 8,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x11"
+    ]
+   },
+   {
+    "scenario": "S1_moderate",
+    "policy": "joint",
+    "seed": 9,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x9"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "compute_only",
+    "seed": 0,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x63"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "compute_only",
+    "seed": 1,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x61"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "compute_only",
+    "seed": 2,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x68"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "compute_only",
+    "seed": 3,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x63"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "compute_only",
+    "seed": 4,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x75"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "compute_only",
+    "seed": 5,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x81"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "compute_only",
+    "seed": 6,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x76"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "compute_only",
+    "seed": 7,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x69"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "compute_only",
+    "seed": 8,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x62"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "compute_only",
+    "seed": 9,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x43"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "independent",
+    "seed": 0,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x63"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "independent",
+    "seed": 1,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x61"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "independent",
+    "seed": 3,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x63"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "independent",
+    "seed": 2,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x68"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "independent",
+    "seed": 4,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x75"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "independent",
+    "seed": 5,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x81"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "independent",
+    "seed": 6,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x76"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "independent",
+    "seed": 7,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x69"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "independent",
+    "seed": 8,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x62"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "independent",
+    "seed": 9,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x43"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "joint",
+    "seed": 0,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x63"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "joint",
+    "seed": 1,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x61"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "joint",
+    "seed": 2,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x68"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "joint",
+    "seed": 3,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x63"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "joint",
+    "seed": 4,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x75"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "joint",
+    "seed": 5,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x81"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "joint",
+    "seed": 6,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x76"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "joint",
+    "seed": 7,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x69"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "joint",
+    "seed": 8,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x62"
+    ]
+   },
+   {
+    "scenario": "S2_high_load",
+    "policy": "joint",
+    "seed": 9,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x43"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "compute_only",
+    "seed": 0,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x9"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "compute_only",
+    "seed": 1,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x6"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "compute_only",
+    "seed": 2,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x6"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "compute_only",
+    "seed": 3,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x15"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "compute_only",
+    "seed": 4,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x17"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "compute_only",
+    "seed": 5,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x12"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "compute_only",
+    "seed": 6,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x7"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "compute_only",
+    "seed": 7,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x12"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "compute_only",
+    "seed": 9,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x9"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "compute_only",
+    "seed": 8,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x11"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "independent",
+    "seed": 0,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x9"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "independent",
+    "seed": 1,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x6"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "independent",
+    "seed": 2,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x6"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "independent",
+    "seed": 3,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x15"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "independent",
+    "seed": 4,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x17"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "independent",
+    "seed": 5,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x12"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "independent",
+    "seed": 7,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x13"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "independent",
+    "seed": 6,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x7"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "independent",
+    "seed": 9,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x9"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "independent",
+    "seed": 8,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x11"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "joint",
+    "seed": 1,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x6"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "joint",
+    "seed": 0,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x9"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "joint",
+    "seed": 2,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x6"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "joint",
+    "seed": 3,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x15"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "joint",
+    "seed": 4,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x17"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "joint",
+    "seed": 5,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x12"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "joint",
+    "seed": 6,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x7"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "joint",
+    "seed": 7,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x12"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "joint",
+    "seed": 8,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x11"
+    ]
+   },
+   {
+    "scenario": "S3_hot",
+    "policy": "joint",
+    "seed": 9,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x9"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "compute_only",
+    "seed": 0,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x9"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "compute_only",
+    "seed": 1,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x6"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "compute_only",
+    "seed": 2,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x6"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "compute_only",
+    "seed": 3,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x15"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "compute_only",
+    "seed": 5,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x12"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "compute_only",
+    "seed": 4,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x17"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "compute_only",
+    "seed": 7,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x12"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "compute_only",
+    "seed": 6,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x7"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "compute_only",
+    "seed": 9,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x9"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "compute_only",
+    "seed": 8,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x11"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "independent",
+    "seed": 0,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x9"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "independent",
+    "seed": 1,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x6"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "independent",
+    "seed": 2,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x6"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "independent",
+    "seed": 3,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x15"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "independent",
+    "seed": 4,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x17"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "independent",
+    "seed": 5,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x12"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "independent",
+    "seed": 6,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x7"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "independent",
+    "seed": 7,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x12"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "independent",
+    "seed": 8,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x11"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "independent",
+    "seed": 9,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x9"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "joint",
+    "seed": 0,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x9"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "joint",
+    "seed": 1,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x6"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "joint",
+    "seed": 2,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x6"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "joint",
+    "seed": 3,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x15"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "joint",
+    "seed": 4,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x17"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "joint",
+    "seed": 5,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x12"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "joint",
+    "seed": 6,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x7"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "joint",
+    "seed": 7,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x12"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "joint",
+    "seed": 8,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x11"
+    ]
+   },
+   {
+    "scenario": "S4_cool",
+    "policy": "joint",
+    "seed": 9,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x9"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "compute_only",
+    "seed": 0,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x9"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "compute_only",
+    "seed": 1,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x5"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "compute_only",
+    "seed": 2,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x8"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "compute_only",
+    "seed": 3,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x13"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "compute_only",
+    "seed": 4,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x14"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "compute_only",
+    "seed": 5,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x10"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "compute_only",
+    "seed": 6,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x9"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "compute_only",
+    "seed": 7,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x13"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "compute_only",
+    "seed": 8,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x11"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "compute_only",
+    "seed": 9,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x10"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "independent",
+    "seed": 0,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x9"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "independent",
+    "seed": 1,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x5"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "independent",
+    "seed": 2,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x8"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "independent",
+    "seed": 3,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x13"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "independent",
+    "seed": 4,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x14"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "independent",
+    "seed": 5,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x10"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "independent",
+    "seed": 6,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x9"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "independent",
+    "seed": 7,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x13"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "independent",
+    "seed": 8,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x11"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "independent",
+    "seed": 9,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x10"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "joint",
+    "seed": 0,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x9"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "joint",
+    "seed": 1,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x5"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "joint",
+    "seed": 2,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x8"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "joint",
+    "seed": 3,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x13"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "joint",
+    "seed": 4,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x14"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "joint",
+    "seed": 5,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x10"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "joint",
+    "seed": 6,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x9"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "joint",
+    "seed": 7,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x13"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "joint",
+    "seed": 8,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x11"
+    ]
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "policy": "joint",
+    "seed": 9,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x10"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "compute_only",
+    "seed": 0,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x24"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "compute_only",
+    "seed": 1,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x23"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "compute_only",
+    "seed": 2,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x31"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "compute_only",
+    "seed": 3,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x35"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "compute_only",
+    "seed": 4,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x35"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "compute_only",
+    "seed": 5,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x28"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "compute_only",
+    "seed": 6,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x28"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "compute_only",
+    "seed": 7,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x25"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "compute_only",
+    "seed": 8,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x31"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "compute_only",
+    "seed": 9,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock' x15"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "independent",
+    "seed": 0,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x25"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "independent",
+    "seed": 1,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x23"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "independent",
+    "seed": 2,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x31"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "independent",
+    "seed": 3,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x35"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "independent",
+    "seed": 4,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x36"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "independent",
+    "seed": 5,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x28"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "independent",
+    "seed": 6,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x28"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "independent",
+    "seed": 7,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x26"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "independent",
+    "seed": 8,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x33"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "independent",
+    "seed": 9,
+    "warnings": [
+     "controller note 'compute:infeasible->max clock;cooling:opt' x15"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "joint",
+    "seed": 0,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x24"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "joint",
+    "seed": 1,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x23"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "joint",
+    "seed": 2,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x31"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "joint",
+    "seed": 3,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x35"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "joint",
+    "seed": 4,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x35"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "joint",
+    "seed": 5,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x28"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "joint",
+    "seed": 6,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x28"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "joint",
+    "seed": 7,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x25"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "joint",
+    "seed": 8,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x31"
+    ]
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "policy": "joint",
+    "seed": 9,
+    "warnings": [
+     "controller note 'joint:capacity-limited' x15"
+    ]
+   }
+  ],
+  "n_runs": 300,
+  "n_failed": 0,
+  "original_id": "E001-20261026T181652-ada586",
+  "compute_vs_fixed_change": [
+   {
+    "scenario": "S1_moderate",
+    "a": "compute_only",
+    "b": "fixed",
+    "n": 10,
+    "orig": -0.29480936600087443,
+    "calibrated": -0.33624600744512884,
+    "mean": -0.04143664144425437,
+    "lo": -0.04528477054550791,
+    "hi": -0.037588512343000834
+   },
+   {
+    "scenario": "S2_high_load",
+    "a": "compute_only",
+    "b": "fixed",
+    "n": 10,
+    "orig": -0.14439991888881087,
+    "calibrated": -0.20542678927359845,
+    "mean": -0.06102687038478759,
+    "lo": -0.06524203384714702,
+    "hi": -0.05681170692242815
+   },
+   {
+    "scenario": "S3_hot",
+    "a": "compute_only",
+    "b": "fixed",
+    "n": 10,
+    "orig": -0.2947475598861969,
+    "calibrated": -0.33617878555017594,
+    "mean": -0.04143122566397907,
+    "lo": -0.04527897576285026,
+    "hi": -0.037583475565107875
+   },
+   {
+    "scenario": "S4_cool",
+    "a": "compute_only",
+    "b": "fixed",
+    "n": 10,
+    "orig": -0.2948726981137707,
+    "calibrated": -0.3363148471792236,
+    "mean": -0.04144214906545285,
+    "lo": -0.04529069418235123,
+    "hi": -0.03759360394855447
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "a": "compute_only",
+    "b": "fixed",
+    "n": 10,
+    "orig": -0.34783542249511107,
+    "calibrated": -0.43448770781185136,
+    "mean": -0.08665228531674034,
+    "lo": -0.09159364532811079,
+    "hi": -0.08171092530536989
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "a": "compute_only",
+    "b": "fixed",
+    "n": 10,
+    "orig": -0.24303450742258687,
+    "calibrated": -0.3010445204306028,
+    "mean": -0.05801001300801597,
+    "lo": -0.060863909271647317,
+    "hi": -0.05515611674438462
+   }
+  ],
+  "joint_vs_independent_change": [
+   {
+    "scenario": "S1_moderate",
+    "a": "joint",
+    "b": "independent",
+    "n": 10,
+    "orig": -0.006542606257630234,
+    "calibrated": -0.005706811215555274,
+    "mean": 0.0008357950420749604,
+    "lo": 0.0003218001153254298,
+    "hi": 0.0013497899688244912
+   },
+   {
+    "scenario": "S2_high_load",
+    "a": "joint",
+    "b": "independent",
+    "n": 10,
+    "orig": -0.010365602826135101,
+    "calibrated": -0.009724325789538312,
+    "mean": 0.0006412770365967879,
+    "lo": 9.067472806234219e-05,
+    "hi": 0.0011918793451312336
+   },
+   {
+    "scenario": "S3_hot",
+    "a": "joint",
+    "b": "independent",
+    "n": 10,
+    "orig": -0.003304166709566492,
+    "calibrated": -0.003449522165541408,
+    "mean": -0.00014535545597491595,
+    "lo": -0.0009266110174386232,
+    "hi": 0.0006359001054887913
+   },
+   {
+    "scenario": "S4_cool",
+    "a": "joint",
+    "b": "independent",
+    "n": 10,
+    "orig": -0.01355726431565688,
+    "calibrated": -0.013412600232696924,
+    "mean": 0.00014466408295995547,
+    "lo": -0.0012355330075168064,
+    "hi": 0.0015248611734367172
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "a": "joint",
+    "b": "independent",
+    "n": 10,
+    "orig": -0.005822566907418292,
+    "calibrated": -0.005179501512136064,
+    "mean": 0.0006430653952822274,
+    "lo": 1.7146065585175855e-05,
+    "hi": 0.0012689847249792788
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "a": "joint",
+    "b": "independent",
+    "n": 10,
+    "orig": -0.013624910629911436,
+    "calibrated": -0.015111396616040041,
+    "mean": -0.001486485986128605,
+    "lo": -0.002973452232593669,
+    "hi": 4.802603364587391e-07
+   }
+  ],
+  "HC1": {
+   "supported": true,
+   "scenarios": [
+    "S1_moderate",
+    "S2_high_load",
+    "S3_hot",
+    "S4_cool",
+    "S5_memory_heavy",
+    "S6_degraded_cooling"
+   ]
+  },
+  "HC2": {
+   "supported": true,
+   "largest": "S5_memory_heavy"
+  },
+  "HC3": {
+   "supported": true,
+   "scenarios": [
+    "S1_moderate",
+    "S2_high_load",
+    "S3_hot",
+    "S4_cool",
+    "S5_memory_heavy",
+    "S6_degraded_cooling"
+   ],
+   "required": 5
+  }
+ },
  "assumptions": [
   {
    "name": "water_cp",
@@ -130748,6 +137782,18 @@
   [
    "2026-10-26T21:32:54+00:00",
    "E001C pre-registered (experiments/E001C_calibrated.json, committed before running): E001 design with beta_compute = 0.983 and beta_memory = 0 from M001. Inherited H1-H2 plus HC1 (compute_only saves more vs fixed than in E001 in all 6 scenarios), HC2 (largest change in S5_memory_heavy), HC3 (joint vs independent changes by < 0.5 pp in >= 5 of 6 scenarios). Disclosed: calibration values known, results not; acceptance rules set after the first fit summary; a forensic re-run of 24 seed-0 cells with the rejected first-fit values preceded registration (time series compared, outcomes not examined)."
+  ],
+  [
+   "2026-10-26T21:33:53+00:00",
+   "Registered E001C-20261026T213353-ac0b5f: Policy benchmark with measured clock sensitivity (M001: RTX 5070) | H: Inherited from E001 and re-tested: H1: joint uses less energy per successful task than independent in at least 4 of 6 scenarios (paired 95% CI entirely below 0), without more SLO violations or thermal-limit exceedances. H2: every optimising policy uses less energy per successful task than fixed in every scenario. New: HC1: compute_only saves more energy per successful task relative to fixed in E001C than in E001, in all 6 scenarios (seed-paired change in relative saving, 95% CI entirely below 0), because with beta_memory = 0 memory-bound phases lose no throughput when the clock drops. HC2: that change is largest in S5_memory_heavy. HC3: joint's advantage over independent changes by less than 0.5 percentage points (95% CI of the seed-paired change within +/-0.5 pp) in at least 5 of 6 scenarios, because both policies use the same DVFS model."
+  ],
+  [
+   "2026-10-26T21:37:46+00:00",
+   "Finished E001C-20261026T213353-ac0b5f: 300 runs, 0 failed"
+  ],
+  [
+   "2026-10-26T21:40:13+00:00",
+   "E001C completed (300 runs, 0 failed; seed-paired against E001). HC1 supported: compute_only's saving vs fixed rose by 4.1-8.7 percentage points in all 6 scenarios (now 20.5-43.4%, E001 14.4-34.8%). HC2 supported: largest change in S5_memory_heavy (-8.67 pp [-9.16, -8.17]). HC3 supported: joint vs independent moved by at most 0.15 pp in all 6 scenarios. Inherited H1 supported (6/6 below zero, 2/6 beyond 1%); H2 energy met, quality guard failed in the same 18 comparisons as E001 (at most +1.4 late tasks per ~2,900). Measured clock sensitivity makes energy-aware clock control look more valuable and leaves the joint-control result unchanged; both still depend on the voltage-frequency and leakage placeholders."
   ]
  ],
  "experiments": [
@@ -130919,6 +137965,18 @@
     "runs": 1
    },
    "created": "2026-10-26T21:32:41+00:00"
+  },
+  {
+   "id": "E001C-20261026T213353-ac0b5f",
+   "key": "E001C",
+   "status": "completed",
+   "title": "Policy benchmark with measured clock sensitivity (M001: RTX 5070)",
+   "hypothesis": "Inherited from E001 and re-tested: H1: joint uses less energy per successful task than independent in at least 4 of 6 scenarios (paired 95% CI entirely below 0), without more SLO violations or thermal-limit exceedances. H2: every optimising policy uses less energy per successful task than fixed in every scenario. New: HC1: compute_only saves more energy per successful task relative to fixed in E001C than in E001, in all 6 scenarios (seed-paired change in relative saving, 95% CI entirely below 0), because with beta_memory = 0 memory-bound phases lose no throughput when the clock drops. HC2: that change is largest in S5_memory_heavy. HC3: joint's advantage over independent changes by less than 0.5 percentage points (95% CI of the seed-paired change within +/-0.5 pp) in at least 5 of 6 scenarios, because both policies use the same DVFS model.",
+   "summary": {
+    "failed": 0,
+    "runs": 300
+   },
+   "created": "2026-10-26T21:33:53+00:00"
   }
  ]
 }

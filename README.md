@@ -16,6 +16,7 @@ This repository covers **Phase 0** (problem definition, evaluation criteria, arc
 | What happened, in order, including bugs | `docs/research_log.md` |
 | The interactive 3-D lab (API + Three.js) | run `python -m ueic serve`, open http://127.0.0.1:8765/lab/ |
 | How to measure your own GPU | `docs/09_calibration_protocol.md` |
+| First hardware results (RTX 5070) | `docs/10_calibration_results.md` |
 
 ## Run it (Windows PowerShell)
 

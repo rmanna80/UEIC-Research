@@ -8,7 +8,8 @@
 
 **Status (2026-10-26).**
 * **Laptop (RTX 4060 Laptop GPU).** Clock locking worked. The first run stopped before measuring (PyTorch could not see the GPU). A probe then showed the GPU held to about 51 W of a reported 125 W limit by a power cap, most likely a laptop power budget.
-* **Desktop PC (250 W GPU), now the calibration device.** The probe sustained 2685 MHz at exactly its 250 W limit and 70 °C, and the suggested sweep is 1342–2685 MHz. The clock sweep and warm-up have not run yet.
+* **Desktop PC (RTX 5070, 250 W), the calibration device: M001 recorded.** The clock sweep gave both clock sensitivities, which are now used in E001C. The voltage–frequency fit was rejected, because the simulator's straight-line form cannot follow the measured curve. The leakage fit was rejected too: the fan held the warm-up between 53 and 57 °C. Results: `10_calibration_results.md`.
+* **Still to measure:** leakage, using the improved warm-up in section 3 (higher clock, fixed fan speed, longer).
 
 Sessions from the two machines are never fitted together (section 4). Details are in the research log.
 
@@ -71,7 +72,10 @@ python -m ueic calib plan --clocks <the five clocks the probe suggested>
 
 The printed plan is the whole procedure:
 
-1. **Leakage warm-up** (about 15 min). Lock the middle clock and let the GPU idle for 5 minutes to cool. Then run a steady compute load for 10 minutes. At constant clock and load, the rise in power as the die warms is attributed to leakage. The fit needs at least 8 K of temperature rise.
+1. **Leakage warm-up** (about 25 min). Lock the second-highest sweep clock and let the GPU idle for 10 minutes to cool. Then run a steady compute load for 15 minutes. At constant clock, load and fan power, the rise in power as the die warms is attributed to leakage.
+   * **Range.** The fit needs at least 8 K of rise, and in practice much more. Over a few kelvin, leakage power and its temperature coefficient cannot be told apart (M001's warm-up spanned 53–57 °C and was rejected).
+   * **Fan.** On a desktop card the fan draws from the board power NVML reports. Automatic fan control also holds the temperature nearly flat, which defeats the measurement. If your card allows it, fix the fan at a constant speed in the card maker's tool for this step, restore automatic control afterwards, and stop if the GPU passes 85 °C.
+   * **Load.** Samples taken while the workload's throughput was more than 2% off its median are left out, so keep other GPU work and heavy CPU work off during the run.
 2. **Clock sweep** (2 minutes per clock). At each locked clock, run a compute-bound kernel (FP16 matrix multiply) and a memory-bound kernel (FP32 vector update), 60 s each.
 3. **Reset.** Finish with `nvidia-smi -i 0 -rgc`. Clock locks persist until you reset them or reboot.
 

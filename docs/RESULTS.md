@@ -1,8 +1,8 @@
-# UEIC · Phase 1 results (generated)
+# UEIC · Simulation results (generated)
 
-Generated 2026-10-26T21:33:39+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `40dc323b76b1cc51…`. Hash-chain check: **OK** (2862 finalised runs verified).
+Generated 2026-10-26T21:40:14+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `fc542e2731f9b05f…`. Hash-chain check: **OK** (3162 finalised runs verified).
 
-> **Every number on this page is a simulator output** (provenance `simulator_output`) and is conditional on the parameter registry (`04_assumptions_register.md`), most of which is class E/F. None of it is a measurement of real hardware. Energy boundary: grid → conversion → accelerators + pump + fans + chiller (see `00_problem_statement.md`).
+> **Every number on this page is a simulator output** (provenance `simulator_output`) and is conditional on the parameter registry (`04_assumptions_register.md`), most of which is class E/F. E001C uses two parameters measured on a real GPU (M001); every other parameter is still a placeholder. The measurements themselves are reported in `10_calibration_results.md`. Energy boundary: grid → conversion → accelerators + pump + fans + chiller (see `00_problem_statement.md`).
 
 ## Pre-registered hypotheses, evaluated mechanically
 
@@ -10,6 +10,11 @@ Generated 2026-10-26T21:33:39+00:00 by `python -m ueic report` from `results/uei
 |---|---|---|
 | E001 H1 | **supported, small** | Joint below independent with CI under zero in 6/6 scenarios; beyond the 1% practical threshold in 2/6. |
 | E001 H2 | **energy met, guard failed** | Every optimising policy below fixed on energy per successful task in every scenario; quality guard failed in 18 comparisons (slightly more late tasks). |
+| E001C H1 | **supported** | With measured clock sensitivity, joint below independent with CI under zero in 6/6 scenarios; beyond the 1% threshold in 2/6. |
+| E001C H2 | **energy met, guard failed** | Every optimising policy below fixed in every scenario; quality guard failed in 18 comparisons. |
+| E001C HC1 | **supported** | Change in compute-only's saving vs fixed (calibrated minus E001, percentage points): moderate -4.14, high_load -6.10, hot -4.14, cool -4.14, memory_heavy -8.67, degraded_cooling -5.80; CI below zero in 6/6. |
+| E001C HC2 | **supported** | Largest change in S5_memory_heavy (predicted S5_memory_heavy). |
+| E001C HC3 | **supported** | Change in joint's advantage over independent (pp): moderate +0.08 [+0.03, +0.13], high_load +0.06 [+0.01, +0.12], hot -0.01 [-0.09, +0.06], cool +0.01 [-0.12, +0.15], memory_heavy +0.06 [+0.00, +0.13], degraded_cooling -0.15 [-0.30, +0.00]; within +/-0.5 pp in 6/6 (need 5). |
 | E002 | **partly supported** | Joint never above independent in 50 one-at-a-time variants. Top driver of joint vs independent: p_leak_ref; of joint vs fixed: v_min_ratio; beta_memory ranks 6 (predicted top 2). |
 | E003 | **partly supported** | Saves below break-even: yes; costs above it: yes; energy saving smaller than work saving: no; false accepts lower success: yes. |
 | E004 | **not met** | Worst change dt 1 s vs 0.5 s: fixed 0.02%, joint 0.52% (criterion < 0.5%). |
@@ -407,6 +412,32 @@ Experiment `E008-20261026T185711-ac8eb3`: 210 runs, 0 failed. 5 seeds.
 | S3_hot | poor_chiller|twin_correct | -0.27% [-0.38%, -0.17%] | +0.00% [+0.00%, +0.01%] | -0.27% [-0.38%, -0.17%] | 367 / 0 / 0 | 8 / 0 / 0 |
 | S3_hot | poor_chiller|twin_optimistic | -0.29% [-0.37%, -0.22%] | +0.00% [+0.00%, +0.01%] | -0.30% [-0.37%, -0.22%] | 369 / 0 / 0 | 8 / 0 / 0 |
 
+## E001C · Policy benchmark with measured clock sensitivity
+
+Experiment `E001C-20261026T213353-ac0b5f`: 300 runs, 0 failed. Same design, seeds and workloads as E001 (`E001-20261026T181652-ada586`), with `beta_compute` = 0.983, `beta_memory` = 0.0 from M001. Changes are seed-paired against E001.
+
+![E001C](../results/figures/e001c_changes.png)
+
+| Scenario | Compute-only vs fixed: E001 | E001C | change (pp, 95% CI) | Joint vs independent: E001 | E001C | change (pp, 95% CI) |
+|---|---|---|---|---|---|---|
+| S1_moderate | -29.5% | -33.6% | -4.14 [-4.53, -3.76] | -0.65% | -0.57% | +0.08 [+0.03, +0.13] |
+| S2_high_load | -14.4% | -20.5% | -6.10 [-6.52, -5.68] | -1.04% | -0.97% | +0.06 [+0.01, +0.12] |
+| S3_hot | -29.5% | -33.6% | -4.14 [-4.53, -3.76] | -0.33% | -0.34% | -0.01 [-0.09, +0.06] |
+| S4_cool | -29.5% | -33.6% | -4.14 [-4.53, -3.76] | -1.36% | -1.34% | +0.01 [-0.12, +0.15] |
+| S5_memory_heavy | -34.8% | -43.4% | -8.67 [-9.16, -8.17] | -0.58% | -0.52% | +0.06 [+0.00, +0.13] |
+| S6_degraded_cooling | -24.3% | -30.1% | -5.80 [-6.09, -5.52] | -1.36% | -1.51% | -0.15 [-0.30, +0.00] |
+
+### Energy per successful task in E001C (kJ, mean [95% CI])
+
+| Scenario | Fixed baseline | Compute-only | Cooling-only | Independent | Joint |
+|---|---|---|---|---|---|
+| S1_moderate | 15.42 [15.27, 15.58] | 10.24 [10.03, 10.45] | 14.66 [14.51, 14.81] | 9.64 [9.44, 9.85] | 9.59 [9.39, 9.79] |
+| S2_high_load | 14.05 [13.95, 14.14] | 11.16 [10.97, 11.36] | 13.41 [13.31, 13.50] | 10.60 [10.41, 10.79] | 10.49 [10.31, 10.68] |
+| S3_hot | 16.82 [16.65, 16.99] | 11.17 [10.93, 11.40] | 15.59 [15.44, 15.75] | 10.38 [10.17, 10.60] | 10.35 [10.14, 10.56] |
+| S4_cool | 14.21 [14.07, 14.36] | 9.44 [9.24, 9.63] | 14.10 [13.96, 14.24] | 9.27 [9.07, 9.46] | 9.14 [8.95, 9.34] |
+| S5_memory_heavy | 14.10 [13.98, 14.23] | 7.98 [7.82, 8.14] | 13.39 [13.27, 13.50] | 7.49 [7.34, 7.65] | 7.45 [7.30, 7.60] |
+| S6_degraded_cooling | 15.69 [15.54, 15.84] | 10.97 [10.73, 11.20] | 15.10 [14.96, 15.24] | 10.53 [10.30, 10.77] | 10.37 [10.14, 10.60] |
+
 ## Experiment register (including superseded and failed)
 
 | Id | Status | Runs | Title |
@@ -425,3 +456,4 @@ Experiment `E008-20261026T185711-ac8eb3`: 210 runs, 0 failed. 5 seeds.
 | `E008-20261026T185711-ac8eb3` | completed | {"failed": 0, "runs": 210} | Self-correcting joint control under digital-twin mismatch |
 | `E006-20261026T190821-9afd6b` | completed | {"failed": 0, "runs": 360} | Joint control under a dynamic coolant loop (thermal mass + setpoint ramp limits) |
 | `M001-20261026T213241-115dce` | completed | {"failed": 0, "measurement": true, "runs": 1} | GPU calibration measurement (NVIDIA GeForce RTX 5070) |
+| `E001C-20261026T213353-ac0b5f` | completed | {"failed": 0, "runs": 300} | Policy benchmark with measured clock sensitivity (M001: RTX 5070) |

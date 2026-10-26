@@ -795,10 +795,14 @@ def plan_commands(clocks_MHz: list[int], gpu: int = 0, seconds: int = 60) -> str
              f"# If you stop partway, restore default clocks with: nvidia-smi -i {gpu} -rgc",
              f"python -m ueic calib check --gpu {gpu}     # must report PyTorch with CUDA and your GPU before you start",
              "# Clocks should come from `python -m ueic calib probe` (run at default clocks), which suggests them.", ""]
-    mid = sorted(clocks_MHz)[len(clocks_MHz) // 2]
-    lines += ["# 1) Leakage warm-up at one locked clock: 5 min idle to cool down, then 10 min of steady load.",
-              f"nvidia-smi -i {gpu} -lgc {mid},{mid}",
-              f"python -m ueic calib run --kind warmup --seconds 600 --idle-before 300 --gpu {gpu} --label clk={mid}",
+    cs = sorted(clocks_MHz)
+    warm = cs[-2] if len(cs) >= 2 else cs[0]   # high power for a wide temperature rise, but below the power limit
+    lines += ["# 1) Leakage warm-up at one locked clock: 10 min idle to cool down, then 15 min of steady load.",
+              "#    For a usable measurement the temperature must rise well over 10 K at constant fan power: if your",
+              "#    card lets you, fix the fan at a constant speed (card maker's tool) for this step, keep other GPU",
+              "#    and heavy CPU work off, and restore automatic fan control afterwards. Stop if it passes 85 C.",
+              f"nvidia-smi -i {gpu} -lgc {warm},{warm}",
+              f"python -m ueic calib run --kind warmup --seconds 900 --idle-before 600 --gpu {gpu} --label clk={warm}",
               "# 2) Clock sweep: compute-bound and memory-bound kernels at each clock."]
     for c in clocks_MHz:
         lines += [f"nvidia-smi -i {gpu} -lgc {c},{c}",

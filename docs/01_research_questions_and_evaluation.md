@@ -47,6 +47,7 @@
 | E006 | Dynamic coolant loop (v2 after a confound in v1) | 3 plant models × 4 policies × 3 scenarios × 10 seeds |
 | E007 | Move suppression and time-step sensitivity | 7 threshold/dt variants × 2 scenarios × 10 seeds (joint only) |
 | E008 | Self-correcting joint control under twin mismatch | 7 cases × 3 policies × 2 scenarios × 5 seeds |
-| M001 | GPU calibration measurement (when run on real hardware) | measurement experiment, see `09` |
+| M001 | GPU calibration measurement: RTX 5070, 2026-10-26 | 12 sessions on one GPU; results in `10` |
+| E001C | E001 with M001's measured clock sensitivity | 6 scenarios × 5 policies × 10 seeds, seed-paired against E001 |
 
 Full pre-registered specs, including hypotheses, variables, controls and limitations, are in `experiments/*.json`. They are frozen in the database at registration.

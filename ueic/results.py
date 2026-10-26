@@ -5,6 +5,7 @@ here is derived from finalised runs in the database; nothing is typed in by hand
 """
 from __future__ import annotations
 
+import json
 from collections import defaultdict
 from dataclasses import replace
 from typing import Any
@@ -31,8 +32,8 @@ def _row(r):
     return {k: (_f(v) if isinstance(v, (float, np.floating)) else v) for k, v in r.items()}
 
 
-def e001(store: Store, threshold: float) -> dict[str, Any] | None:
-    eid = store.latest_experiment("E001")
+def e001(store: Store, threshold: float, key: str = "E001") -> dict[str, Any] | None:
+    eid = store.latest_experiment(key)
     if not eid:
         return None
     exp = store.experiment(eid)
@@ -232,6 +233,7 @@ def compute_all(store: Store, threshold: float = 0.01) -> dict[str, Any]:
         "E001": e001(store, threshold), "E002": e002(store, threshold), "E003": e003(store, threshold),
         "E004": e004(store), "E005": e005(store, threshold),
         "E006": e006(store, threshold), "E007": e007(store, threshold), "E008": e008(store, threshold),
+        "M001": m001(store), "E001C": e001c(store, threshold),
         "assumptions": assumptions_table(),
         "research_log": store.research_log(),
         "experiments": [{"id": x["id"], "key": x["key"], "status": x["status"], "title": x["spec"]["title"],
@@ -317,6 +319,7 @@ def verdicts(R: dict[str, Any]) -> list[dict[str, Any]]:
                             f"{jf[0] if jf else 'n/a'}; beta_memory ranks "
                             f"{jf.index('beta_memory') + 1 if 'beta_memory' in jf else 'n/a'} (predicted top 2)."})
     out += verdicts_phase3(R)
+    out += verdicts_calibrated(R)
     return out
 
 
@@ -473,4 +476,86 @@ def verdicts_phase3(R: dict[str, Any]) -> list[dict[str, Any]]:
                             + ("Never worse than independent on energy (H2: yes). " if not h2_fail else
                                f"Not confirmed no-worse than independent in {', '.join(h2_fail)} (H2: no). ")
                             + f"Within 0.5% of joint with a correct twin (H3: {'yes' if h3 else 'no'})."})
+    return out
+
+
+# ------------------------------------------------------------------ Phase 4: measurement and calibrated runs
+def m001(store: Store) -> dict[str, Any] | None:
+    eid = store.latest_experiment("M001")
+    if not eid:
+        return None
+    run = store.runs(eid)[0]
+    row = store.db.execute("SELECT config_json FROM runs WHERE id=?", (run["run_id"],)).fetchone()
+    calib = json.loads(row[0]).get("calibration") if row and row[0] else None
+    return {"id": eid, "metrics": run["metrics"], "notes": run.get("warnings") or [],
+            "device": (calib or {}).get("device"), "accepted": (calib or {}).get("overrides"),
+            "rejected": (calib or {}).get("rejected"), "energy_per_work": (calib or {}).get("energy_per_work")}
+
+
+def _cross(runs_c, runs_1, a: str, b: str, metric: str = "E_per_success_kJ") -> list[dict[str, Any]]:
+    """Seed-paired change between two experiments with the same design: for each scenario and seed,
+    d = (a/b - 1) in the calibrated experiment minus (a/b - 1) in the original."""
+    ic, i1 = A.index_runs(runs_c), A.index_runs(runs_1)
+    rows = []
+    for g in sorted(set(ic) & set(i1)):
+        lc, l1 = ic[g], i1[g]
+        if not all(p in lc and p in l1 for p in (a, b)):
+            continue
+        seeds = sorted(set(lc[a]) & set(lc[b]) & set(l1[a]) & set(l1[b]))
+        rc = np.array([lc[a][s_][metric] / lc[b][s_][metric] - 1 for s_ in seeds])
+        r1 = np.array([l1[a][s_][metric] / l1[b][s_][metric] - 1 for s_ in seeds])
+        m, lo, hi = A.t_ci(rc - r1)
+        rows.append({"scenario": g[0], "a": a, "b": b, "n": len(seeds), "orig": _f(float(r1.mean())),
+                     "calibrated": _f(float(rc.mean())), "mean": _f(m), "lo": _f(lo), "hi": _f(hi)})
+    return rows
+
+
+def e001c(store: Store, threshold: float) -> dict[str, Any] | None:
+    eid_c, eid_1 = store.latest_experiment("E001C"), store.latest_experiment("E001")
+    if not eid_c or not eid_1:
+        return None
+    base = e001(store, threshold, key="E001C")
+    base.pop("timeseries", None)
+    runs_c, runs_1 = store.runs(eid_c), store.runs(eid_1)
+    cf = _cross(runs_c, runs_1, "compute_only", "fixed")
+    ji = _cross(runs_c, runs_1, "joint", "independent")
+    hc1 = [r["scenario"] for r in cf if r["hi"] is not None and r["hi"] < 0]
+    largest = min(cf, key=lambda r: r["mean"])["scenario"] if cf else None
+    hc3 = [r["scenario"] for r in ji if r["lo"] is not None and r["lo"] > -0.005 and r["hi"] < 0.005]
+    return {**base, "original_id": eid_1, "compute_vs_fixed_change": cf, "joint_vs_independent_change": ji,
+            "HC1": {"supported": len(hc1) == len(cf) == 6, "scenarios": hc1},
+            "HC2": {"supported": largest == "S5_memory_heavy", "largest": largest},
+            "HC3": {"supported": len(hc3) >= 5, "scenarios": hc3, "required": 5}}
+
+
+def verdicts_calibrated(R: dict[str, Any]) -> list[dict[str, Any]]:
+    out = []
+    c = R.get("E001C")
+    if not c:
+        return out
+    h1, h2 = c["H1"], c["H2"]
+    out.append({"key": "E001C H1", "state": "supported" if h1["supported"] else "not supported",
+                "text": f"With measured clock sensitivity, joint below independent with CI under zero in "
+                        f"{len(h1['scenarios_ci_below_zero'])}/6 scenarios; beyond the 1% threshold in "
+                        f"{len(h1['scenarios_meaningful'])}/6."})
+    out.append({"key": "E001C H2", "state": "supported" if h2["supported"] else
+                ("energy met, guard failed" if h2["energy_criterion_met"] else "not supported"),
+                "text": "Every optimising policy below fixed in every scenario"
+                        + ("" if h2["energy_criterion_met"] else f" (not met: {h2['energy_failures']})")
+                        + (f"; quality guard failed in {len(h2['guard_failures'])} comparisons." if h2["guard_failures"]
+                           else "; quality guard held.")})
+    cf = {r["scenario"]: r for r in c["compute_vs_fixed_change"]}
+    out.append({"key": "E001C HC1", "state": "supported" if c["HC1"]["supported"] else
+                ("partly supported" if c["HC1"]["scenarios"] else "not supported"),
+                "text": "Change in compute-only's saving vs fixed (calibrated minus E001, percentage points): "
+                        + ", ".join(f"{sc.split('_', 1)[1]} {100 * r['mean']:+.2f}" for sc, r in cf.items())
+                        + f"; CI below zero in {len(c['HC1']['scenarios'])}/6."})
+    out.append({"key": "E001C HC2", "state": "supported" if c["HC2"]["supported"] else "not supported",
+                "text": f"Largest change in {c['HC2']['largest']} (predicted S5_memory_heavy)."})
+    ji = {r["scenario"]: r for r in c["joint_vs_independent_change"]}
+    out.append({"key": "E001C HC3", "state": "supported" if c["HC3"]["supported"] else "not supported",
+                "text": "Change in joint's advantage over independent (pp): "
+                        + ", ".join(f"{sc.split('_', 1)[1]} {100 * r['mean']:+.2f} [{100 * r['lo']:+.2f}, {100 * r['hi']:+.2f}]"
+                                    for sc, r in ji.items())
+                        + f"; within +/-0.5 pp in {len(c['HC3']['scenarios'])}/6 (need 5)."})
     return out

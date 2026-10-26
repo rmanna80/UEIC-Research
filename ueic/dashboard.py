@@ -56,6 +56,26 @@ def explorer_grid(cfg=None) -> dict:
     }
 
 
+def _m001(m: dict | None) -> dict | None:
+    """Measured curves plus the simulator's prediction at the same clocks and temperatures."""
+    if not m or not m.get("energy_per_work"):
+        return None
+    from . import physics as ph
+    from .params import make_config
+    cfg = make_config()
+    ec = m["energy_per_work"]["compute"]
+    pts = ec["points"]
+    top = pts[-1]
+    p_top = float(ph.chip_power(1.0, top["temp_C"], 1.0, cfg))
+    beta_cal = (m.get("accepted") or {}).get("beta_compute", {}).get("value", cfg.beta_compute)
+    sim = [{"s": x["s"], "P_rel": float(ph.chip_power(x["s"], x["temp_C"], 1.0, cfg)) / p_top} for x in pts]
+    for r in sim:
+        r["E_rel"] = r["P_rel"] / r["s"] ** cfg.beta_compute
+        r["E_rel_cal"] = r["P_rel"] / r["s"] ** beta_cal
+    return {"id": m["id"], "device": m.get("device"), "accepted": m.get("accepted"), "rejected": m.get("rejected"),
+            "compute": ec, "memory": m["energy_per_work"].get("memory"), "sim": sim}
+
+
 def _slim(R: dict) -> dict:
     """Keep what the page needs; drop bulky fields."""
     D = {k: R[k] for k in ("generated_utc", "code_sha256", "chain_ok", "chain_msg", "threshold", "assumptions",
@@ -83,6 +103,12 @@ def _slim(R: dict) -> dict:
             D[k]["hypothesis"] = x["spec"]["hypothesis"]
         else:
             D[k] = None
+    D["M001"] = _m001(R.get("M001"))
+    c = R.get("E001C")
+    D["E001C"] = ({k: c[k] for k in ("id", "original_id", "n_runs", "n_failed", "compute_vs_fixed_change",
+                                     "joint_vs_independent_change", "HC1", "HC2", "HC3", "H1", "H2")}
+                  | {"hypothesis": c["spec"]["hypothesis"], "disclosure": c["spec"].get("disclosure", ""),
+                     "overrides": c["spec"].get("calibration_source", {}).get("overrides", {})}) if c else None
     D["verdicts"] = sorted(verdicts(R), key=lambda v: v["key"])
     D["policy_order"] = POLICY_ORDER
     D["explorer"] = explorer_grid()
@@ -100,7 +126,8 @@ def build_dashboard(store, root: Path) -> str:
     return str(out)
 
 
-TEMPLATE = r"""<title>UEIC Research Dashboard</title>
+TEMPLATE = r"""<meta charset="utf-8">
+<title>UEIC Research Dashboard</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -207,12 +234,13 @@ svg .ax{stroke:var(--axis)} svg .gr{stroke:var(--rule)}
 <div class="wrap">
 <header>
   <div class="top">
-    <h1>UEIC Research Dashboard<small>Unified Energy-Intelligent Computing · Phase 0–1 simulation study</small></h1>
+    <h1>UEIC Research Dashboard<small>Unified Energy-Intelligent Computing · simulation study with a first hardware calibration</small></h1>
     <div class="stamp" id="stamp"></div>
   </div>
-  <div class="banner"><span aria-hidden="true">⚠</span><div><strong>Simulated results, not hardware measurements.</strong>
-  Every value comes from the UEIC simulator and depends on the assumptions register, where most hardware and plant values are
-  class E (extrapolation) or F (placeholder). Energy boundary: grid → power conversion → accelerators, coolant pump, heat-rejection fans, trim chiller.</div></div>
+  <div class="banner"><span aria-hidden="true">⚠</span><div><strong>Simulated results, except the Hardware tab.</strong>
+  Every other value comes from the UEIC simulator and depends on the assumptions register, where most hardware and plant values are
+  class E (extrapolation) or F (placeholder); E001C uses two values measured on one real GPU. Energy boundary: grid → power conversion → accelerators, coolant pump, heat-rejection fans, trim chiller.
+  The Hardware tab shows measurements of GPU board power only.</div></div>
   <nav role="tablist" id="tabs"></nav>
 </header>
 <main id="main"></main>
@@ -299,7 +327,7 @@ function lineChart(host, {series, yLabel, xLabel, h = 200, refs = [], yMin, yMax
 
 /* ---------------- tabs ---------------- */
 const TABS = [['overview', 'Overview'], ['energy', 'Energy'], ['thermal', 'Thermal'], ['sensitivity', 'Sensitivity'], ['routing', 'Model routing'],
-  ['robustness', 'Twin mismatch'], ['phase3', 'Phase 3'], ['explorer', 'Cold-plate explorer'], ['assumptions', 'Assumptions'], ['log', 'Experiments & log']];
+  ['robustness', 'Twin mismatch'], ['phase3', 'Phase 3'], ['hardware', 'Hardware (M001)'], ['explorer', 'Cold-plate explorer'], ['assumptions', 'Assumptions'], ['log', 'Experiments & log']];
 const nav = $('#tabs'), main = $('#main'), renderers = {}, sections = {};
 TABS.forEach(([id, name]) => { const b = el('button', {role: 'tab', id: 'tab-' + id, 'aria-controls': id, 'aria-selected': 'false', type: 'button'}, name);
   b.addEventListener('click', () => show(id)); nav.appendChild(b); const sec = el('section', {class: 'tab', id, role: 'tabpanel', 'aria-labelledby': 'tab-' + id}); sec.hidden = true; main.appendChild(sec); sections[id] = sec; });
@@ -341,9 +369,9 @@ renderers.overview = sec => { sec.innerHTML = '';
     groupedBars(host, {groups: SC, series: P, get: (s, k) => E1.table[s][k].E_per_success_kJ, yLabel: 'kJ per successful task', groupLabel: scName,
       extra: (s, k, v) => { const c = cmp(k, 'fixed', s); return [['mean', fmt(v.mean, 2) + ' kJ'], ['95% CI', `${fmt(v.lo, 2)} – ${fmt(v.hi, 2)}`]].concat(c ? [['vs fixed', pct(c.mean, 1)]] : []); }}); }
   const oq = el('ul', {class: 'findings'});
-  ['Do the leakage–temperature slope and V–f curve of a real GPU resemble the registry values? These drive most conclusions (Sensitivity tab). Measuring them is the first Phase 4 task.',
-   'Does the joint advantage survive a dynamic coolant loop with thermal mass and setpoint ramps? The current plant is quasi-steady, which flatters aggressive setpoint moves.',
-   'Can move suppression remove the joint controller’s decision-path sensitivity (E004) without losing its thermal-safety benefit?',
+  ['How temperature-sensitive is real leakage? The first warm-up on a real GPU could not separate leakage from its temperature coefficient. The slope it did measure suggests the registry overstates temperature sensitivity 2.5–4× (Hardware tab). If so, the benefit of colder coolant is overstated. A better warm-up is the next measurement.',
+   'The simulator’s straight-line voltage–frequency model gets the shape of the measured power curve wrong: small clock cuts from the top save more than modelled, deep cuts less. DVFS magnitudes need a measured voltage–frequency form before they can be trusted.',
+   'Under a slow coolant loop the joint controller loses thermal margin (E006). Planning over a short horizon with the loop model is the next controller change.',
    'Is there any workload where a custom accelerator would beat software and existing parts? Current evidence does not justify one; see docs/08_hardware_feasibility.md.'].forEach(t => oq.appendChild(el('li', {}, t)));
   sec.appendChild(el('h2', {}, 'Open questions')); sec.appendChild(oq); };
 
@@ -489,6 +517,43 @@ renderers.phase3 = sec => { sec.innerHTML = ''; const E6 = D.E006, E7 = D.E007, 
       E7.dt_sensitivity.map(d => `<tr><td>${scName(d.scenario)}</td><td class="n">${(d.threshold * 100).toFixed(1)}%</td><td class="n">${(d.max * 100).toFixed(3)}%</td><td class="n">${(d.mean * 100).toFixed(3)}%</td></tr>`).join('')}</tbody></table>`));
     t.appendChild(el('p', {class: 'note'}, 'Most switching is clock changes that track demand, not chattering; supply temperature barely moves. Thresholds up to 2% cost almost nothing but also do not change time-step sensitivity, which is already under 0.5% on 4-hour runs.'));
     sec.appendChild(t); } };
+
+/* Hardware (M001) */
+renderers.hardware = sec => { sec.innerHTML = ''; const M = D.M001, C = D.E001C;
+  if (!M) { sec.appendChild(el('p', {}, 'No hardware measurement has been recorded yet.')); return; }
+  const dev = M.device || {};
+  sec.appendChild(el('p', {class: 'lede'}, `First real-hardware measurement: ${dev.name || 'GPU'}, NVML power limit ${fmt(dev.power_limit_W, 0)} W. Compute-bound (FP16 matrix multiply) and memory-bound (FP32 streaming) kernels ran at five locked clocks, one session each, plus a warm-up at a fixed clock. Boundary: GPU board power as reported by NVML, not the host or the cooling plant. These are measurements (class B); the simulator lines are its predictions at the same clocks and temperatures, normalised to the highest clock.`));
+  const c = M.compute, mm = M.memory, xs = c.points.map(p => p.s);
+  const g = el('div', {class: 'grid2'});
+  const p1 = el('div', {class: 'panel'}); p1.appendChild(el('h3', {}, 'Energy per unit of work vs clock (relative to the top clock)'));
+  const e1 = [{label: 'Measured, compute kernel', color: 'var(--s1)', x: xs, y: c.points.map(p => p.energy_rel_top), markers: true},
+    {label: 'Measured, memory kernel', color: 'var(--s2)', x: xs, y: mm ? mm.points.map(p => p.energy_rel_top) : [], markers: true},
+    {label: 'Simulator, registry', color: 'var(--muted)', x: xs, y: M.sim.map(r => r.E_rel), dash: '5 4'},
+    {label: 'Simulator, calibrated clock sensitivity', color: 'var(--ink2)', x: xs, y: M.sim.map(r => r.E_rel_cal), dash: '2 3'}];
+  p1.appendChild(legend(e1.map(s => ({label: s.label, color: s.color})))); const h1 = el('div'); p1.appendChild(h1);
+  p1.appendChild(el('p', {class: 'note'}, `Compute: lowest at ${fmt(c.min_at_clock_MHz, 0)} MHz, ${fmt(100 * c.saving_vs_top, 0)}% below the top clock. Memory: ${mm ? `lowest at ${fmt(mm.min_at_clock_MHz, 0)} MHz, ${fmt(100 * mm.saving_vs_top, 0)}% below, with no loss of throughput` : 'n/a'}.`));
+  g.appendChild(p1);
+  const p2 = el('div', {class: 'panel'}); p2.appendChild(el('h3', {}, 'Board power vs clock (relative to the top clock)'));
+  const e2 = [{label: 'Measured, compute kernel', color: 'var(--s1)', x: xs, y: c.points.map(p => p.power_rel_top), markers: true},
+    {label: 'Simulator, registry', color: 'var(--muted)', x: xs, y: M.sim.map(r => r.P_rel), dash: '5 4'}];
+  p2.appendChild(legend(e2.map(s => ({label: s.label, color: s.color})))); const h2 = el('div'); p2.appendChild(h2);
+  p2.appendChild(el('p', {class: 'note'}, 'The measured curve is flat, then steep. The simulator’s straight-line voltage model cannot follow that, so its voltage fit was rejected; small clock cuts from the top save more than it predicts, deep cuts less.'));
+  g.appendChild(p2); sec.appendChild(g);
+  requestAnimationFrame(() => { lineChart(h1, {series: e1, yLabel: 'energy / top', xLabel: 'clock / top', h: 230, xFmt: v => fmt(v, 2), yFmt: v => fmt(v, 3), refs: [{y: 1, label: 'top clock', color: 'var(--muted)'}]});
+    lineChart(h2, {series: e2, yLabel: 'power / top', xLabel: 'clock / top', h: 230, xFmt: v => fmt(v, 2), yFmt: v => fmt(v, 3)}); });
+  const t = el('div', {class: 'panel'}); t.appendChild(el('h3', {}, 'What goes into the simulator'));
+  const rows = Object.entries(M.accepted || {}).map(([k, v]) => `<tr><td class="mono">${k}</td><td><span class="pill good">${v.status}</span></td><td class="n">${v.value}${v.measured !== undefined ? ` <span class="note">(measured ${v.measured})</span>` : ''}</td><td>${v.se ? '± ' + fmt(1.96 * v.se, 3) + ' (95% CI)' : ''}</td></tr>`)
+    .concat(Object.entries(M.rejected || {}).map(([k, v]) => `<tr><td class="mono">${k}</td><td><span class="pill crit">rejected</span></td><td class="n note">not used</td><td>${v.reason.replace(/</g, '&lt;')}</td></tr>`));
+  t.appendChild(el('div', {class: 'scroll'}, `<table><thead><tr><th>Parameter</th><th>Status</th><th class="n">Value</th><th>Detail</th></tr></thead><tbody>${rows.join('')}</tbody></table>`));
+  t.appendChild(el('p', {class: 'note'}, 'Acceptance rules: a fit that ends at an edge of its allowed range is rejected (R1); a value less precise than the range the sensitivity study already covers is rejected (R2); a value outside its physical range is moved to the limit only if its 95% CI reaches it (R3). Full report: docs/10_calibration_results.md.'));
+  sec.appendChild(t);
+  if (C) { const p = el('div', {class: 'panel'}); p.appendChild(el('h3', {}, 'E001C · The benchmark re-run with the measured clock sensitivity (seed-paired change vs E001)'));
+    const ji = Object.fromEntries(C.joint_vs_independent_change.map(r => [r.scenario, r]));
+    const pp = r => `${(100 * r.mean).toFixed(2)} <span class="note">[${(100 * r.lo).toFixed(2)}, ${(100 * r.hi).toFixed(2)}]</span>`;
+    p.appendChild(el('div', {class: 'scroll'}, `<table><thead><tr><th>Scenario</th><th class="n">Compute-only vs fixed, E001</th><th class="n">E001C</th><th class="n">Change (pp)</th><th class="n">Joint vs independent, E001</th><th class="n">E001C</th><th class="n">Change (pp)</th></tr></thead><tbody>${
+      C.compute_vs_fixed_change.map(r => { const j = ji[r.scenario]; return `<tr><td>${scName(r.scenario)}</td><td class="n">${pct(r.orig, 1)}</td><td class="n">${pct(r.calibrated, 1)}</td><td class="n">${pp(r)}</td><td class="n">${j ? pct(j.orig, 2) : '–'}</td><td class="n">${j ? pct(j.calibrated, 2) : '–'}</td><td class="n">${j ? pp(j) : '–'}</td></tr>`; }).join('')}</tbody></table>`));
+    p.appendChild(el('p', {class: 'note'}, 'Only the two accepted values changed; every other parameter is still a placeholder. Hypotheses were committed before the run. Disclosure: ' + C.disclosure.replace(/</g, '&lt;')));
+    sec.appendChild(p); } };
 
 /* Explorer */
 const X = D.explorer; const xs = {s: X.s.indexOf(1) >= 0 ? X.s.indexOf(1) : X.s.length - 1, a: X.t_amb.indexOf(20), t: null, f: null};

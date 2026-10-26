@@ -239,6 +239,31 @@ def fig_e008(R, out):
     plt.close(fig)
 
 
+def fig_e001c(R, out):
+    c = R["E001C"]
+    fig, axes = plt.subplots(1, 2, figsize=(10, 3.8), dpi=150)
+    fig.patch.set_facecolor(SURF)
+    panels = [("compute_vs_fixed_change", "Change in compute-only saving vs fixed (pp)", SLOTS[1], None),
+              ("joint_vs_independent_change", "Change in joint vs independent (pp)", SLOTS[4], 0.5)]
+    for ax, (key, title, col, band) in zip(axes, panels):
+        _style(ax)
+        rows = c[key]
+        for i, r in enumerate(rows):
+            ax.plot([i, i], [100 * r["lo"], 100 * r["hi"]], color=col, lw=2)
+            ax.scatter([i], [100 * r["mean"]], color=col, s=40, zorder=3, edgecolor=SURF, linewidth=1.5)
+        ax.axhline(0, color=AXIS, lw=1)
+        if band:
+            ax.axhspan(-band, band, color=GRID, alpha=0.6, zorder=0)
+            ax.text(-0.4, band, " pre-registered +/-0.5 pp", color=MUTED, fontsize=8, va="bottom")
+        ax.set_xticks(range(len(rows)), [r["scenario"].split("_", 1)[1].replace("_", "\n") for r in rows], fontsize=8)
+        ax.set_title(title, fontsize=10, color=INK, loc="left")
+    fig.suptitle("E001C vs E001 · seed-paired change after calibrating clock sensitivity (mean, 95% CI, 10 seeds)",
+                 fontsize=10, color=INK, x=0.01, ha="left")
+    fig.tight_layout()
+    fig.savefig(out / "e001c_changes.png", facecolor=SURF)
+    plt.close(fig)
+
+
 # ------------------------------------------------------------------------ markdown
 def md_assumptions(R) -> str:
     L = ["# 04 · Assumptions register", "",
@@ -261,14 +286,15 @@ def md_assumptions(R) -> str:
 
 def md_results(R) -> str:
     thr = R["threshold"]
-    L = ["# UEIC · Phase 1 results (generated)", "",
+    L = ["# UEIC · Simulation results (generated)", "",
          f"Generated {R['generated_utc']} by `python -m ueic report` from `results/ueic.sqlite`. "
          f"Code SHA-256 `{R['code_sha256'][:16]}…`. Hash-chain check: **{'OK' if R['chain_ok'] else 'FAILED'}** "
          f"({R['chain_msg']}).", "",
          "> **Every number on this page is a simulator output** (provenance `simulator_output`) and is conditional on "
-         "the parameter registry (`04_assumptions_register.md`), most of which is class E/F. None of it is a "
-         "measurement of real hardware. Energy boundary: grid → conversion → accelerators + pump + fans + chiller "
-         "(see `00_problem_statement.md`).", ""]
+         "the parameter registry (`04_assumptions_register.md`), most of which is class E/F. E001C uses two parameters "
+         "measured on a real GPU (M001); every other parameter is still a placeholder. The measurements themselves are "
+         "reported in `10_calibration_results.md`. Energy boundary: grid → conversion → accelerators + pump + fans + "
+         "chiller (see `00_problem_statement.md`).", ""]
     from .results import verdicts
     L += ["## Pre-registered hypotheses, evaluated mechanically", "", "| Experiment | Verdict | Detail |", "|---|---|---|"]
     for v in sorted(verdicts(R), key=lambda v: v["key"]):
@@ -440,6 +466,33 @@ def md_results(R) -> str:
                      f"{num(r['joint_robust']['throttled'], 0)} |")
         L.append("")
 
+    c = R.get("E001C")
+    if c:
+        ov = c["spec"].get("calibration_source", {}).get("overrides", {})
+        L += ["## E001C · Policy benchmark with measured clock sensitivity", "",
+              f"Experiment `{c['id']}`: {c['n_runs']} runs, {c['n_failed']} failed. Same design, seeds and workloads as "
+              f"E001 (`{c['original_id']}`), with " + ", ".join(f"`{k}` = {v['value']}" for k, v in ov.items())
+              + " from M001. Changes are seed-paired against E001.", "",
+              "![E001C](../results/figures/e001c_changes.png)", "",
+              "| Scenario | Compute-only vs fixed: E001 | E001C | change (pp, 95% CI) | Joint vs independent: E001 | E001C | change (pp, 95% CI) |",
+              "|---|---|---|---|---|---|---|"]
+        ji = {r["scenario"]: r for r in c["joint_vs_independent_change"]}
+        for r in c["compute_vs_fixed_change"]:
+            j = ji.get(r["scenario"])
+            pp = lambda x: f"{100 * x['mean']:+.2f} [{100 * x['lo']:+.2f}, {100 * x['hi']:+.2f}]"
+            L.append(f"| {r['scenario']} | {pct(r['orig'])} | {pct(r['calibrated'])} | {pp(r)} | "
+                     + (f"{pct(j['orig'], 2)} | {pct(j['calibrated'], 2)} | {pp(j)} |" if j else "n/a | n/a | n/a |"))
+        L += ["", "### Energy per successful task in E001C (kJ, mean [95% CI])", "",
+              "| Scenario | " + " | ".join(LABEL[p] for p in c["policies"]) + " |",
+              "|---|" + "---|" * len(c["policies"])]
+        for sc in c["scenarios"]:
+            cells = []
+            for p_ in c["policies"]:
+                t = c["table"].get(sc, {}).get(p_, {}).get("E_per_success_kJ")
+                cells.append(f"{t['mean']:.2f} [{t['lo']:.2f}, {t['hi']:.2f}]" if t else "n/a")
+            L.append(f"| {sc} | " + " | ".join(cells) + " |")
+        L.append("")
+
     L += ["## Experiment register (including superseded and failed)", "",
           "| Id | Status | Runs | Title |", "|---|---|---|---|"]
     for x in R["experiments"]:
@@ -473,6 +526,8 @@ def build_report(store, root: Path) -> str:
         fig_e006(R, figs)
     if R.get("E008"):
         fig_e008(R, figs)
+    if R.get("E001C"):
+        fig_e001c(R, figs)
     docs = root / "docs"
     (docs / "RESULTS.md").write_text(md_results(R))
     (docs / "04_assumptions_register.md").write_text(md_assumptions(R))

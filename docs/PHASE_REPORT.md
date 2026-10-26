@@ -128,6 +128,34 @@ The lab was checked in a headless browser on desktop and phone, in light and dar
 | **Run stopped before measuring** | The warm-up stopped with "PyTorch cannot see a CUDA GPU". The Administrator window had no virtual environment active, so the likely cause is a different Python or a CPU-only PyTorch build; not yet confirmed. No data was recorded, but an empty session folder was left. Fixed: PyTorch and NVML are now checked before the folder exists, `calib check` names the exact cause, and errors print without a traceback. |
 | **Clock reference (found in review, before any data)** | The fit scaled clocks by NVML's maximum SM clock. On this GPU that is 3105 MHz, the top of the driver table, which it does not sustain under load. The planned 900–1800 MHz sweep would have sat at s = 0.29–0.58, mostly below the simulator's s_min = 0.5, so the `v_min_ratio` fit would have been an extrapolation. Fixed: s is now relative to the highest measured compute clock, and the power fit uses only s ≥ 0.5 and needs at least 4 clocks there (3 clocks leave no standard error). `calib probe` suggests sweep clocks from the clock the GPU sustains at default settings. Unheld locks and power- or thermal-limited sessions are flagged. |
 
+### First real-hardware measurement: M001 (2026-10-26, RTX 5070)
+
+Twelve sessions on the user's desktop GPU (probe, warm-up, compute and memory kernels at five locked clocks); full report in `10_calibration_results.md`. These are physical measurements of GPU board power, not facility energy.
+
+| Result | Status |
+|---|---|
+| **Clock sensitivity.** Compute throughput scales with clock to the power 0.983 ± 0.009. Memory-bound throughput does not depend on the core clock (measured −0.056 ± 0.079). | Accepted; used in E001C (memory value transferred as 0) |
+| **Energy per unit of work.** The compute kernel used least energy per FP16 TFLOP at 1657 MHz, 32% below the top clock; the memory kernel used least at the lowest clock, 31% below, with no throughput loss. | Model-free measurement |
+| **Simulator check.** With registry defaults the simulator gets the size of that saving roughly right (35% predicted) but the shape wrong: at 88% of the top clock it predicts a 13% saving where 22% was measured. Small clock cuts save more than modelled, deep cuts less. | Phase 4 comparison; error up to 0.09 of top-clock values |
+| **Voltage–frequency form.** The registry's straight-line form cannot follow the measured flat-then-steep power curve; the fit ran to its bound. | Rejected (R1) |
+| **Leakage.** The fan held the warm-up at 53–57 °C, too narrow to separate leakage from its temperature coefficient, and the load was unsteady for several minutes. The slope it did measure (0.09–0.15% of board power per K) is 2.5–4× below the registry's 0.37%/K. | Rejected (R1); slope indicative only |
+
+**E001C: the benchmark with measured clock sensitivity (pre-registered, 300 runs, 0 failed).** Same seeds and workloads as E001, seed-paired.
+
+| Hypothesis | Verdict | Result |
+|---|---|---|
+| HC1: compute-only saves more vs fixed than in E001, all 6 scenarios | **supported** | 4.1 to 8.7 percentage points more; saving vs fixed now 20.5–43.4% (E001: 14.4–34.8%) |
+| HC2: largest change in the memory-heavy scenario | **supported** | −8.67 pp [−9.16, −8.17] in S5_memory_heavy |
+| HC3: joint vs independent moves by < 0.5 pp in ≥ 5 of 6 scenarios | **supported** | at most 0.15 pp in all 6; joint still beats independent everywhere, beyond 1% in 2 of 6 |
+| H1, H2 inherited from E001 | same as E001 | H1 supported; H2 energy met, quality guard failed in the same 18 comparisons (slightly more late tasks, at most 1.4 per ~2,900) |
+
+What this means: with clock sensitivity measured rather than assumed, energy-aware clock control looks *more* valuable, because memory-bound work loses no speed at lower clocks. The joint-control result does not move. Both statements still rest on the simulator's voltage–frequency and leakage placeholders, and on beta_memory = 0 from a pure streaming kernel, which is a bound for LLM decode.
+
+**Failures and corrections during this measurement:**
+* The first desktop fit reported two failed fits (`v_min_ratio` = 0.3 and `kappa_leak` = 0.2, both exactly at their bounds) as class-B measurements. Acceptance rules R1–R3 now stop that. They were set after seeing that fit summary and before examining the raw data, and this is disclosed.
+* The tool reported "clock held down by a power cap" at 35% of the power limit. On this GPU the driver sets that flag whenever clocks are locked. A flag now counts as a limit only if the clock was not held or power was near the limit.
+* A conflicted `git stash pop` on the PC left three time-series files in the repository without database records; they are in `results/orphaned/` with a forensic note.
+
 ## Definition of done (charter §16), initial platform
 
 | # | Criterion | Status |
@@ -138,7 +166,7 @@ The lab was checked in a headless browser on desktop and phone, in light and dar
 | 4 | Functioning simulation | Done |
 | 5 | Reproducible baseline | Done (bitwise-reproducible per seed; bundles) |
 | 6 | ≥ 2 strategies compared | Done (5 policies, paired CIs) |
-| 7 | Energy and thermal models validated | Done analytically; **not** against hardware. Calibration tooling is ready (`09`); attempt 1 on an RTX 4060 Laptop stopped before measuring |
+| 7 | Energy and thermal models validated | Done analytically. **Against hardware, partly:** clock sensitivity is measured and used; the power-vs-clock shape is compared with a real GPU and found off by up to 0.09 of top-clock values; leakage is not yet measured (`10`) |
 | 8 | Output-quality requirements evaluated | Partly: SLO and placeholder correctness only |
 | 9 | Persistent, exportable logs | Done |
 | 10 | Dashboard shows real simulation outputs | Done (static, generated from the database) |
@@ -152,7 +180,8 @@ The lab was checked in a headless browser on desktop and phone, in light and dar
 
 ## What should happen next
 
-1. **Run the calibration protocol on your GPU** (`09_calibration_protocol.md`), then `ueic calib ingest` and re-run E001 and E002 with `--calibration`. This is still the step with the highest information value. Nothing else can move the main conclusions off placeholder values.
-2. **Make the joint controller lag-aware.** Plan over a short horizon with the tank and ramp model instead of a steady state. E006 shows that steady-state planning is what costs its thermal margin under loop lag, and that the temperature-feedback correction does not fix this.
-3. **Remaining Phase 3 items:** routing decided jointly with clocks and cooling; a facility power-cap scenario; multi-node placement with migration cost.
-4. **Operation-level energy model** (FLOPs and bytes per prefill and decode phase), to estimate the data-movement share that gate 1 of the hardware feasibility assessment needs.
+1. **Measure leakage properly** with the improved warm-up (`09`, section 3): the second-highest clock, a fixed fan speed, 15 minutes from a cold card. The indicative slope says the simulator may overstate leakage's temperature sensitivity 2.5–4×. That would shrink the benefit of colder coolant, one of the mechanisms behind joint control's advantage, so this is now the measurement with the highest information value.
+2. **Give the simulator a measured voltage–frequency form.** The straight-line form cannot follow the measured curve. A form with a voltage floor and a steep top section, fitted once leakage and static power are separated, would make DVFS magnitudes trustworthy; re-run E001C with it.
+3. **Make the joint controller lag-aware.** Plan over a short horizon with the tank and ramp model instead of a steady state. E006 shows that steady-state planning is what costs its thermal margin under loop lag, and that the temperature-feedback correction does not fix this.
+4. **Remaining Phase 3 items:** routing decided jointly with clocks and cooling; a facility power-cap scenario; multi-node placement with migration cost.
+5. **Operation-level energy model** (FLOPs and bytes per prefill and decode phase), to estimate the data-movement share that gate 1 of the hardware feasibility assessment needs.
