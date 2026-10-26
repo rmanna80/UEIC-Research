@@ -284,10 +284,10 @@ def fig_e009(R, out):
                        label=names[v] if i == 0 else None)
     ax.axhline(0, color=AXIS, lw=1)
     ax.axhspan(-100 * R["threshold"], 100 * R["threshold"], color=GRID, alpha=0.5, zorder=0)
-    ax.text(-0.45, -100 * R["threshold"] + 0.03, "inside the 1% practical threshold", color=MUTED, fontsize=8, va="bottom")
+    ax.text(-0.45, 100 * R["threshold"] - 0.05, "shaded: inside the 1% practical threshold", color=MUTED, fontsize=8, va="top")
     ax.set_xticks(range(len(e["scenarios"])), [s_.split("_", 1)[1].replace("_", "\n") for s_ in e["scenarios"]], fontsize=8)
     ax.set_ylabel("Joint vs independent (%)", color=INK2, fontsize=9)
-    ax.legend(frameon=False, fontsize=8, loc="lower right", labelcolor=INK, ncol=2)
+    ax.legend(frameon=False, fontsize=8, loc="upper right", labelcolor=INK, ncol=4)
     ax.set_title("E009 · Joint vs independent energy per successful task, leakage matched to the measured slope "
                  "(mean, 95% CI, 5 seeds)", fontsize=10, color=INK, loc="left")
     fig.tight_layout()

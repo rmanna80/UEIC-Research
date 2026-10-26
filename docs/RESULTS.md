@@ -1,6 +1,6 @@
 # UEIC · Simulation results (generated)
 
-Generated 2026-10-26T22:17:31+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `6d1bdaaf0e701cae…`. Hash-chain check: **OK** (3163 finalised runs verified).
+Generated 2026-10-26T22:23:51+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `06cbf2c1c8303e47…`. Hash-chain check: **OK** (3523 finalised runs verified).
 
 > **Every number on this page is a simulator output** (provenance `simulator_output`) and is conditional on the parameter registry (`04_assumptions_register.md`), most of which is class E/F. E001C uses two parameters measured on a real GPU (M001); every other parameter is still a placeholder. The measurements themselves are reported in `10_calibration_results.md`. Energy boundary: grid → conversion → accelerators + pump + fans + chiller (see `00_problem_statement.md`).
 
@@ -22,6 +22,10 @@ Generated 2026-10-26T22:17:31+00:00 by `python -m ueic report` from `results/uei
 | E006 | **partly supported** | H1 joint < independent under both dynamic plants in all scenarios: yes. H2 joint over target with the slow plant: yes (S6_degraded_cooling). H3 fixed policy unaffected: yes. H4 joint_robust never worse than joint on overheating: no (S6_degraded_cooling/dyn_150kg_0.25Kmin, S6_degraded_cooling/dyn_40kg_1Kmin). |
 | E007 | **supported, but suppression not the cause** | Switching cut by a 5% threshold: S1_moderate 16.5%, S3_hot 24.5% (H1 <25%: yes). Worst dt-sensitivity at 2%: S1_moderate 0.39%, S3_hot 0.38%; with no threshold: S1_moderate 0.39%, S3_hot 0.38%. Energy cost of 2%: <= 0.3%. |
 | E008 | **partly supported** | Where joint overheated (2 cases) the correction cut chip-seconds over target by 85%, 84% with no throttling (H1: yes). Not confirmed no-worse than independent in S3_hot/high_leak|twin_low_leak (H2: no). Within 0.5% of joint with a correct twin (H3: yes). |
+| E009 H1 | **supported** | Joint's advantage over independent smaller with matched leakage (kappa 0.02) than registry leakage, CI above zero in 6/6 scenarios. |
+| E009 H2 | **supported** | Joint vs independent with matched leakage: moderate -0.10% [-0.12, -0.08], high_load -0.06% [-0.07, -0.04], hot -0.03% [-0.05, -0.01], cool -0.43% [-0.49, -0.38], memory_heavy -0.18% [-0.22, -0.15], degraded_cooling -0.23% [-0.29, -0.18]; inside +/-1% in 6/6 (registry: moderate -0.56%, high_load -0.98%, hot -0.32%, cool -1.44%, memory_heavy -0.50%, degraded_cooling -1.45%). |
+| E009 H3 | **supported** | Inside +/-1% in all scenarios for: matched_k0.01, matched_k0.02, matched_k0.03, matched_k0.02_low, matched_k0.02_high. Not for: none. |
+| E009 H4 | **supported** | Independent's chip-seconds over target fell with matched leakage in 2/2 scenarios where it had any. |
 
 ## E004 · Time-step convergence
 
@@ -438,6 +442,32 @@ Experiment `E001C-20261026T213353-ac0b5f`: 300 runs, 0 failed. Same design, seed
 | S5_memory_heavy | 14.10 [13.98, 14.23] | 7.98 [7.82, 8.14] | 13.39 [13.27, 13.50] | 7.49 [7.34, 7.65] | 7.45 [7.30, 7.60] |
 | S6_degraded_cooling | 15.69 [15.54, 15.84] | 10.97 [10.73, 11.20] | 15.10 [14.96, 15.24] | 10.53 [10.30, 10.77] | 10.37 [10.14, 10.60] |
 
+## E009 · Joint vs independent with leakage matched to the measured slope
+
+Experiment `E009-20261026T221745-087238`: 360 runs, 0 failed. Leakage set so the simulator's chip power rises 0.135% per K at s = 0.747, 55.0 °C, as measured on the RTX 5070 (registry: 0.366% per K). Clock sensitivity from M001 throughout.
+
+![E009](../results/figures/e009_matched_leakage.png)
+
+| Scenario | registry leakage | matched k0.01 | matched k0.02 | matched k0.03 | matched k0.02 low | matched k0.02 high |
+|---|---|---|---|---|---|---|
+| S1_moderate | -0.56% [-0.64%, -0.48%] | -0.12% [-0.12%, -0.11%] | -0.10% [-0.12%, -0.08%] | -0.09% [-0.11%, -0.07%] | -0.08% [-0.10%, -0.06%] | -0.14% [-0.16%, -0.13%] |
+| S2_high_load | -0.98% [-1.01%, -0.94%] | -0.08% [-0.09%, -0.07%] | -0.06% [-0.07%, -0.04%] | -0.05% [-0.05%, -0.04%] | -0.02% [-0.02%, -0.01%] | -0.11% [-0.12%, -0.10%] |
+| S3_hot | -0.32% [-0.33%, -0.31%] | -0.05% [-0.07%, -0.03%] | -0.03% [-0.05%, -0.01%] | -0.03% [-0.05%, -0.01%] | -0.01% [-0.01%, +0.00%] | -0.05% [-0.07%, -0.03%] |
+| S4_cool | -1.44% [-1.57%, -1.31%] | -0.49% [-0.58%, -0.39%] | -0.43% [-0.49%, -0.38%] | -0.34% [-0.38%, -0.30%] | -0.36% [-0.42%, -0.30%] | -0.56% [-0.63%, -0.48%] |
+| S5_memory_heavy | -0.50% [-0.57%, -0.43%] | -0.19% [-0.24%, -0.14%] | -0.18% [-0.22%, -0.15%] | -0.14% [-0.16%, -0.13%] | -0.13% [-0.16%, -0.10%] | -0.23% [-0.26%, -0.21%] |
+| S6_degraded_cooling | -1.45% [-1.65%, -1.25%] | -0.56% [-0.70%, -0.41%] | -0.23% [-0.29%, -0.18%] | -0.25% [-0.32%, -0.19%] | -0.28% [-0.35%, -0.21%] | -0.42% [-0.50%, -0.34%] |
+
+### Thermal guards (seed means): chip·s above 80 °C, independent / joint
+
+| Scenario | registry leakage | matched k0.01 | matched k0.02 | matched k0.03 | matched k0.02 low | matched k0.02 high |
+|---|---|---|---|---|---|---|
+| S1_moderate | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
+| S2_high_load | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
+| S3_hot | 559 / 0 | 50 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
+| S4_cool | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
+| S5_memory_heavy | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
+| S6_degraded_cooling | 1263 / 0 | 844 / 0 | 395 / 0 | 453 / 0 | 446 / 0 | 533 / 0 |
+
 ## Experiment register (including superseded and failed)
 
 | Id | Status | Runs | Title |
@@ -458,3 +488,4 @@ Experiment `E001C-20261026T213353-ac0b5f`: 300 runs, 0 failed. Same design, seed
 | `M001-20261026T213241-115dce` | completed | {"failed": 0, "measurement": true, "runs": 1} | GPU calibration measurement (NVIDIA GeForce RTX 5070) |
 | `E001C-20261026T213353-ac0b5f` | completed | {"failed": 0, "runs": 300} | Policy benchmark with measured clock sensitivity (M001: RTX 5070) |
 | `M002-20261026T221416-c4ad2d` | completed | {"failed": 0, "measurement": true, "runs": 1} | Leakage warm-up, attempt 2 (RTX 5070, 2347 MHz, automatic fan) |
+| `E009-20261026T221745-087238` | completed | {"failed": 0, "runs": 360} | Joint vs independent control with leakage matched to a real GPU's measured temperature slope |

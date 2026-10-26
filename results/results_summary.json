@@ -1,8 +1,8 @@
 {
- "generated_utc": "2026-10-26T22:17:31+00:00",
- "code_sha256": "6d1bdaaf0e701caecf59dd358584956324e4006eef7204f1b5a5f88cc4e3600c",
+ "generated_utc": "2026-10-26T22:23:51+00:00",
+ "code_sha256": "06cbf2c1c8303e47457459d94918dcba2912d08feea057098afe4e4963b00391",
  "chain_ok": true,
- "chain_msg": "3163 finalised runs verified",
+ "chain_msg": "3523 finalised runs verified",
  "threshold": 0.01,
  "E001": {
   "id": "E001-20261026T181652-ada586",
@@ -136938,6 +136938,2769 @@
    "required": 5
   }
  },
+ "E009": {
+  "id": "E009-20261026T221745-087238",
+  "spec": {
+   "baseline": "registry_leakage variant within E009 (same seeds and workloads)",
+   "configuration": "Target: the simulator's relative temperature slope of chip power at s = 0.747, 55.0 C, compute-bound work, set to the measured 0.1346%/K (95% CI 0.1050-0.1642%/K) from M001's warm-up at 1995 MHz, one clock step, constant fan (0.177 +/- 0.039 W/K at 131 W). The registry gives 0.3663%/K at the same point. For each kappa, p_leak_ref is solved to hit the target. Clock sensitivity from M001: {'beta_compute': 0.983, 'beta_memory': 0.0}.",
+   "controlled_variables": [
+    "seeds 0-4",
+    "registry defaults except leakage",
+    "beta_compute and beta_memory from M001",
+    "4 h window + drain",
+    "quasi-steady plant"
+   ],
+   "data_collection": "Simulator outputs written to the append-only SQLite store; every metric labelled with provenance; per-run config SHA-256 and code SHA-256 recorded; time series for selected seeds.",
+   "dependent_variables": [
+    "E_per_success_kJ (primary)",
+    "chip_s_over_target",
+    "chip_s_throttled",
+    "peak_T_j_C",
+    "slo_violations"
+   ],
+   "design": {
+    "param_overrides": {
+     "beta_compute": 0.983,
+     "beta_memory": 0.0
+    },
+    "policies": [
+     "independent",
+     "joint"
+    ],
+    "scenarios": [
+     "S1_moderate",
+     "S2_high_load",
+     "S3_hot",
+     "S4_cool",
+     "S5_memory_heavy",
+     "S6_degraded_cooling"
+    ],
+    "seeds": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "timeseries_seeds": [],
+    "variants": [
+     {
+      "label": "registry_leakage",
+      "param_overrides": {}
+     },
+     {
+      "label": "matched_k0.01",
+      "param_overrides": {
+       "kappa_leak": 0.01,
+       "p_leak_ref": 59.384
+      }
+     },
+     {
+      "label": "matched_k0.02",
+      "param_overrides": {
+       "kappa_leak": 0.02,
+       "p_leak_ref": 28.962
+      }
+     },
+     {
+      "label": "matched_k0.03",
+      "param_overrides": {
+       "kappa_leak": 0.03,
+       "p_leak_ref": 19.821
+      }
+     },
+     {
+      "label": "matched_k0.02_low",
+      "param_overrides": {
+       "kappa_leak": 0.02,
+       "p_leak_ref": 22.24
+      }
+     },
+     {
+      "label": "matched_k0.02_high",
+      "param_overrides": {
+       "kappa_leak": 0.02,
+       "p_leak_ref": 35.901
+      }
+     }
+    ]
+   },
+   "disclosure": "E002's one-at-a-time results were known when these hypotheses were written: joint vs independent was -0.62% at registry values, -0.04% with p_leak_ref = 30 W and -0.03% with kappa_leak = 0.005, which motivated H2. The measured slopes (M001 warm-up, M002 warm-up) were known. No E009 cells were run before registration.",
+   "evaluation_criteria": "Paired relative differences with 95% t-CI over 5 seeds; practical threshold 1%. H1: per scenario and seed, d = (joint/independent - 1) in the matched variant minus the same in registry_leakage. H4 on seed means of chip-seconds above target.",
+   "hypothesis": "H1: with leakage matched to the measured slope (matched_k0.02), joint's advantage over independent is smaller in magnitude than with registry leakage in all 6 scenarios (seed-paired change in joint/independent - 1, 95% CI entirely above 0). H2: with matched leakage (matched_k0.02), joint vs independent energy per successful task lies within the 1% practical threshold in all 6 scenarios (95% CI entirely inside -1%..+1%). H3: H2 also holds for every matched variant (kappa 0.01, 0.02, 0.03, and both ends of the slope's 95% CI). H4: in every scenario where independent control spent chip-seconds above the 80 C target with registry leakage, it spends fewer with matched leakage.",
+   "independent_variables": [
+    "leakage variant (registry; matched at kappa 0.01/0.02/0.03; matched at the slope's CI ends)",
+    "policy (independent, joint)",
+    "scenario (6)"
+   ],
+   "key": "E009",
+   "known_limitations": "The target comes from GPU board power of one consumer card over a 4 K window at one operating point; the simulator's slope at other clocks and temperatures follows its exponential model. Several matched p_leak_ref values lie below the registry range swept in E002. The voltage-frequency form is still the rejected registry placeholder. 5 seeds.",
+   "measurement_source": {
+    "M001_calibration_sha256": "42112c3638fc2ad1937a43a5be71c2a55814e05f641587f6100a9c1b247c15f1",
+    "operating_point": {
+     "T_C": 55.0,
+     "s": 0.7471910112359551
+    },
+    "registry_rel_per_K": 0.003663101525370321,
+    "slope": {
+     "P_mean_W": 131.42706340057637,
+     "T_range_C": [
+      53.0,
+      57.0
+     ],
+     "dPdT_W_per_K": 0.17689881578430502,
+     "n": 2776,
+     "rel_per_K": 0.001345984694530801,
+     "se": 0.019848493603365797
+    },
+    "target_ci95": [
+     0.0010499798500489274,
+     0.0016419895390126747
+    ],
+    "target_rel_per_K": 0.001345984694530801,
+    "warmup_session": "20261026T204001_warmup_clk=2017"
+   },
+   "null_hypothesis": "Matching leakage to the measured slope leaves joint control's advantage unchanged.",
+   "practical_significance_threshold": 0.01,
+   "research_question": "Does joint control keep its advantage over independent control when the simulator's leakage is only as temperature-sensitive as measured on real hardware?",
+   "statistics": "Paired by seed (identical workload realisation across levels). Per-seed relative difference d=(A-B)/B; mean with two-sided 95% Student-t CI.",
+   "title": "Joint vs independent control with leakage matched to a real GPU's measured temperature slope"
+  },
+  "variants": [
+   "registry_leakage",
+   "matched_k0.01",
+   "matched_k0.02",
+   "matched_k0.03",
+   "matched_k0.02_low",
+   "matched_k0.02_high"
+  ],
+  "scenarios": [
+   "S1_moderate",
+   "S2_high_load",
+   "S3_hot",
+   "S4_cool",
+   "S5_memory_heavy",
+   "S6_degraded_cooling"
+  ],
+  "joint_vs_independent": [
+   {
+    "group": [
+     "S1_moderate",
+     "registry_leakage"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.005625637639066125,
+    "lo": -0.006411300650146556,
+    "hi": -0.004839974627985693,
+    "mean_a": 9.54523325485361,
+    "mean_b": 9.599419277392846,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "variant": "registry_leakage",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "matched_k0.01"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0011913167454405114,
+    "lo": -0.0012395440176146617,
+    "hi": -0.0011430894732663611,
+    "mean_a": 9.135951648192155,
+    "mean_b": 9.146850846511139,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.01",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "matched_k0.02"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0009824044803570628,
+    "lo": -0.0011729198567209315,
+    "hi": -0.0007918891039931942,
+    "mean_a": 8.150143459714231,
+    "mean_b": 8.158175213999996,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "matched_k0.03"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0009003658058857132,
+    "lo": -0.0010915752117283619,
+    "hi": -0.0007091564000430645,
+    "mean_a": 7.867834111525189,
+    "mean_b": 7.874921295435432,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.03",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "matched_k0.02_low"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0008047165410617547,
+    "lo": -0.0009899942700836357,
+    "hi": -0.0006194388120398736,
+    "mean_a": 8.001865127505964,
+    "mean_b": 8.008307389199098,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02_low",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S1_moderate",
+     "matched_k0.02_high"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.001441860505028419,
+    "lo": -0.0016128820589069537,
+    "hi": -0.0012708389511498842,
+    "mean_a": 8.304228986007557,
+    "mean_b": 8.31622494243344,
+    "relative": true,
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02_high",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S2_high_load",
+     "registry_leakage"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.009774328123485805,
+    "lo": -0.010140278537169966,
+    "hi": -0.009408377709801645,
+    "mean_a": 10.551952096031005,
+    "mean_b": 10.65614255909253,
+    "relative": true,
+    "scenario": "S2_high_load",
+    "variant": "registry_leakage",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S2_high_load",
+     "matched_k0.01"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0008029399990714817,
+    "lo": -0.0009200837756699221,
+    "hi": -0.0006857962224730413,
+    "mean_a": 10.065834904552613,
+    "mean_b": 10.07392766391836,
+    "relative": true,
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.01",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S2_high_load",
+     "matched_k0.02"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0005699899717048308,
+    "lo": -0.0007030112655683689,
+    "hi": -0.00043696867784129273,
+    "mean_a": 9.296203331689764,
+    "mean_b": 9.301499265297078,
+    "relative": true,
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S2_high_load",
+     "matched_k0.03"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0004751215397184864,
+    "lo": -0.0005468825191436605,
+    "hi": -0.00040336056029331225,
+    "mean_a": 9.069736354981863,
+    "mean_b": 9.074040236172419,
+    "relative": true,
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.03",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S2_high_load",
+     "matched_k0.02_low"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0001609607829865724,
+    "lo": -0.00022752960267388765,
+    "hi": -9.439196329925712e-05,
+    "mean_a": 9.161909616291613,
+    "mean_b": 9.163378993455417,
+    "relative": true,
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02_low",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S2_high_load",
+     "matched_k0.02_high"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0011070690984597534,
+    "lo": -0.0012079319265750363,
+    "hi": -0.0010062062703444705,
+    "mean_a": 9.435615818686028,
+    "mean_b": 9.44607800544385,
+    "relative": true,
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02_high",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "registry_leakage"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0031765981300901657,
+    "lo": -0.003298890342301055,
+    "hi": -0.0030543059178792763,
+    "mean_a": 10.302791705987481,
+    "mean_b": 10.335600947252079,
+    "relative": true,
+    "scenario": "S3_hot",
+    "variant": "registry_leakage",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "matched_k0.01"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.00046544176482873537,
+    "lo": -0.0006650692165614258,
+    "hi": -0.0002658143130960449,
+    "mean_a": 9.4042944171616,
+    "mean_b": 9.408661094743357,
+    "relative": true,
+    "scenario": "S3_hot",
+    "variant": "matched_k0.01",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "matched_k0.02"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.00026951853672954926,
+    "lo": -0.000459237725543902,
+    "hi": -7.979934791519649e-05,
+    "mean_a": 8.375162277691686,
+    "mean_b": 8.377456750162041,
+    "relative": true,
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "matched_k0.03"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0003170019786088587,
+    "lo": -0.0005352282458277514,
+    "hi": -9.877571138996595e-05,
+    "mean_a": 8.069110631220912,
+    "mean_b": 8.071710512460925,
+    "relative": true,
+    "scenario": "S3_hot",
+    "variant": "matched_k0.03",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "matched_k0.02_low"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -6.324666954726816e-05,
+    "lo": -0.00014449963861385844,
+    "hi": 1.8006299519322135e-05,
+    "mean_a": 8.173199044288607,
+    "mean_b": 8.173730793167227,
+    "relative": true,
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02_low",
+    "verdict": "no detectable difference"
+   },
+   {
+    "group": [
+     "S3_hot",
+     "matched_k0.02_high"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0004762152609494259,
+    "lo": -0.0006912607928708149,
+    "hi": -0.00026116972902803695,
+    "mean_a": 8.586022210425241,
+    "mean_b": 8.590096276800573,
+    "relative": true,
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02_high",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S4_cool",
+     "registry_leakage"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.014390858305390877,
+    "lo": -0.015698698653959835,
+    "hi": -0.013083017956821917,
+    "mean_a": 9.098913328090578,
+    "mean_b": 9.23187566620226,
+    "relative": true,
+    "scenario": "S4_cool",
+    "variant": "registry_leakage",
+    "verdict": "meaningful reduction (CI beyond threshold)"
+   },
+   {
+    "group": [
+     "S4_cool",
+     "matched_k0.01"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.004868354540853122,
+    "lo": -0.005797827470061167,
+    "hi": -0.003938881611645077,
+    "mean_a": 8.949706881388348,
+    "mean_b": 8.993423648398451,
+    "relative": true,
+    "scenario": "S4_cool",
+    "variant": "matched_k0.01",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S4_cool",
+     "matched_k0.02"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.004345139915224902,
+    "lo": -0.004917814705333291,
+    "hi": -0.0037724651251165135,
+    "mean_a": 8.014216235229615,
+    "mean_b": 8.049192939115976,
+    "relative": true,
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S4_cool",
+     "matched_k0.03"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0033627969349427577,
+    "lo": -0.0037551781261417065,
+    "hi": -0.002970415743743809,
+    "mean_a": 7.761619086298788,
+    "mean_b": 7.787827957279598,
+    "relative": true,
+    "scenario": "S4_cool",
+    "variant": "matched_k0.03",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S4_cool",
+     "matched_k0.02_low"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0035864776259766926,
+    "lo": -0.004200866924993392,
+    "hi": -0.0029720883269599933,
+    "mean_a": 7.897741397100887,
+    "mean_b": 7.926204531628562,
+    "relative": true,
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02_low",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S4_cool",
+     "matched_k0.02_high"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.005587685167006727,
+    "lo": -0.006335902328392142,
+    "hi": -0.004839468005621313,
+    "mean_a": 8.134515391107985,
+    "mean_b": 8.180152363443197,
+    "relative": true,
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02_high",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S5_memory_heavy",
+     "registry_leakage"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.005035776784177487,
+    "lo": -0.005735468216753893,
+    "hi": -0.0043360853516010815,
+    "mean_a": 7.4471053925258435,
+    "mean_b": 7.48485787337363,
+    "relative": true,
+    "scenario": "S5_memory_heavy",
+    "variant": "registry_leakage",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S5_memory_heavy",
+     "matched_k0.01"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0019224195923964536,
+    "lo": -0.0024014705856773336,
+    "hi": -0.0014433685991155736,
+    "mean_a": 7.129407463445119,
+    "mean_b": 7.143076774715898,
+    "relative": true,
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.01",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S5_memory_heavy",
+     "matched_k0.02"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0018413876782404199,
+    "lo": -0.002172955088442893,
+    "hi": -0.0015098202680379467,
+    "mean_a": 6.191024559260864,
+    "mean_b": 6.202417185472919,
+    "relative": true,
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S5_memory_heavy",
+     "matched_k0.03"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0014409993450563308,
+    "lo": -0.001558595473333025,
+    "hi": -0.0013234032167796367,
+    "mean_a": 5.9257317648441745,
+    "mean_b": 5.934285354545647,
+    "relative": true,
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.03",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S5_memory_heavy",
+     "matched_k0.02_low"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0012700840584007403,
+    "lo": -0.0015606543197809958,
+    "hi": -0.0009795137970204848,
+    "mean_a": 6.057626119913019,
+    "mean_b": 6.065297280124416,
+    "relative": true,
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02_low",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S5_memory_heavy",
+     "matched_k0.02_high"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.0023338236921847865,
+    "lo": -0.0025934540515607975,
+    "hi": -0.0020741933328087755,
+    "mean_a": 6.328961400882396,
+    "mean_b": 6.343762850035301,
+    "relative": true,
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02_high",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "registry_leakage"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.014497809785907676,
+    "lo": -0.016456551190015687,
+    "hi": -0.012539068381799665,
+    "mean_a": 10.394507909254028,
+    "mean_b": 10.54704418177553,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "variant": "registry_leakage",
+    "verdict": "meaningful reduction (CI beyond threshold)"
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "matched_k0.01"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.005551878758573592,
+    "lo": -0.006995710089883953,
+    "hi": -0.00410804742726323,
+    "mean_a": 9.429544630841526,
+    "mean_b": 9.482056246769147,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.01",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "matched_k0.02"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.002334820864653639,
+    "lo": -0.0028945984995161793,
+    "hi": -0.001775043229791099,
+    "mean_a": 8.555663986973622,
+    "mean_b": 8.575630379898673,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "matched_k0.03"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.002521900334640378,
+    "lo": -0.0031508545119189398,
+    "hi": -0.0018929461573618162,
+    "mean_a": 8.305663097522462,
+    "mean_b": 8.326594474781372,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.03",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "matched_k0.02_low"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.002823835644742028,
+    "lo": -0.003524904153846779,
+    "hi": -0.0021227671356372764,
+    "mean_a": 8.37493564608134,
+    "mean_b": 8.39858406824318,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02_low",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   },
+   {
+    "group": [
+     "S6_degraded_cooling",
+     "matched_k0.02_high"
+    ],
+    "metric": "E_per_success_kJ",
+    "a": "joint",
+    "b": "independent",
+    "factor": "policy",
+    "n": 5,
+    "mean": -0.004243437020092866,
+    "lo": -0.0050485110648888585,
+    "hi": -0.003438362975296873,
+    "mean_a": 8.766074664486457,
+    "mean_b": 8.803320587001247,
+    "relative": true,
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02_high",
+    "verdict": "detectable reduction, not confirmed >= threshold"
+   }
+  ],
+  "change_vs_registry": [
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.01",
+    "n": 5,
+    "registry": -0.005625637639066117,
+    "matched": -0.001191316745440507,
+    "mean": 0.0044343208936256095,
+    "lo": 0.0036618519488620825,
+    "hi": 0.005206789838389137
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02",
+    "n": 5,
+    "registry": -0.005625637639066117,
+    "matched": -0.0009824044803570687,
+    "mean": 0.004643233158709048,
+    "lo": 0.0039064497471740746,
+    "hi": 0.005380016570244021
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.03",
+    "n": 5,
+    "registry": -0.005625637639066117,
+    "matched": -0.0009003658058857278,
+    "mean": 0.004725271833180389,
+    "lo": 0.003889122089819278,
+    "hi": 0.0055614215765415
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02_low",
+    "n": 5,
+    "registry": -0.005625637639066117,
+    "matched": -0.0008047165410617563,
+    "mean": 0.00482092109800436,
+    "lo": 0.004004325276503223,
+    "hi": 0.005637516919505498
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02_high",
+    "n": 5,
+    "registry": -0.005625637639066117,
+    "matched": -0.0014418605050283916,
+    "mean": 0.004183777134037725,
+    "lo": 0.0033913375655833123,
+    "hi": 0.004976216702492138
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.01",
+    "n": 5,
+    "registry": -0.009774328123485799,
+    "matched": -0.0008029399990715058,
+    "mean": 0.008971388124414292,
+    "lo": 0.008652267927316767,
+    "hi": 0.009290508321511817
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02",
+    "n": 5,
+    "registry": -0.009774328123485799,
+    "matched": -0.0005699899717048096,
+    "mean": 0.009204338151780988,
+    "lo": 0.008844643228212417,
+    "hi": 0.00956403307534956
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.03",
+    "n": 5,
+    "registry": -0.009774328123485799,
+    "matched": -0.0004751215397184705,
+    "mean": 0.009299206583767327,
+    "lo": 0.008925631786015874,
+    "hi": 0.00967278138151878
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02_low",
+    "n": 5,
+    "registry": -0.009774328123485799,
+    "matched": -0.00016096078298657445,
+    "mean": 0.009613367340499224,
+    "lo": 0.009251915898212405,
+    "hi": 0.009974818782786042
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02_high",
+    "n": 5,
+    "registry": -0.009774328123485799,
+    "matched": -0.0011070690984597675,
+    "mean": 0.00866725902502603,
+    "lo": 0.008352612702756536,
+    "hi": 0.008981905347295524
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.01",
+    "n": 5,
+    "registry": -0.0031765981300901913,
+    "matched": -0.00046544176482874453,
+    "mean": 0.0027111563652614467,
+    "lo": 0.0025315925608159874,
+    "hi": 0.002890720169706906
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02",
+    "n": 5,
+    "registry": -0.0031765981300901913,
+    "matched": -0.0002695185367295627,
+    "mean": 0.0029070795933606288,
+    "lo": 0.002637806322874013,
+    "hi": 0.0031763528638472445
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.03",
+    "n": 5,
+    "registry": -0.0031765981300901913,
+    "matched": -0.0003170019786088663,
+    "mean": 0.002859596151481325,
+    "lo": 0.0025657413600643285,
+    "hi": 0.003153450942898322
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02_low",
+    "n": 5,
+    "registry": -0.0031765981300901913,
+    "matched": -6.324666954724557e-05,
+    "mean": 0.0031133514605429457,
+    "lo": 0.002940824225939877,
+    "hi": 0.0032858786951460144
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02_high",
+    "n": 5,
+    "registry": -0.0031765981300901913,
+    "matched": -0.0004762152609494308,
+    "mean": 0.0027003828691407605,
+    "lo": 0.0025197995939547115,
+    "hi": 0.0028809661443268096
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.01",
+    "n": 5,
+    "registry": -0.014390858305390886,
+    "matched": -0.004868354540853104,
+    "mean": 0.009522503764537782,
+    "lo": 0.007835031569144292,
+    "hi": 0.011209975959931272
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02",
+    "n": 5,
+    "registry": -0.014390858305390886,
+    "matched": -0.004345139915224894,
+    "mean": 0.010045718390165992,
+    "lo": 0.008892304571736195,
+    "hi": 0.011199132208595789
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.03",
+    "n": 5,
+    "registry": -0.014390858305390886,
+    "matched": -0.003362796934942769,
+    "mean": 0.011028061370448117,
+    "lo": 0.009794128596428092,
+    "hi": 0.012261994144468142
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02_low",
+    "n": 5,
+    "registry": -0.014390858305390886,
+    "matched": -0.0035864776259766805,
+    "mean": 0.010804380679414204,
+    "lo": 0.009617223413729838,
+    "hi": 0.01199153794509857
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02_high",
+    "n": 5,
+    "registry": -0.014390858305390886,
+    "matched": -0.005587685167006739,
+    "mean": 0.008803173138384145,
+    "lo": 0.007305371611414506,
+    "hi": 0.010300974665353785
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.01",
+    "n": 5,
+    "registry": -0.005035776784177504,
+    "matched": -0.0019224195923964516,
+    "mean": 0.003113357191781052,
+    "lo": 0.002153294740928324,
+    "hi": 0.00407341964263378
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02",
+    "n": 5,
+    "registry": -0.005035776784177504,
+    "matched": -0.0018413876782404249,
+    "mean": 0.0031943891059370787,
+    "lo": 0.0024301614633319454,
+    "hi": 0.0039586167485422125
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.03",
+    "n": 5,
+    "registry": -0.005035776784177504,
+    "matched": -0.0014409993450563486,
+    "mean": 0.003594777439121155,
+    "lo": 0.002883687896958616,
+    "hi": 0.004305866981283694
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02_low",
+    "n": 5,
+    "registry": -0.005035776784177504,
+    "matched": -0.0012700840584007444,
+    "mean": 0.003765692725776759,
+    "lo": 0.002817441078300298,
+    "hi": 0.00471394437325322
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02_high",
+    "n": 5,
+    "registry": -0.005035776784177504,
+    "matched": -0.0023338236921848,
+    "mean": 0.002701953091992704,
+    "lo": 0.0018466348706193082,
+    "hi": 0.0035572713133660994
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.01",
+    "n": 5,
+    "registry": -0.01449780978590769,
+    "matched": -0.00555187875857357,
+    "mean": 0.00894593102733412,
+    "lo": 0.0074950496834101914,
+    "hi": 0.010396812371258049
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02",
+    "n": 5,
+    "registry": -0.01449780978590769,
+    "matched": -0.0023348208646536417,
+    "mean": 0.012162988921254048,
+    "lo": 0.010463942377196181,
+    "hi": 0.013862035465311916
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.03",
+    "n": 5,
+    "registry": -0.01449780978590769,
+    "matched": -0.00252190033464037,
+    "mean": 0.011975909451267319,
+    "lo": 0.010320350239963942,
+    "hi": 0.013631468662570695
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02_low",
+    "n": 5,
+    "registry": -0.01449780978590769,
+    "matched": -0.0028238356447420456,
+    "mean": 0.011673974141165644,
+    "lo": 0.009997045727040967,
+    "hi": 0.01335090255529032
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02_high",
+    "n": 5,
+    "registry": -0.01449780978590769,
+    "matched": -0.004243437020092888,
+    "mean": 0.010254372765814802,
+    "lo": 0.008776321156776023,
+    "hi": 0.01173242437485358
+   }
+  ],
+  "thermal": [
+   {
+    "scenario": "S1_moderate",
+    "variant": "registry_leakage",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "registry_leakage",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.01",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.01",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.03",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.03",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02_low",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02_low",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02_high",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02_high",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "registry_leakage",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "registry_leakage",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.01",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.01",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.03",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.03",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02_low",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02_low",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02_high",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02_high",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "registry_leakage",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 559.2
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "registry_leakage",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.01",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 50.2
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.01",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.03",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.03",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02_low",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02_low",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02_high",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02_high",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "registry_leakage",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "registry_leakage",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.01",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.01",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.03",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.03",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02_low",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02_low",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02_high",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02_high",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "registry_leakage",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "registry_leakage",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.01",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.01",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.03",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.03",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02_low",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02_low",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02_high",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02_high",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "registry_leakage",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 1263.2
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "registry_leakage",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.01",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 844.4
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.01",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 395.2
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.03",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 453.2
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.03",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02_low",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 446.0
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02_low",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02_high",
+    "policy": "independent",
+    "metric": "chip_s_over_target",
+    "mean": 532.8
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02_high",
+    "policy": "joint",
+    "metric": "chip_s_over_target",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "registry_leakage",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "registry_leakage",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.01",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.01",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.03",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.03",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02_low",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02_low",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02_high",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02_high",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "registry_leakage",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "registry_leakage",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.01",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.01",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.03",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.03",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02_low",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02_low",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02_high",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02_high",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "registry_leakage",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 9.6
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "registry_leakage",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.01",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.01",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.03",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.03",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02_low",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02_low",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02_high",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02_high",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "registry_leakage",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "registry_leakage",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.01",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.01",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.03",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.03",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02_low",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02_low",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02_high",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02_high",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "registry_leakage",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "registry_leakage",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.01",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.01",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.03",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.03",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02_low",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02_low",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02_high",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02_high",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "registry_leakage",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 186.4
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "registry_leakage",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.01",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 57.8
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.01",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 19.6
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.03",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 21.6
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.03",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02_low",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 17.6
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02_low",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02_high",
+    "policy": "independent",
+    "metric": "chip_s_throttled",
+    "mean": 29.6
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02_high",
+    "policy": "joint",
+    "metric": "chip_s_throttled",
+    "mean": 0.0
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "registry_leakage",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 69.26995637070311
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "registry_leakage",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 60.694767084859436
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.01",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 66.60898950001858
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.01",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 60.79556882763561
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 64.56094293791205
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 63.12075587351687
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.03",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 63.45571506232013
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.03",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 62.46789654814226
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02_low",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 64.3112230003654
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02_low",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 63.03429618963173
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02_high",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 65.28494512357068
+   },
+   {
+    "scenario": "S1_moderate",
+    "variant": "matched_k0.02_high",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 59.30599969974996
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "registry_leakage",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 69.62656498196668
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "registry_leakage",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 61.57763460042912
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.01",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 66.59920412526301
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.01",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 62.69779883814739
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 65.09051230323232
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 63.66781496004213
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.03",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 64.44769881088439
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.03",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 63.014603417963045
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02_low",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 64.03923741879622
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02_low",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 63.3496427306019
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02_high",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 64.96970814514574
+   },
+   {
+    "scenario": "S2_high_load",
+    "variant": "matched_k0.02_high",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 59.372752807825826
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "registry_leakage",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 85.06494799974598
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "registry_leakage",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 76.54766833020473
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.01",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 80.88304836089765
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.01",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 76.36599469725778
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 79.71510032945629
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 74.5057440897549
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.03",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 79.16804918891243
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.03",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 73.94160942214188
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02_low",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 78.9991453226103
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02_low",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 76.50613221022883
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02_high",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 79.43075438043488
+   },
+   {
+    "scenario": "S3_hot",
+    "variant": "matched_k0.02_high",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 75.05746079059776
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "registry_leakage",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 66.79059833143302
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "registry_leakage",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 49.193234875611665
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.01",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 66.13218706388103
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.01",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 53.04651370251035
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 62.8477598646777
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 51.03945654097458
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.03",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 61.13899983611968
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.03",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 50.76076143433414
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02_low",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 62.0675239071515
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02_low",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 51.03605768456955
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02_high",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 62.93626508310124
+   },
+   {
+    "scenario": "S4_cool",
+    "variant": "matched_k0.02_high",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 51.30044401750242
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "registry_leakage",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 69.14361643180396
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "registry_leakage",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 61.15667775805241
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.01",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 65.97045419427879
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.01",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 63.58490893722201
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 64.153108574436
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 61.4774913464552
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.03",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 63.8910724904268
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.03",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 60.84755962017348
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02_low",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 64.97159270960583
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02_low",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 63.005824740521255
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02_high",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 65.07422955489645
+   },
+   {
+    "scenario": "S5_memory_heavy",
+    "variant": "matched_k0.02_high",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 61.948649752411846
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "registry_leakage",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 85.52468884665157
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "registry_leakage",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 78.80870287587683
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.01",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 85.29542502927869
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.01",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 78.63875604721517
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 85.18512533815286
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 79.22241411069163
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.03",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 85.17145833961311
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.03",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 78.57298997240375
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02_low",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 85.12092946174315
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02_low",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 78.38883674023276
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02_high",
+    "policy": "independent",
+    "metric": "peak_T_j_C",
+    "mean": 85.21947461386178
+   },
+   {
+    "scenario": "S6_degraded_cooling",
+    "variant": "matched_k0.02_high",
+    "policy": "joint",
+    "metric": "peak_T_j_C",
+    "mean": 78.35247683758486
+   }
+  ],
+  "n_runs": 360,
+  "n_failed": 0,
+  "H1": {
+   "supported": true,
+   "scenarios": [
+    "S1_moderate",
+    "S2_high_load",
+    "S3_hot",
+    "S4_cool",
+    "S5_memory_heavy",
+    "S6_degraded_cooling"
+   ]
+  },
+  "H2": {
+   "supported": true,
+   "scenarios": [
+    "S1_moderate",
+    "S2_high_load",
+    "S3_hot",
+    "S4_cool",
+    "S5_memory_heavy",
+    "S6_degraded_cooling"
+   ]
+  },
+  "H3": {
+   "supported": true,
+   "by_variant": {
+    "matched_k0.01": [
+     "S1_moderate",
+     "S2_high_load",
+     "S3_hot",
+     "S4_cool",
+     "S5_memory_heavy",
+     "S6_degraded_cooling"
+    ],
+    "matched_k0.02": [
+     "S1_moderate",
+     "S2_high_load",
+     "S3_hot",
+     "S4_cool",
+     "S5_memory_heavy",
+     "S6_degraded_cooling"
+    ],
+    "matched_k0.03": [
+     "S1_moderate",
+     "S2_high_load",
+     "S3_hot",
+     "S4_cool",
+     "S5_memory_heavy",
+     "S6_degraded_cooling"
+    ],
+    "matched_k0.02_low": [
+     "S1_moderate",
+     "S2_high_load",
+     "S3_hot",
+     "S4_cool",
+     "S5_memory_heavy",
+     "S6_degraded_cooling"
+    ],
+    "matched_k0.02_high": [
+     "S1_moderate",
+     "S2_high_load",
+     "S3_hot",
+     "S4_cool",
+     "S5_memory_heavy",
+     "S6_degraded_cooling"
+    ]
+   }
+  },
+  "H4": {
+   "supported": true,
+   "cases": [
+    "S3_hot",
+    "S6_degraded_cooling"
+   ],
+   "ok": [
+    "S3_hot",
+    "S6_degraded_cooling"
+   ]
+  }
+ },
  "assumptions": [
   {
    "name": "water_cp",
@@ -137806,6 +140569,18 @@
   [
    "2026-10-26T22:16:47+00:00",
    "E009 pre-registered (experiments/E009_matched_leakage.json, committed before running): joint vs independent with the simulator's leakage matched to the measured relative slope 0.1346%/K (95% CI 0.105-0.164) at s = 0.747, 55 C; p_leak_ref solved for kappa 0.01/0.02/0.03 (59.4, 29.0, 19.8 W) and for the CI ends at kappa 0.02 (22.2, 35.9 W); registry variant as baseline; M001 clock sensitivity throughout; 6 scenarios x 2 policies x 5 seeds x 6 variants = 360 runs. H1: joint's advantage shrinks vs registry in all 6 scenarios. H2: with matched leakage (kappa 0.02) joint vs independent is within +/-1% (CI) in all 6. H3: H2 holds for every matched variant. H4: independent's chip-seconds over target fall wherever it had any. Disclosed: E002's one-at-a-time leakage results were known and motivated H2."
+  ],
+  [
+   "2026-10-26T22:17:45+00:00",
+   "Registered E009-20261026T221745-087238: Joint vs independent control with leakage matched to a real GPU's measured temperature slope | H: H1: with leakage matched to the measured slope (matched_k0.02), joint's advantage over independent is smaller in magnitude than with registry leakage in all 6 scenarios (seed-paired change in joint/independent - 1, 95% CI entirely above 0). H2: with matched leakage (matched_k0.02), joint vs independent energy per successful task lies within the 1% practical threshold in all 6 scenarios (95% CI entirely inside -1%..+1%). H3: H2 also holds for every matched variant (kappa 0.01, 0.02, 0.03, and both ends of the slope's 95% CI). H4: in every scenario where independent control spent chip-seconds above the 80 C target with registry leakage, it spends fewer with matched leakage."
+  ],
+  [
+   "2026-10-26T22:22:31+00:00",
+   "Finished E009-20261026T221745-087238: 360 runs, 0 failed"
+  ],
+  [
+   "2026-10-26T22:23:50+00:00",
+   "E009 completed (360 runs, 0 failed). With the simulator's leakage matched to the RTX 5070's measured temperature slope (0.135%/K vs 0.366%/K registry), joint vs independent energy per successful task is -0.03% to -0.43% (kappa 0.02) instead of -0.32% to -1.45%; inside +/-1% in all 6 scenarios for all five matched variants (largest -0.56%); still below zero with CI in most cases. H1-H4 supported. Independent's overheating: hot ambient 559 -> 0 chip-s above 80 C; degraded cooling 1263 -> 395 (throttled 186 -> 20); joint 0 throughout. Interpretation: on real silicon joint control's energy benefit over well-run independent control is likely small; its thermal-safety benefit under degraded cooling remains. Next steps re-ordered accordingly."
   ]
  ],
  "experiments": [
@@ -138002,6 +140777,18 @@
     "runs": 1
    },
    "created": "2026-10-26T22:14:16+00:00"
+  },
+  {
+   "id": "E009-20261026T221745-087238",
+   "key": "E009",
+   "status": "completed",
+   "title": "Joint vs independent control with leakage matched to a real GPU's measured temperature slope",
+   "hypothesis": "H1: with leakage matched to the measured slope (matched_k0.02), joint's advantage over independent is smaller in magnitude than with registry leakage in all 6 scenarios (seed-paired change in joint/independent - 1, 95% CI entirely above 0). H2: with matched leakage (matched_k0.02), joint vs independent energy per successful task lies within the 1% practical threshold in all 6 scenarios (95% CI entirely inside -1%..+1%). H3: H2 also holds for every matched variant (kappa 0.01, 0.02, 0.03, and both ends of the slope's 95% CI). H4: in every scenario where independent control spent chip-seconds above the 80 C target with registry leakage, it spends fewer with matched leakage.",
+   "summary": {
+    "failed": 0,
+    "runs": 360
+   },
+   "created": "2026-10-26T22:17:45+00:00"
   }
  ]
 }

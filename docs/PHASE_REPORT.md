@@ -151,6 +151,17 @@ Twelve sessions on the user's desktop GPU (probe, warm-up, compute and memory ke
 
 What this means: with clock sensitivity measured rather than assumed, energy-aware clock control looks *more* valuable, because memory-bound work loses no speed at lower clocks. The joint-control result does not move. Both statements still rest on the simulator's voltage–frequency and leakage placeholders, and on beta_memory = 0 from a pure streaming kernel, which is a bound for LLM decode.
 
+**E009: joint vs independent with leakage matched to the measured slope (pre-registered, 360 runs, 0 failed).** The warm-ups could not identify the leakage coefficient, but they measured how fast board power rises with temperature: 0.135% per K at 75% of the top clock, against 0.366% per K in the registry. E009 sets the simulator's leakage power so that its slope matches, for leakage coefficients of 0.01, 0.02 and 0.03 per K and at both ends of the slope's 95% CI.
+
+| Hypothesis | Verdict | Result |
+|---|---|---|
+| H1: joint's advantage shrinks vs registry leakage, all 6 scenarios | **supported** | by 0.29–1.22 percentage points |
+| H2: with matched leakage (κ 0.02), joint vs independent inside ±1% in all 6 | **supported** | −0.03% to −0.43% (registry: −0.32% to −1.45%); still below zero in 6 of 6 |
+| H3: H2 holds for every matched variant | **supported** | largest −0.56%, in degraded cooling and cool ambient |
+| H4: independent's overheating falls wherever it had any | **supported** | hot ambient 559 → 0 chip·s above 80 °C; degraded cooling 1,263 → 395, throttled 186 → 20. Joint stayed at 0 throughout |
+
+What this means for the main research question: **with a real chip's temperature sensitivity, joint control's energy advantage over well-run independent control is real but small, under 0.6% in every scenario.** The advantage in Phase 1 came mostly from cutting leakage by running chips cooler, which pays off far less when leakage barely changes with temperature. What survives is thermal safety. Under degraded cooling, independent control still exceeds 80 °C and throttles, while joint control does not. These conclusions still rest on one consumer card's slope over a 4 K window and on the placeholder voltage–frequency form.
+
 **Failures and corrections during this measurement:**
 * The first desktop fit reported two failed fits (`v_min_ratio` = 0.3 and `kappa_leak` = 0.2, both exactly at their bounds) as class-B measurements. Acceptance rules R1–R3 now stop that. They were set after seeing that fit summary and before examining the raw data, and this is disclosed.
 * The tool reported "clock held down by a power cap" at 35% of the power limit. On this GPU the driver sets that flag whenever clocks are locked. A flag now counts as a limit only if the clock was not held or power was near the limit.
@@ -181,8 +192,9 @@ What this means: with clock sensitivity measured rather than assumed, energy-awa
 
 ## What should happen next
 
-1. **Measure leakage properly** with the improved warm-up (`09`, section 3): the second-highest clock, a fixed fan speed, 15 minutes from a cold card. The indicative slope says the simulator may overstate leakage's temperature sensitivity 2.5–4×. That would shrink the benefit of colder coolant, one of the mechanisms behind joint control's advantage, so this is now the measurement with the highest information value.
-2. **Give the simulator a measured voltage–frequency form.** The straight-line form cannot follow the measured curve. A form with a voltage floor and a steep top section, fitted once leakage and static power are separated, would make DVFS magnitudes trustworthy; re-run E001C with it.
-3. **Make the joint controller lag-aware.** Plan over a short horizon with the tank and ramp model instead of a steady state. E006 shows that steady-state planning is what costs its thermal margin under loop lag, and that the temperature-feedback correction does not fix this.
-4. **Remaining Phase 3 items:** routing decided jointly with clocks and cooling; a facility power-cap scenario; multi-node placement with migration cost.
-5. **Operation-level energy model** (FLOPs and bytes per prefill and decode phase), to estimate the data-movement share that gate 1 of the hardware feasibility assessment needs.
+1. **Reframe joint control around thermal safety and degraded cooling.** E009 suggests its energy advantage is small on real silicon, but its protection against overheating under fouled cold plates and warm ambient is not. A pre-registered study of when coordination prevents throttling (cooling degradation, heat waves, power caps) is now the most informative simulation work.
+2. **Make the joint controller lag-aware.** Plan over a short horizon with the tank and ramp model. E006 shows steady-state planning loses thermal margin under loop lag, which matters more now that thermal safety is its main benefit.
+3. **Give the simulator a measured voltage–frequency form** (a voltage floor plus a steep top section), then re-run E001C and E009 with it. DVFS is the largest lever in every experiment, and the straight-line form misstates its shape.
+4. **Leakage over a wide temperature range** only if the fan can be held at a fixed speed; with automatic fan control this card stays within a few kelvin.
+5. **Remaining Phase 3 items:** routing decided jointly with clocks and cooling; a facility power-cap scenario; multi-node placement with migration cost.
+6. **Operation-level energy model** (FLOPs and bytes per prefill and decode phase) for gate 1 of the hardware feasibility assessment.
