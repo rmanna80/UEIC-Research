@@ -12,7 +12,9 @@
   python -m ueic hash                      # code SHA-256 (compare with a bundle's REPRODUCE.md)
   python -m ueic serve                     # Phase 2: API + 3-D lab at http://127.0.0.1:8765/lab/
   python -m ueic telemetry devices         # Phase 4: list NVIDIA GPUs (read-only)
-  python -m ueic calib plan --clocks 900,1200,1500   # print a calibration procedure to review and run
+  python -m ueic calib check               # read-only preflight: Python/venv, PyTorch+CUDA, NVML
+  python -m ueic calib probe               # sustained clock at default settings -> suggested sweep clocks
+  python -m ueic calib plan --clocks <from probe>   # print a procedure to review and run
   python -m ueic calib run --kind compute --seconds 60 --label clk=1200
   python -m ueic calib fit data/calibration/* --out data/calibration/calibration.json
   python -m ueic calib ingest data/calibration/calibration.json
@@ -51,6 +53,11 @@ def main(argv: list[str] | None = None) -> int:
     tl.add_argument("--interval", type=float, default=0.1); tl.add_argument("--gpu", type=int, default=None); tl.add_argument("--label", default="")
     cb = sub.add_parser("calib", help="Phase 4 calibration on a real GPU")
     csub = cb.add_subparsers(dest="ccmd", required=True)
+    ck = csub.add_parser("check", help="read-only preflight: Python, venv, PyTorch/CUDA, NVML")
+    ck.add_argument("--gpu", type=int, default=0)
+    pb = csub.add_parser("probe", help="measure the clock the GPU sustains at default settings; suggests sweep clocks")
+    pb.add_argument("--seconds", type=float, default=60); pb.add_argument("--gpu", type=int, default=0)
+    pb.add_argument("--out", default=str(ROOT / "data" / "calibration"))
     cp = csub.add_parser("plan"); cp.add_argument("--clocks", required=True, help="comma-separated MHz, e.g. 900,1200,1500")
     cp.add_argument("--gpu", type=int, default=0); cp.add_argument("--seconds", type=int, default=60)
     cr = csub.add_parser("run"); cr.add_argument("--kind", choices=["compute", "memory", "warmup"], required=True)
@@ -94,18 +101,49 @@ def main(argv: list[str] | None = None) -> int:
             meta = Logger(a.out, interval_s=a.interval, gpus=None if a.gpu is None else [a.gpu], label=a.label).run(a.seconds)
             print(f"{meta['n_samples']} samples -> {a.out} (sha256 {meta['csv_sha256'][:12]})")
         return 0
-    if a.cmd == "calib" and a.ccmd in ("plan", "run", "fit"):
+    if a.cmd == "calib" and a.ccmd in ("check", "probe", "plan", "run", "fit"):
         from . import calibrate as cal
+        if a.ccmd == "check":
+            res = cal.check(a.gpu)
+            for status, msg in res:
+                print(f"[{status.upper():>4}] {msg}")
+            bad = any(s == "fail" for s, _ in res)
+            print("Not ready: fix the FAIL lines above, then run this check again." if bad else
+                  "Ready to calibrate.")
+            return 1 if bad else 0
         if a.ccmd == "plan":
             print(cal.plan_commands([int(x) for x in a.clocks.split(",")], a.gpu, a.seconds))
-        elif a.ccmd == "run":
-            print(cal.run_session(a.kind, a.seconds, a.out, a.label, a.gpu, idle_before_s=a.idle_before))
-        else:
+            return 0
+        try:
+            if a.ccmd == "probe":
+                print(f"Running the compute kernel for {a.seconds:g} s at the GPU's current clock settings ...")
+                r = cal.probe(a.seconds, a.gpu, a.out)
+                if not r["ok"]:
+                    print(f"probe failed: {r['reason']} ({r['path']})")
+                    return 1
+                lim = "" if r["limited_frac"] is None else f", power/thermal-limited {100 * r['limited_frac']:.0f}% of the time"
+                print(f"sustained SM clock {r['clock_MHz']:.0f} MHz (variation {100 * r['clock_cv']:.1f}%), "
+                      f"{r['power_W']:.1f} W, {r['temp_C']:.0f} C{lim}")
+                print("If clocks were still locked from an earlier step, this measured the locked clock: run "
+                      f"`nvidia-smi -i {a.gpu} -rgc` and probe again.")
+                print("Next:\n  python -m ueic calib plan --clocks " + ",".join(map(str, r["suggested_clocks"])))
+                return 0
+            if a.ccmd == "run":
+                print(cal.run_session(a.kind, a.seconds, a.out, a.label, a.gpu, idle_before_s=a.idle_before))
+                return 0
+        except RuntimeError as e:
+            print(f"error: {e}\n(nothing was recorded; `python -m ueic calib check` diagnoses the environment)")
+            return 2
+        if a.ccmd == "fit":
             import glob, hashlib, json as _json
             dirs = sorted({d for pat in a.sessions for d in glob.glob(pat) if Path(d, "session.json").exists()})
             out = cal.calibrate(dirs)
             Path(a.out).write_text(_json.dumps(out, indent=1))
             print(f"{len(dirs)} sessions -> {a.out}")
+            cr = out["clock_reference"]
+            if cr["f_ref_MHz"]:
+                print(f"  clock reference s = 1 at {cr['f_ref_MHz']:.0f} MHz (highest steady compute clock; "
+                      f"NVML table max {cr['nvml_max_sm_clock_MHz']:.0f} MHz)")
             for k, v in out["overrides"].items():
                 print(f"  {k} = {v['value']}  (se {v['se']}, class {v['evidence']})")
             for n in out["notes"]:

@@ -1,3 +1,6 @@
-# Phase 4 hardware calibration (optional). Install PyTorch with CUDA separately:
-# https://pytorch.org/get-started/locally/
+# Phase 4 hardware calibration (optional).
+# PyTorch must be a CUDA build; the default `pip install torch` on Windows is CPU-only. In the venv:
+#   pip uninstall -y torch
+#   pip install torch --index-url https://download.pytorch.org/whl/cu130
+# (other CUDA builds: https://pytorch.org/get-started/locally/). Then: python -m ueic calib check
 nvidia-ml-py>=12.535

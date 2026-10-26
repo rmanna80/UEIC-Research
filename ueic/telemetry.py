@@ -83,6 +83,15 @@ class Nvml:
                 power_limit_W=None if pl is None else pl / 1000.0, handle=h))
         return out
 
+    def supported_sm_clocks(self, dev: Device) -> list[int] | None:
+        """Lockable SM clocks at the highest memory clock (read-only query), or None if unsupported."""
+        n, h = self.n, dev.handle
+        mems = _try(lambda: n.nvmlDeviceGetSupportedMemoryClocks(h))
+        if not mems:
+            return None
+        clocks = _try(lambda: n.nvmlDeviceGetSupportedGraphicsClocks(h, max(mems)))
+        return sorted(int(c) for c in clocks) if clocks else None
+
     def sample(self, dev: Device, label: str = "") -> dict[str, Any]:
         n, h = self.n, dev.handle
         p = _try(lambda: n.nvmlDeviceGetPowerUsage(h))

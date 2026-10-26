@@ -193,7 +193,7 @@ def e004(store: Store) -> dict[str, Any] | None:
                 rows.append({"policy": pol, "seed": seed, "variant": lab,
                              "rel_change_vs_dt0.5": v[lab]["E_grid_kWh"] / ref - 1.0})
     crit = [r for r in rows if r["variant"] == "dt=1.0"]
-    worst = {p: max(abs(r["rel_change_vs_dt0.5"]) for r in crit if r["policy"] == p) for p in {r["policy"] for r in crit}}
+    worst = {p: max(abs(r["rel_change_vs_dt0.5"]) for r in crit if r["policy"] == p) for p in sorted({r["policy"] for r in crit})}
     return {"id": eid, "rows": rows, "worst_abs_dt1_vs_dt05": worst,
             "hypothesis_met": all(w < 0.005 for w in worst.values())}
 

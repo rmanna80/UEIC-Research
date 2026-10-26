@@ -9,9 +9,15 @@ cold) recorded together with read-only NVML telemetry:
                               /session.json    kind, label, device, timing
 
 Fits (all on steady-state windows, each with a standard error):
-  beta_compute, beta_memory   log(throughput) = beta * log(f / f_max) + c
+  beta_compute, beta_memory   log(throughput) = beta * log(f / f_ref) + c
   v_min_ratio                 P = A + P_d * s * v(s)^2,  v linear in s (registry form, s_min = 0.5)
   kappa_leak, leak fraction   P(T) = c + L * exp(kappa * (T - 60 C)) at fixed clock and load
+
+Clock reference. The simulator's s = 1 is the highest clock the accelerator runs at.
+NVML's "max SM clock" is the top of the driver's clock table, which many GPUs (laptop
+parts especially) never sustain under load: an RTX 4060 Laptop reports 3105 MHz. So
+s = f / f_ref with f_ref = the highest steady clock measured among the compute sessions,
+and the power fit only uses sessions with s >= s_min, the range the simulator models.
 
 Only dimensionless shape parameters are transferred to the simulated accelerator
 directly (class B on the measured device). The leakage *fraction* is transferred by
@@ -20,6 +26,9 @@ scaling to the simulated accelerator's power, which is an extrapolation (class E
 from __future__ import annotations
 
 import json
+import platform
+import re
+import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -29,23 +38,95 @@ from typing import Any, Callable, Iterable
 import numpy as np
 from scipy.optimize import curve_fit
 
-from .telemetry import Logger, read_csv
+from .telemetry import Logger, Nvml, read_csv
 
 T_REF = 60.0
 S_MIN = 0.5   # registry s_min; the v(s) form is anchored here so the fit maps 1:1 onto v_min_ratio
+KINDS = ("compute", "memory", "warmup", "probe")
+# nvml.h clock-event reasons that mean the clock was held down by a limit:
+# SW power cap 0x4, HW slowdown 0x8, SW thermal 0x20, HW thermal 0x40, HW power brake 0x80
+LIMIT_BITS = 0x4 | 0x8 | 0x20 | 0x40 | 0x80
+CLOCK_HELD_TOL = 0.03          # a locked clock counts as held if the median is within 3%
+INSTALL_HINT = ("\n    pip uninstall -y torch"
+                "\n    pip install torch --index-url https://download.pytorch.org/whl/cu130"
+                "\n  (cu130 suits drivers that report CUDA 13.0 or newer in nvidia-smi; other builds are listed at "
+                "https://pytorch.org/get-started/locally/)")
+
+
+# ----------------------------------------------------------------------------- environment
+def torch_status(gpu: int = 0) -> dict[str, Any]:
+    """What this interpreter's PyTorch can do. Never raises."""
+    st: dict[str, Any] = {"python": sys.executable, "venv_active": sys.prefix != sys.base_prefix,
+                          "torch": None, "torch_cuda_build": None, "cuda_available": False, "device": None}
+    try:
+        import torch
+    except ImportError:
+        return st
+    st["torch"] = str(getattr(torch, "__version__", "?"))
+    st["torch_cuda_build"] = getattr(getattr(torch, "version", None), "cuda", None)
+    try:
+        st["cuda_available"] = bool(torch.cuda.is_available())
+        if st["cuda_available"] and gpu < torch.cuda.device_count():
+            st["device"] = str(torch.cuda.get_device_name(gpu))
+    except Exception:  # noqa: BLE001 - a broken CUDA install should be reported, not crash the check
+        st["cuda_available"] = False
+    return st
+
+
+def torch_problem(st: dict[str, Any], gpu: int = 0) -> str | None:
+    """Plain-language reason the calibration workload cannot run, or None if it can."""
+    where = (f"this Python is {st['python']} "
+             f"(virtual environment {'active' if st['venv_active'] else 'NOT active'})")
+    venv = "" if st["venv_active"] else ("\n  If PyTorch with CUDA is installed in the project venv, activate it in "
+                                         "this window first:\n    .\\.venv\\Scripts\\Activate.ps1")
+    if st["torch"] is None:
+        return f"PyTorch is not installed for this Python; {where}.{venv}\n  Otherwise install it:{INSTALL_HINT}"
+    if st["torch_cuda_build"] is None:
+        return (f"PyTorch {st['torch']} is a CPU-only build, so it cannot run work on the GPU; {where}.{venv}"
+                f"\n  Otherwise replace it with a CUDA build:{INSTALL_HINT}")
+    if not st["cuda_available"]:
+        return (f"PyTorch {st['torch']} is built for CUDA {st['torch_cuda_build']} but sees no CUDA GPU; {where}. "
+                f"Check that `nvidia-smi` reports CUDA {st['torch_cuda_build']} or newer and that the GPU is enabled.")
+    if st["device"] is None:
+        return f"PyTorch sees CUDA but has no GPU with index {gpu}; {where}."
+    return None
+
+
+def check(gpu: int = 0, nvml=None) -> list[tuple[str, str]]:
+    """Read-only preflight: (status, message) with status in ok / warn / fail / info."""
+    st = torch_status(gpu)
+    out = [("info", f"Python {platform.python_version()} at {st['python']}")]
+    out.append(("ok", "virtual environment active") if st["venv_active"] else
+               ("warn", "no virtual environment active in this window (.\\.venv\\Scripts\\Activate.ps1)"))
+    prob = torch_problem(st, gpu)
+    out.append(("fail", prob) if prob else
+               ("ok", f"PyTorch {st['torch']} (CUDA {st['torch_cuda_build']}) can use {st['device']}"))
+    try:
+        nv = Nvml(nvml)
+        try:
+            dev = next((d for d in nv.devices() if d.index == gpu), None)
+            if dev is None:
+                out.append(("fail", f"NVML found no GPU with index {gpu}"))
+            else:
+                now = nv.sample(dev)
+                out.append(("ok", f"NVML: [{gpu}] {dev.name}, driver {nv.driver}, power limit {dev.power_limit_W} W, "
+                                  f"now {now['sm_clock_MHz']} MHz SM / {now['temp_C']} C / {now['power_W']} W"))
+        finally:
+            nv.close()
+    except Exception as e:  # noqa: BLE001
+        out.append(("fail", f"NVML telemetry unavailable: {e}"))
+    return out
 
 
 # ----------------------------------------------------------------------------- workloads
 def torch_workload(kind: str, gpu: int = 0) -> Callable[[float], float]:
     """Return step(budget_s) -> throughput for one burst of work (needs PyTorch with CUDA)."""
-    try:
-        import torch
-    except ImportError as e:  # pragma: no cover - host dependent
-        raise RuntimeError("Calibration workloads need PyTorch with CUDA (see docs/09_calibration_protocol.md)") from e
-    if not torch.cuda.is_available():  # pragma: no cover
-        raise RuntimeError("PyTorch cannot see a CUDA GPU")
+    prob = torch_problem(torch_status(gpu), gpu)
+    if prob:
+        raise RuntimeError(prob)
+    import torch
     dev = torch.device(f"cuda:{gpu}")
-    if kind in ("compute", "warmup"):
+    if kind in ("compute", "warmup", "probe"):
         n = 4096
         a = torch.randn(n, n, device=dev, dtype=torch.float16)
         b = torch.randn(n, n, device=dev, dtype=torch.float16)
@@ -81,15 +162,24 @@ def torch_workload(kind: str, gpu: int = 0) -> Callable[[float], float]:
 def run_session(kind: str, seconds: float, out_root: str | Path, label: str = "", gpu: int = 0,
                 interval_s: float = 0.1, idle_before_s: float = 0.0, nvml=None,
                 workload: Callable[[float], float] | None = None) -> Path:
-    """Record one calibration session. `nvml` and `workload` can be injected for tests."""
-    if kind not in ("compute", "memory", "warmup"):
-        raise ValueError("kind must be compute, memory or warmup")
+    """Record one calibration session. `nvml` and `workload` can be injected for tests.
+    Everything that can fail before measuring (PyTorch, NVML) is checked before the session
+    folder exists, so a failed start leaves nothing behind."""
+    if kind not in KINDS:
+        raise ValueError(f"kind must be one of {', '.join(KINDS)}")
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
     safe = "".join(ch if ch.isalnum() or ch in "-_.=" else "_" for ch in label)[:40]
     d = Path(out_root) / f"{stamp}_{kind}{'_' + safe if safe else ''}"
-    d.mkdir(parents=True, exist_ok=False)
+    if d.exists():
+        raise FileExistsError(d)
     step = workload or torch_workload(kind, gpu)
-    log = Logger(d / "telemetry.csv", interval_s=interval_s, gpus=[gpu], nvml=nvml, label="idle").start()
+    try:
+        log = Logger(d / "telemetry.csv", interval_s=interval_s, gpus=[gpu], nvml=nvml, label="idle")
+    except Exception:
+        if d.exists() and not any(d.iterdir()):
+            d.rmdir()
+        raise
+    log.start()
     try:
         if idle_before_s > 0:
             time.sleep(idle_before_s)
@@ -107,7 +197,7 @@ def run_session(kind: str, seconds: float, out_root: str | Path, label: str = ""
         f.write("t_unix,throughput\n")
         for t, v in rows:
             f.write(f"{t:.6f},{v:.6g}\n")
-    unit = "TFLOP/s" if kind in ("compute", "warmup") else "GB/s"
+    unit = "GB/s" if kind == "memory" else "TFLOP/s"
     (d / "session.json").write_text(json.dumps({
         "kind": kind, "label": label, "seconds": seconds, "gpu": gpu, "throughput_unit": unit,
         "idle_before_s": idle_before_s, "device": meta["devices"][0], "telemetry_sha256": meta["csv_sha256"],
@@ -151,10 +241,15 @@ def summarize(sess: Session, skip_s: float = 10.0) -> dict[str, Any]:
     clk = np.array([r["sm_clock_MHz"] for r in tel], dtype=float)
     pw = np.array([r["power_W"] for r in tel], dtype=float)
     tc = np.array([r["temp_C"] for r in tel], dtype=float)
-    return {"kind": sess.kind, "path": str(sess.path), "ok": True, "n": len(tel),
+    reasons = [r.get("clock_event_reasons") for r in tel]
+    known = [int(x) for x in reasons if x is not None]
+    m = re.search(r"clk=(\d+)", sess.label or "")
+    return {"kind": sess.kind, "path": str(sess.path), "name": sess.path.name, "ok": True, "n": len(tel),
             "clock_MHz": float(np.median(clk)), "clock_cv": float(np.std(clk) / np.mean(clk)),
-            "s": float(np.median(clk) / sess.max_clock), "power_W": float(np.median(pw)),
-            "temp_C": float(np.median(tc)), "throughput": float(np.median(work[:, 1]))}
+            "label_clock_MHz": float(m.group(1)) if m else None,
+            "s_nvml": float(np.median(clk) / sess.max_clock), "power_W": float(np.median(pw)),
+            "temp_C": float(np.median(tc)), "throughput": float(np.median(work[:, 1])),
+            "limited_frac": float(np.mean([(x & LIMIT_BITS) != 0 for x in known])) if known else None}
 
 
 def _linfit(x, y):
@@ -187,17 +282,24 @@ def _power_model(s, A, Pd, vmin):
     return A + Pd * s * v_of_s(s, vmin) ** 2
 
 
-def fit_power_clock(summaries: list[dict]) -> dict[str, Any]:
-    pts = [(s["s"], s["power_W"]) for s in summaries if s.get("ok")]
-    if len({round(p[0], 3) for p in pts}) < 3:
-        return {"ok": False, "reason": "need compute sessions at >= 3 different clocks"}
+def fit_power_clock(summaries: list[dict], s_floor: float = S_MIN - 0.02) -> dict[str, Any]:
+    """Only sessions with s >= s_min are used: below it the registry's linear v(s) would be
+    extrapolated (real GPUs hold a voltage floor there), which would bias v_min_ratio."""
+    ok = [s for s in summaries if s.get("ok")]
+    excluded = sorted(round(s["s"], 3) for s in ok if s["s"] < s_floor)
+    pts = [(s["s"], s["power_W"]) for s in ok if s["s"] >= s_floor]
+    if len({round(p[0], 3) for p in pts}) < 4:   # 3 parameters: a 4th clock is needed for a standard error
+        return {"ok": False, "excluded_s": excluded,
+                "reason": f"need compute sessions at >= 4 different clocks between {S_MIN:g} x and 1 x the "
+                          f"highest measured clock ({len(pts)} usable, {len(excluded)} below that range)"}
     s = np.array([p[0] for p in pts])
     P = np.array([p[1] for p in pts])
     p0 = (0.3 * P.min(), P.max(), 0.7)
     popt, pcov = curve_fit(_power_model, s, P, p0=p0, bounds=([0, 0, 0.3], [np.inf, np.inf, 1.0]), maxfev=20000)
     se = np.sqrt(np.diag(pcov))
     return {"ok": True, "A_W": float(popt[0]), "P_dyn_W": float(popt[1]), "v_min_ratio": float(popt[2]),
-            "v_min_ratio_se": float(se[2]), "n": len(pts),
+            "v_min_ratio_se": float(se[2]), "n": len(pts), "excluded_s": excluded,
+            "s_range": [float(s.min()), float(s.max())],
             "method": "P = A + P_d * s * v(s)^2 with v linear between s_min = 0.5 and 1 (registry form); "
                       "temperature differences between sessions are not removed"}
 
@@ -241,10 +343,43 @@ def calibrate(session_dirs: Iterable[str | Path], cfg=None) -> dict[str, Any]:
         "device": json.loads((sessions[0].path / "session.json").read_text())["device"] if sessions else None,
         "sessions": summ, "fits": {}, "overrides": {}, "notes": [],
     }
+    notes = out["notes"]
+    # clock reference: highest steady clock among compute sessions (see module docstring)
+    comp = [x for x in by("compute") if x["ok"]]
+    f_ref = max(x["clock_MHz"] for x in comp) if comp else None
+    out["clock_reference"] = {
+        "f_ref_MHz": f_ref, "nvml_max_sm_clock_MHz": sessions[0].max_clock if sessions else None,
+        "method": "s = median SM clock / f_ref, f_ref = highest steady median SM clock among compute sessions"}
+    for x in summ:
+        if x["ok"] and f_ref:
+            x["s"] = x["clock_MHz"] / f_ref
+    # sessions whose locked clock was not held, or that ran into power or thermal limits
+    for x in summ:
+        if not x["ok"]:
+            notes.append(f"{x['path']}: skipped ({x['reason']})")
+            continue
+        lc = x.get("label_clock_MHz")
+        if lc and abs(x["clock_MHz"] - lc) / lc > CLOCK_HELD_TOL:
+            notes.append(f"{x['name']}: locked at {lc:.0f} MHz but ran at {x['clock_MHz']:.0f} MHz (median); the "
+                         "lock was not held. Fits use the measured clock")
+        if x.get("limited_frac") is not None and x["limited_frac"] > 0.10:
+            notes.append(f"{x['name']}: clock held down by a power or thermal limit in "
+                         f"{100 * x['limited_frac']:.0f}% of samples")
+    probes = [x for x in by("probe") if x["ok"]]
+    if probes and f_ref and f_ref < 0.9 * probes[-1]["clock_MHz"]:
+        notes.append(f"highest swept clock {f_ref:.0f} MHz is below the clock the GPU sustains at default settings "
+                     f"({probes[-1]['clock_MHz']:.0f} MHz, probe); v_min_ratio then describes only the lower part "
+                     "of the voltage-frequency range")
+    if comp and f_ref and min(x["s"] for x in comp) > S_MIN + 0.1:
+        notes.append(f"lowest swept clock is {min(x['s'] for x in comp):.2f} x the highest; v_min_ratio (voltage at "
+                     f"{S_MIN:g} x) is extrapolated. Add a clock near {S_MIN * f_ref:.0f} MHz")
     fb_c, fb_m = fit_beta(by("compute")), fit_beta(by("memory"))
     out["fits"]["beta_compute"], out["fits"]["beta_memory"] = fb_c, fb_m
     fp = fit_power_clock(by("compute"))
     out["fits"]["power_vs_clock"] = fp
+    if fp.get("excluded_s"):
+        notes.append(f"power-vs-clock fit left out compute sessions at s = {fp['excluded_s']} (below s_min = "
+                     f"{S_MIN:g}, outside the simulator's clock range); they still count for beta_compute")
     warm = [s for s in sessions if s.kind == "warmup"]
     fl = fit_leakage(warm[-1]) if warm else {"ok": False, "reason": "no warm-up session"}
     out["fits"]["leakage"] = fl
@@ -315,11 +450,56 @@ def ingest(store, calib: dict[str, Any], calib_sha256: str, key: str = "M001") -
     return exp_id
 
 
+def suggest_clocks(f_sustained: float, supported: list[int] | None = None, n: int = 5,
+                   lo_frac: float = S_MIN) -> list[int]:
+    """n lockable clocks from lo_frac x to 1 x the sustained clock. The top one never exceeds the
+    sustained clock (a lock above it would not be held); the others snap to the nearest supported
+    clock, or to the 15 MHz grid NVIDIA uses when the supported list is unavailable."""
+    grid = sorted({int(c) for c in supported}) if supported else None
+
+    def snap(x, down=False):
+        if grid:
+            cand = [c for c in grid if c <= x] if down else grid
+            cand = cand or grid
+            return min(cand, key=lambda c: abs(c - x))
+        return int(15 * (np.floor(x / 15) if down else np.round(x / 15)))
+    targets = np.linspace(lo_frac * f_sustained, f_sustained, n)
+    out = [snap(t) for t in targets[:-1]] + [snap(targets[-1], down=True)]
+    return sorted(set(out))
+
+
+def probe(seconds: float = 60, gpu: int = 0, out_root: str | Path = "data/calibration", nvml=None,
+          workload: Callable[[float], float] | None = None, skip_s: float = 10.0,
+          interval_s: float = 0.1) -> dict[str, Any]:
+    """Run the compute kernel at whatever clocks the GPU is currently using (expected: driver
+    defaults, after `nvidia-smi -rgc`) and suggest sweep clocks from the clock it sustains.
+    Probe sessions are kept as evidence but are not used in any fit."""
+    d = run_session("probe", seconds, out_root, label="default-clocks", gpu=gpu, nvml=nvml, workload=workload,
+                    interval_s=interval_s)
+    sm = summarize(load_session(d), skip_s=skip_s)
+    if not sm["ok"]:
+        return {"ok": False, "path": str(d), "reason": sm["reason"]}
+    supported = None
+    try:
+        nv = Nvml(nvml)
+        try:
+            dev = next((x for x in nv.devices() if x.index == gpu), None)
+            supported = nv.supported_sm_clocks(dev) if dev else None
+        finally:
+            nv.close()
+    except Exception:  # noqa: BLE001 - suggestion falls back to the 15 MHz grid
+        supported = None
+    return {**sm, "ok": True, "path": str(d), "suggested_clocks": suggest_clocks(sm["clock_MHz"], supported)}
+
+
 def plan_commands(clocks_MHz: list[int], gpu: int = 0, seconds: int = 60) -> str:
     """Commands for the USER to review and run. UEIC never executes clock changes itself."""
-    lines = ["# Review before running. Clock locking needs an elevated (Administrator) PowerShell and is",
-             "# not supported on every GPU (many laptop GPUs refuse it). UEIC only records; it never changes clocks.",
-             f"nvidia-smi -i {gpu} -q -d SUPPORTED_CLOCKS | more    # pick clocks from this list", ""]
+    lines = ["# Review before running. Use ONE Administrator PowerShell for everything below (clock locking",
+             "# needs it), with the project virtual environment active in that window: .\\.venv\\Scripts\\Activate.ps1",
+             "# Some GPUs refuse clock locking. UEIC only records; it never changes clocks.",
+             f"# If you stop partway, restore default clocks with: nvidia-smi -i {gpu} -rgc",
+             f"python -m ueic calib check --gpu {gpu}     # must report PyTorch with CUDA and your GPU before you start",
+             "# Clocks should come from `python -m ueic calib probe` (run at default clocks), which suggests them.", ""]
     mid = sorted(clocks_MHz)[len(clocks_MHz) // 2]
     lines += ["# 1) Leakage warm-up at one locked clock: 5 min idle to cool down, then 10 min of steady load.",
               f"nvidia-smi -i {gpu} -lgc {mid},{mid}",

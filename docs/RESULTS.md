@@ -1,6 +1,6 @@
 # UEIC · Phase 1 results (generated)
 
-Generated 2026-10-26T19:18:11+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `ed0113f3c27d694d…`. Hash-chain check: **OK** (2861 finalised runs verified).
+Generated 2026-10-26T19:47:15+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `9163ff28dd15ba25…`. Hash-chain check: **OK** (2861 finalised runs verified).
 
 > **Every number on this page is a simulator output** (provenance `simulator_output`) and is conditional on the parameter registry (`04_assumptions_register.md`), most of which is class E/F. None of it is a measurement of real hardware. Energy boundary: grid → conversion → accelerators + pump + fans + chiller (see `00_problem_statement.md`).
 

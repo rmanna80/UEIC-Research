@@ -6,35 +6,64 @@
 
 **Boundary.** NVML reports GPU board power only. Results calibrate the *accelerator* model, never facility energy.
 
-## 1. Install (Windows PowerShell)
+**Status.** Attempt 1 (RTX 4060 Laptop GPU, 2026-10-26) locked clocks successfully but stopped before measuring: the Python used could not see the GPU through PyTorch. No data was recorded. The fixes it prompted are in section 6 and the research log.
+
+## 1. Set up one Administrator window (Windows PowerShell)
+
+Clock locking needs Administrator rights. The calibration commands must run in a Python that has PyTorch **with CUDA**. Do both in the same window. An Administrator window does not inherit the virtual environment from your normal window, so activate it again there.
 
 ```powershell
-cd UEIC-Research
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements-hw.txt
-# PyTorch with CUDA: pick the command for your CUDA version at https://pytorch.org/get-started/locally/
-python -m ueic telemetry devices          # should list your GPU, its max SM clock and power limit
+# Start menu > right-click Windows PowerShell > Run as administrator
+cd C:\dev\UEIC-Research
+.\.venv\Scripts\Activate.ps1                 # the prompt must now start with (.venv)
+pip install -r requirements-hw.txt           # NVML bindings
+pip uninstall -y torch                       # the default Windows PyTorch from pip is CPU-only
+pip install torch --index-url https://download.pytorch.org/whl/cu130
+python -m ueic calib check                   # every line must be OK, INFO or WARN; none FAIL
 ```
 
-## 2. Get the procedure for your GPU
+`cu130` works with drivers that report CUDA 13.0 or newer in the `nvidia-smi` header. For older drivers, pick the matching build at https://pytorch.org/get-started/locally/.
+
+`calib check` reports four things:
+* which Python is running;
+* whether a virtual environment is active;
+* whether PyTorch is a CUDA build that can see the GPU;
+* what NVML reads: power limit, current clock, temperature.
+
+It changes nothing.
+
+**Laptop preparation.**
+* Plug in the charger.
+* Set Windows power mode to *Best performance*, and use the vendor's performance mode if it has one.
+* Close games, browsers with video, and anything else using the GPU.
+* Keep the vents clear.
+
+## 2. Find the clock your GPU actually sustains
 
 ```powershell
-nvidia-smi -q -d SUPPORTED_CLOCKS | more  # choose 4-6 SM clocks spread over the supported range
-python -m ueic calib plan --clocks 900,1200,1500,1800
+nvidia-smi -i 0 -rgc                         # make sure no clock lock is left from earlier
+python -m ueic calib probe                   # 60 s of the compute kernel at default clocks
 ```
 
-The printed plan is the whole procedure. It has two parts:
+The probe prints the median SM clock the GPU held under load, how much it varied, power, temperature, and how often a power or thermal limit held the clock down. It ends with a `calib plan` command containing five suggested lock clocks, spread from half the sustained clock to the sustained clock and snapped to the clocks your driver supports.
 
-1. **Leakage warm-up** (about 15 min): lock one mid-range clock, let the GPU idle for 5 minutes to cool, then run a steady compute load for 10 minutes. At constant clock and load, the rise in power as the die warms is attributed to leakage. The fit needs at least 8 K of temperature rise.
-2. **Clock sweep** (2 minutes per clock): at each locked clock, run a compute-bound kernel (FP16 matrix multiply) and a memory-bound kernel (FP32 vector update), 60 s each.
+**Why this step exists.** In the simulator, s = 1 is the accelerator's top clock. NVML's "max SM clock" is the top of the driver's clock table, which many GPUs never reach under load. An RTX 4060 Laptop reports 3105 MHz. The fit therefore uses s = clock / f_ref, where f_ref is the highest steady clock among your compute sessions. The power fit uses only clocks between 0.5 × f_ref and f_ref, because that is the range the simulator models. Lock clocks below that range still count towards `beta_compute` and `beta_memory`.
 
-Clock locking (`-lgc`) needs an Administrator PowerShell, and many laptop GPUs refuse it. If yours does:
-* the sweep cannot be done, so `beta_*` and `v_min_ratio` stay unmeasured;
-* the warm-up can still run at default clocks, but the fit keeps only samples within ±15 MHz of the median clock. If boost moves the clock too much, it reports "too few samples" instead of a number.
+## 3. Print the procedure and run it in the same window
 
-Always finish with `nvidia-smi -rgc` to restore default clocks.
+```powershell
+python -m ueic calib plan --clocks <the five clocks the probe suggested>
+```
 
-## 3. Fit, record, and use the results
+The printed plan is the whole procedure:
+
+1. **Leakage warm-up** (about 15 min). Lock the middle clock and let the GPU idle for 5 minutes to cool. Then run a steady compute load for 10 minutes. At constant clock and load, the rise in power as the die warms is attributed to leakage. The fit needs at least 8 K of temperature rise.
+2. **Clock sweep** (2 minutes per clock). At each locked clock, run a compute-bound kernel (FP16 matrix multiply) and a memory-bound kernel (FP32 vector update), 60 s each.
+3. **Reset.** Finish with `nvidia-smi -i 0 -rgc`. Clock locks persist until you reset them or reboot.
+
+If a lock is not held, for example because the power limit caps the GPU below the requested clock, the fit uses the clock actually measured and prints a note.
+
+## 4. Fit, record, and use the results
 
 ```powershell
 python -m ueic calib fit data\calibration\* --out data\calibration\calibration.json
@@ -42,16 +71,36 @@ python -m ueic calib ingest data\calibration\calibration.json          # stored 
 python -m ueic run experiments\E001_policy_benchmark.json --calibration data\calibration\calibration.json
 ```
 
-* `fit` prints each estimate with its standard error and flags values outside the ranges swept in E002. The fitting code is validated in `tests/test_calibration.py`: it recovers known parameters from synthetic sessions.
-* `ingest` writes the estimates into the append-only store as experiment `M001`. Directly measured shape parameters are labelled `physical_measurement`. The leakage power transferred to the simulated accelerator is labelled `engineering_assumption`, because it scales your GPU's leakage *fraction* to a 600 W-class device.
-* `run --calibration` creates a new experiment `E001C` whose spec records the calibration file's SHA-256, so every calibrated result traces back to the raw telemetry.
+* **`fit`** prints:
+  * the clock reference f_ref, alongside NVML's table maximum;
+  * each estimate with its standard error;
+  * notes on values outside the ranges swept in E002, unheld locks, power- or thermal-limited sessions, and clocks left out of the power fit.
 
-## 4. What the fits can and cannot tell you
+  Folders without a `session.json`, such as those left by a failed start, are skipped. Probe sessions are kept as evidence but never enter a fit. The fitting code is validated in `tests/test_calibration.py`, where it recovers known parameters from synthetic sessions. These include a GPU whose NVML maximum is far above the clock it sustains, and one with a voltage floor at low clocks.
+* **`ingest`** writes the estimates into the append-only store as experiment `M001`. Directly measured shape parameters are labelled `physical_measurement`. The leakage power transferred to the simulated accelerator is labelled `engineering_assumption`, because it scales your GPU's leakage *fraction* to a 600 W-class device.
+* **`run --calibration`** creates a new experiment `E001C` whose spec records the calibration file's SHA-256, so every calibrated result traces back to the raw telemetry.
+
+Commit the `data/calibration/` folder with the results: it is the evidence behind any calibrated experiment.
+
+## 5. Troubleshooting
+
+| Message or symptom | Cause | Fix |
+|---|---|---|
+| `PyTorch ... is a CPU-only build` | `pip install torch` on Windows installs the CPU build | `pip uninstall -y torch`, then install from the CUDA index (section 1) |
+| `PyTorch is not installed for this Python ... virtual environment NOT active` | The Administrator window is using a different Python from your venv | `.\.venv\Scripts\Activate.ps1` in that window, then `calib check` |
+| `PyTorch cannot see a CUDA GPU` (versions before this fix) | Either of the two rows above | Run `python -m ueic calib check`; it names which |
+| `running scripts is disabled on this system` when activating | PowerShell execution policy | `Set-ExecutionPolicy -Scope Process RemoteSigned` (this window only), then activate |
+| `nvidia-smi -lgc`: insufficient permissions | Not an Administrator window | Reopen PowerShell with *Run as administrator* |
+| Note: `locked at X MHz but ran at Y MHz` | Power or thermal limit below the requested clock | Plug in, use the performance power mode, or drop the top clock to what `calib probe` reported |
+| `temperature rose only N K` | The GPU was not cold when the warm-up started | Leave it idle longer: `--idle-before 600` |
+| `need compute sessions at >= 4 different clocks between 0.5 x and 1 x` | Too few sweep clocks in the modelled range | Use the clocks `calib probe` suggests |
+| Empty folders in `data\calibration` from earlier failed starts | Older versions created the folder before checking PyTorch | Delete them. `fit` skips them either way |
+| GPU stays at a fixed clock after you stop | Clock locks persist | `nvidia-smi -i 0 -rgc` |
+
+## 6. What the fits can and cannot tell you
 
 | Fit | Model | Main caveat |
 |---|---|---|
-| `beta_compute`, `beta_memory` | log(throughput) vs log(clock / max clock) | Kernel-specific. Real LLM prefill and decode are not these kernels; L09 reports decode is far less clock-sensitive than this memory kernel may be |
-| `v_min_ratio` | P = A + P_d·s·v(s)² with v linear in s | Voltage is not observable through NVML. This fits the registry's functional form, not the true V–f table. Sessions at different temperatures add leakage error |
-| `kappa_leak`, leakage fraction | P(T) = c + L·exp(κ(T − 60 °C)) at constant clock and load | Attributes *all* temperature-dependent board power to leakage. Fan and voltage-regulator losses are not separated, so this is an upper bound on leakage sensitivity |
-
-Commit the `data/calibration/` folder with the results: it is the evidence behind any calibrated experiment.
+| `beta_compute`, `beta_memory` | log(throughput) vs log(clock / f_ref) | Kernel-specific. Real LLM prefill and decode are not these kernels; L09 reports decode is far less clock-sensitive than this memory kernel may be |
+| `v_min_ratio` | P = A + P_d·s·v(s)² with v linear in s, using only clocks from 0.5 × f_ref to f_ref (at least 4) | Voltage is not observable through NVML. This fits the registry's functional form, not the true V–f table. f_ref is the highest clock you swept, so it describes the curve below that clock only. Sessions at different temperatures add leakage error |
+| `kappa_leak`, leakage fraction | P(T) = c + L·exp(κ(T − 60 °C)) at constant clock and load | Attributes *all* temperature-dependent board power to leakage. Voltage-regulator losses are not separated, so this is an upper bound on leakage sensitivity. On a laptop the fans are powered by the system, not the GPU board, so fan power is not in the reading |

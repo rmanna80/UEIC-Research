@@ -84,7 +84,7 @@
 
 ### What was tested
 
-73 tests in total (45 from Phases 0–1). New coverage:
+82 tests in total (45 from Phases 0–1). New coverage:
 * bitwise legacy reproduction;
 * dynamic-loop energy closure, ramp bound, steady state against the twin, pass-through, and the quasi-steady limit;
 * the exact tank response;
@@ -92,7 +92,8 @@
 * self-correction under mismatch;
 * the warm-start regression;
 * telemetry read-only enforcement;
-* fit recovery on synthetic data;
+* fit recovery on synthetic data, including a GPU whose NVML clock maximum is far above the clock it sustains and one with a low-clock voltage floor;
+* environment diagnosis before any session folder is created, unheld clock locks, and probe-based sweep clocks;
 * API values against the twin and the store;
 * the experiment POST path.
 
@@ -119,6 +120,14 @@ The lab was checked in a headless browser on desktop and phone, in light and dar
 | **Residual storage** | 13 E006 v2 runs (independent control, degraded cooling) still changed loop storage by more than 0.5% of grid energy. Up to 0.85% of grid energy ends up stored rather than rejected, which flatters independent control by at most a few tenths of a percent. |
 | **Disclosures** | One exploratory move-suppression run and one self-correction unit test preceded registration of E007 and E008; E006 v1 results were seen before v2 was registered. All are stated in the specs. |
 
+### Calibration attempt 1 (2026-10-26, RTX 4060 Laptop GPU)
+
+| Item | What happened |
+|---|---|
+| **Clock locking** | `nvidia-smi -lgc 1500,1500` was accepted. Many laptop GPUs refuse it, so the clock sweep is possible on this device. |
+| **Run stopped before measuring** | The warm-up stopped with "PyTorch cannot see a CUDA GPU". The Administrator window had no virtual environment active, so the likely cause is a different Python or a CPU-only PyTorch build; not yet confirmed. No data was recorded, but an empty session folder was left. Fixed: PyTorch and NVML are now checked before the folder exists, `calib check` names the exact cause, and errors print without a traceback. |
+| **Clock reference (found in review, before any data)** | The fit scaled clocks by NVML's maximum SM clock. On this GPU that is 3105 MHz, the top of the driver table, which it does not sustain under load. The planned 900–1800 MHz sweep would have sat at s = 0.29–0.58, mostly below the simulator's s_min = 0.5, so the `v_min_ratio` fit would have been an extrapolation. Fixed: s is now relative to the highest measured compute clock, and the power fit uses only s ≥ 0.5 and needs at least 4 clocks there (3 clocks leave no standard error). `calib probe` suggests sweep clocks from the clock the GPU sustains at default settings. Unheld locks and power- or thermal-limited sessions are flagged. |
+
 ## Definition of done (charter §16), initial platform
 
 | # | Criterion | Status |
@@ -129,7 +138,7 @@ The lab was checked in a headless browser on desktop and phone, in light and dar
 | 4 | Functioning simulation | Done |
 | 5 | Reproducible baseline | Done (bitwise-reproducible per seed; bundles) |
 | 6 | ≥ 2 strategies compared | Done (5 policies, paired CIs) |
-| 7 | Energy and thermal models validated | Done analytically; **not** against hardware. Calibration tooling is ready (`09`) and needs a real GPU |
+| 7 | Energy and thermal models validated | Done analytically; **not** against hardware. Calibration tooling is ready (`09`); attempt 1 on an RTX 4060 Laptop stopped before measuring |
 | 8 | Output-quality requirements evaluated | Partly: SLO and placeholder correctness only |
 | 9 | Persistent, exportable logs | Done |
 | 10 | Dashboard shows real simulation outputs | Done (static, generated from the database) |
