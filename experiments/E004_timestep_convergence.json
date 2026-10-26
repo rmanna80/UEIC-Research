@@ -1,0 +1,72 @@
+{
+  "key": "E004",
+  "title": "Numerical convergence in the time step",
+  "research_question": "Are E001-E003 results converged with respect to the simulation time step?",
+  "hypothesis": "Grid energy and energy per successful task change by less than 0.5% between dt=0.5 s and dt=1 s for both fixed and joint policies.",
+  "null_hypothesis": "Change exceeds 0.5%.",
+  "independent_variables": [
+    "dt in {0.25, 0.5, 1, 2} s",
+    "policy"
+  ],
+  "dependent_variables": [
+    "E_grid_kWh",
+    "E_per_success_kJ",
+    "peak_T_j_C",
+    "latency_p95_s"
+  ],
+  "controlled_variables": [
+    "scenario S1 shortened to 1 h",
+    "seeds 0-1"
+  ],
+  "baseline": "dt=0.25 s",
+  "configuration": "As E001",
+  "evaluation_criteria": "Relative difference vs dt=0.25 s per policy and seed.",
+  "known_limitations": "Convergence of a time-stepped scheme does not validate the physics itself.",
+  "design": {
+    "scenarios": [
+      "S1_moderate"
+    ],
+    "policies": [
+      "fixed",
+      "joint"
+    ],
+    "seeds": [
+      0,
+      1
+    ],
+    "scenario_overrides": {
+      "duration_s": 3600.0,
+      "load_period_s": 3600.0
+    },
+    "timeseries_seeds": [],
+    "variants": [
+      {
+        "label": "dt=0.25",
+        "param_overrides": {
+          "dt": 0.25
+        }
+      },
+      {
+        "label": "dt=0.5",
+        "param_overrides": {
+          "dt": 0.5
+        }
+      },
+      {
+        "label": "dt=1.0",
+        "param_overrides": {
+          "dt": 1.0
+        }
+      },
+      {
+        "label": "dt=2.0",
+        "param_overrides": {
+          "dt": 2.0
+        }
+      }
+    ]
+  },
+  "data_collection": "Simulator outputs written to the append-only SQLite store; every metric labelled with provenance; per-run config SHA-256 and code SHA-256 recorded; time series for selected seeds.",
+  "statistics": "Paired by seed (identical workload realisation across levels). Per-seed relative difference d=(A-B)/B; mean with two-sided 95% Student-t CI.",
+  "practical_significance_threshold": 0.01
+}

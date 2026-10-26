@@ -1,0 +1,99 @@
+{
+  "key": "E005",
+  "title": "Robustness of model-based control to digital-twin mismatch",
+  "research_question": "How much of the joint controller's advantage survives when its digital twin is wrong, and do thermal limits still hold?",
+  "hypothesis": "When the twin underestimates leakage or overestimates cold-plate performance, the joint controller exceeds the 80 C thermal target for some chip-seconds and loses part or all of its advantage over independent control; hardware protection still bounds temperature.",
+  "null_hypothesis": "Joint retains its advantage and meets the thermal target under every mismatch.",
+  "independent_variables": [
+    "twin-vs-truth mismatch (3 cases, each with a matched-truth reference)",
+    "policy",
+    "scenario"
+  ],
+  "dependent_variables": [
+    "E_per_success_kJ",
+    "chip_s_over_target",
+    "chip_s_throttled",
+    "peak_T_j_C"
+  ],
+  "controlled_variables": [
+    "seeds 0-4",
+    "4 h window"
+  ],
+  "baseline": "same true plant with a correct twin",
+  "configuration": "Mismatch applied only to the controller's model config (model_param_overrides).",
+  "evaluation_criteria": "Within each truth case: joint vs independent paired difference with correct vs wrong twin; count chip-seconds over target.",
+  "known_limitations": "Mismatches are single-parameter-group and static; real drift is gradual and correlated.",
+  "design": {
+    "scenarios": [
+      "S1_moderate",
+      "S3_hot"
+    ],
+    "policies": [
+      "independent",
+      "joint"
+    ],
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "timeseries_seeds": [
+      0
+    ],
+    "variants": [
+      {
+        "label": "high_leak|twin_correct",
+        "param_overrides": {
+          "kappa_leak": 0.03,
+          "p_leak_ref": 130.0
+        }
+      },
+      {
+        "label": "high_leak|twin_low_leak",
+        "param_overrides": {
+          "kappa_leak": 0.03,
+          "p_leak_ref": 130.0
+        },
+        "model_param_overrides": {
+          "kappa_leak": 0.012,
+          "p_leak_ref": 70.0
+        }
+      },
+      {
+        "label": "fouled_plate|twin_correct",
+        "param_overrides": {
+          "r_conv_ref": 0.026
+        }
+      },
+      {
+        "label": "fouled_plate|twin_clean",
+        "param_overrides": {
+          "r_conv_ref": 0.026
+        },
+        "model_param_overrides": {
+          "r_conv_ref": 0.015
+        }
+      },
+      {
+        "label": "poor_chiller|twin_correct",
+        "param_overrides": {
+          "eta_ii_chiller": 0.35
+        }
+      },
+      {
+        "label": "poor_chiller|twin_optimistic",
+        "param_overrides": {
+          "eta_ii_chiller": 0.35
+        },
+        "model_param_overrides": {
+          "eta_ii_chiller": 0.55
+        }
+      }
+    ]
+  },
+  "data_collection": "Simulator outputs written to the append-only SQLite store; every metric labelled with provenance; per-run config SHA-256 and code SHA-256 recorded; time series for selected seeds.",
+  "statistics": "Paired by seed (identical workload realisation across levels). Per-seed relative difference d=(A-B)/B; mean with two-sided 95% Student-t CI.",
+  "practical_significance_threshold": 0.01
+}

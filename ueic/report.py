@@ -1,0 +1,379 @@
+"""Generate docs/RESULTS.md, docs/04_assumptions_register.md, docs/research_log.md
+and results/figures/*.png from the store. Every number comes from results.compute_all()."""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
+
+from .results import POLICY_ORDER, compute_all  # noqa: E402
+
+# Reference categorical palette (dataviz skill), fixed slot order, light surface.
+SLOTS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"]
+POLICY_COLOR = {p: SLOTS[i] for i, p in enumerate(POLICY_ORDER)}
+INK, INK2, MUTED, GRID, AXIS, SURF = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7", "#fcfcfb"
+LABEL = {"fixed": "Fixed baseline", "compute_only": "Compute-only", "cooling_only": "Cooling-only",
+         "independent": "Independent", "joint": "Joint"}
+
+
+def _style(ax):
+    ax.set_facecolor(SURF)
+    for s in ("top", "right"):
+        ax.spines[s].set_visible(False)
+    for s in ("left", "bottom"):
+        ax.spines[s].set_color(AXIS)
+    ax.tick_params(colors=INK2, labelsize=9)
+    ax.yaxis.grid(True, color=GRID, linewidth=0.8)
+    ax.set_axisbelow(True)
+
+
+def pct(x, d=1):
+    return "n/a" if x is None else f"{x * 100:+.{d}f}%"
+
+
+def ci(r, d=1):
+    return f"{pct(r['mean'], d)} [{pct(r['lo'], d)}, {pct(r['hi'], d)}]"
+
+
+def num(x, d=2):
+    return "n/a" if x is None else f"{x:.{d}f}"
+
+
+# ------------------------------------------------------------------------ figures
+def fig_e001_energy(R, out):
+    e = R["E001"]
+    sc, pols = e["scenarios"], e["policies"]
+    fig, ax = plt.subplots(figsize=(10, 4.2), dpi=150)
+    fig.patch.set_facecolor(SURF)
+    _style(ax)
+    w = 0.8 / len(pols)
+    x = np.arange(len(sc))
+    for j, p in enumerate(pols):
+        m = [e["table"][s][p]["E_per_success_kJ"]["mean"] for s in sc]
+        lo = [e["table"][s][p]["E_per_success_kJ"]["lo"] for s in sc]
+        hi = [e["table"][s][p]["E_per_success_kJ"]["hi"] for s in sc]
+        xs = x - 0.4 + w * (j + 0.5)
+        ax.bar(xs, m, width=w * 0.9, color=POLICY_COLOR[p], label=LABEL[p], edgecolor=SURF, linewidth=1)
+        ax.errorbar(xs, m, yerr=[np.subtract(m, lo), np.subtract(hi, m)], fmt="none", ecolor=INK2, elinewidth=0.8, capsize=0)
+    ax.set_xticks(x, [s.split("_", 1)[1].replace("_", " ") for s in sc])
+    ax.set_ylabel("Facility energy per successful task (kJ)", color=INK2, fontsize=9)
+    ax.legend(frameon=False, ncol=5, fontsize=8.5, loc="upper center", bbox_to_anchor=(0.5, 1.12), labelcolor=INK)
+    ax.set_title("E001 · Energy per successful task by policy and scenario (mean, 95% CI, 10 seeds; simulated)",
+                 fontsize=10, color=INK, loc="left", pad=28)
+    fig.tight_layout()
+    fig.savefig(out / "e001_energy_per_task.png", facecolor=SURF)
+    plt.close(fig)
+
+
+def fig_e001_breakdown(R, out, scenario="S3_hot"):
+    e = R["E001"]
+    pols = e["policies"]
+    parts = [("E_it_kWh", "Accelerators (IT)"), ("E_conv_loss_kWh", "Conversion loss"), ("E_pump_kWh", "Pump"),
+             ("E_fan_kWh", "Heat-rejection fans"), ("E_chiller_kWh", "Chiller")]
+    fig, ax = plt.subplots(figsize=(10, 3.4), dpi=150)
+    fig.patch.set_facecolor(SURF)
+    _style(ax)
+    ax.yaxis.grid(False)
+    ax.xaxis.grid(True, color=GRID, linewidth=0.8)
+    left = np.zeros(len(pols))
+    for i, (k, lab) in enumerate(parts):
+        v = np.array([max(0.0, e["table"][scenario][p][k]["mean"]) for p in pols])
+        ax.barh(range(len(pols)), v, left=left, color=SLOTS[i], label=lab, edgecolor=SURF, linewidth=2, height=0.6)
+        left += v
+    for i, p in enumerate(pols):
+        ax.text(left[i] + 0.1, i, f"{left[i]:.2f} kWh", va="center", fontsize=8.5, color=INK2)
+    ax.set_yticks(range(len(pols)), [LABEL[p] for p in pols])
+    ax.invert_yaxis()
+    ax.set_xlabel("Grid energy over the run (kWh, mean of 10 seeds)", color=INK2, fontsize=9)
+    ax.legend(frameon=False, ncol=5, fontsize=8.5, loc="upper center", bbox_to_anchor=(0.5, 1.2), labelcolor=INK)
+    ax.set_title(f"E001 · Where the energy goes, {scenario} (simulated)", fontsize=10, color=INK, loc="left", pad=30)
+    fig.tight_layout()
+    fig.savefig(out / "e001_breakdown.png", facecolor=SURF)
+    plt.close(fig)
+
+
+def fig_e001_timeseries(R, out, scenario="S3_hot"):
+    ts = R["E001"]["timeseries"].get(scenario, {})
+    pols = [p for p in ("fixed", "independent", "joint") if p in ts]
+    if not pols:
+        return
+    fig, axes = plt.subplots(3, 1, figsize=(10, 6.6), dpi=150, sharex=True)
+    fig.patch.set_facecolor(SURF)
+    panels = [("P_grid", "Grid power (kW)", 1e-3), ("T_sup", "Coolant supply (°C)", 1.0),
+              ("T_max", "Hottest junction (°C)", 1.0)]
+    for ax, (k, lab, sc) in zip(axes, panels):
+        _style(ax)
+        for p in pols:
+            t = np.array(ts[p]["t"]) / 3600
+            ax.plot(t, np.array(ts[p][k]) * sc, color=POLICY_COLOR[p], linewidth=1.6, label=LABEL[p])
+        ax.set_ylabel(lab, color=INK2, fontsize=9)
+    axes[2].axhline(80, color=MUTED, linewidth=1, linestyle="--")
+    axes[2].text(0.99, 79.0, "80 °C controller target", color=MUTED, fontsize=8, ha="right", va="top",
+                 transform=axes[2].get_yaxis_transform())
+    axes[2].axhline(85, color="#d03b3b", linewidth=1, linestyle=":")
+    axes[2].text(0.99, 85.6, "85 °C hardware throttle", color="#d03b3b", fontsize=8, ha="right", va="bottom",
+                 transform=axes[2].get_yaxis_transform())
+    axes[2].set_xlabel("Time (h)", color=INK2, fontsize=9)
+    axes[0].legend(frameon=False, ncol=3, fontsize=8.5, loc="upper right", labelcolor=INK)
+    axes[0].set_title(f"E001 · {scenario}, seed 0: what each controller does over time (simulated)",
+                      fontsize=10, color=INK, loc="left")
+    fig.tight_layout()
+    fig.savefig(out / "e001_timeseries.png", facecolor=SURF)
+    plt.close(fig)
+
+
+def fig_e002_tornado(R, out, key="joint_vs_independent", n=12):
+    t = R["E002"]["tornado"][key]
+    items = t["items"][:n][::-1]
+    base = t["base"]
+    fig, ax = plt.subplots(figsize=(10, 0.36 * len(items) + 1.4), dpi=150)
+    fig.patch.set_facecolor(SURF)
+    _style(ax)
+    ax.yaxis.grid(False)
+    ax.xaxis.grid(True, color=GRID, linewidth=0.8)
+    for i, it in enumerate(items):
+        lo, hi = it["at_low"] * 100, it["at_high"] * 100
+        ax.plot([lo, hi], [i, i], color=AXIS, linewidth=2, zorder=1)
+        ax.scatter([lo], [i], s=36, color=SLOTS[0], zorder=2, label="Parameter at low bound" if i == 0 else None)
+        ax.scatter([hi], [i], s=36, color=SLOTS[1], zorder=2, label="Parameter at high bound" if i == 0 else None)
+    ax.axvline(base * 100, color=INK2, linewidth=1)
+    ax.axvline(0, color=MUTED, linewidth=1, linestyle="--")
+    ax.set_yticks(range(len(items)), [f"{it['param']} [{it['evidence']}]" for it in items], fontsize=8.5)
+    a, b = key.split("_vs_")
+    ax.set_xlabel(f"{LABEL[a]} vs {LABEL[b]}: change in energy per successful task (%)", color=INK2, fontsize=9)
+    ax.legend(frameon=False, fontsize=8.5, loc="lower right", labelcolor=INK)
+    ax.set_title(f"E002 · Sensitivity of {LABEL[a]} vs {LABEL[b]} (mean of 3 seeds; solid line = default {base*100:+.2f}%)",
+                 fontsize=10, color=INK, loc="left")
+    fig.tight_layout()
+    fig.savefig(out / f"e002_tornado_{key}.png", facecolor=SURF)
+    plt.close(fig)
+
+
+def fig_e003(R, out):
+    rows = [r for r in R["E003"]["rows"] if r["false_accept"] == 0]
+    if not rows:
+        return
+    fig, ax = plt.subplots(figsize=(10, 4), dpi=150)
+    fig.patch.set_facecolor(SURF)
+    _style(ax)
+    xs = sorted({round(r["rs_plus_rv"], 3) for r in rows})
+    ana = [next(r for r in rows if round(r["rs_plus_rv"], 3) == x)["analytic_work_ratio"] - 1 for x in xs]
+    ax.plot(xs, np.array(ana) * 100, color=MUTED, linewidth=2, linestyle="--", marker="o", markersize=5,
+            label="Analytic change in work")
+    for p in ("fixed", "joint"):
+        pr = sorted([r for r in rows if r["policy"] == p], key=lambda r: r["rs_plus_rv"])
+        x = [r["rs_plus_rv"] for r in pr]
+        y = np.array([r["energy_change"] for r in pr]) * 100
+        lo = np.array([r["energy_lo"] for r in pr]) * 100
+        hi = np.array([r["energy_hi"] for r in pr]) * 100
+        ax.plot(x, y, color=POLICY_COLOR[p], linewidth=2, marker="o", markersize=5,
+                label=f"Simulated change in energy per successful task ({LABEL[p]})")
+        ax.fill_between(x, lo, hi, color=POLICY_COLOR[p], alpha=0.15, linewidth=0)
+    be = R["E003"]["break_even_rs_rv"]
+    ax.axvline(be, color=INK2, linewidth=1)
+    ax.text(be + 0.005, ax.get_ylim()[1] * 0.85, f"analytic break-even\nrs+rv = E[p_small] = {be:.3f}", fontsize=8, color=INK2)
+    ax.axhline(0, color=AXIS, linewidth=1)
+    ax.set_xlabel("Small-model + verifier cost, relative to the large model (rs + rv)", color=INK2, fontsize=9)
+    ax.set_ylabel("Change vs large-model only (%)", color=INK2, fontsize=9)
+    ax.legend(frameon=False, fontsize=8, loc="upper left", labelcolor=INK)
+    ax.set_title("E003 · Model cascade: realised energy saving vs analytic work saving (S1, 10 seeds; hypothetical quality model)",
+                 fontsize=10, color=INK, loc="left")
+    fig.tight_layout()
+    fig.savefig(out / "e003_routing.png", facecolor=SURF)
+    plt.close(fig)
+
+
+# ------------------------------------------------------------------------ markdown
+def md_assumptions(R) -> str:
+    L = ["# 04 · Assumptions register", "",
+         "Generated from `ueic/params.py` by `python -m ueic report`. Do not edit by hand.", "",
+         "Evidence classes: **A** established physical principle/property · **B** published experimental result · "
+         "**C** published simulation · **D** commercial capability · **E** engineering extrapolation · "
+         "**F** unvalidated placeholder chosen for this study · **G** design/configuration choice.", "",
+         "Classes E and F are *not measurements*. Every E/F value with a range is swept in E002.", "",
+         "| Group | Parameter | Value | Unit | Class | Sensitivity range | Source / rationale |",
+         "|---|---|---|---|---|---|---|"]
+    for p in sorted(R["assumptions"], key=lambda x: (x["group"], x["name"])):
+        rng = f"{p['low']:g} – {p['high']:g}" if p["low"] is not None else ""
+        L.append(f"| {p['group']} | `{p['name']}` | {p['value']:g} | {p['unit']} | {p['evidence']} | {rng} | {p['source']} |")
+    counts = {}
+    for p in R["assumptions"]:
+        counts[p["evidence"]] = counts.get(p["evidence"], 0) + 1
+    L += ["", "Counts by class: " + ", ".join(f"{k}: {v}" for k, v in sorted(counts.items())), ""]
+    return "\n".join(L)
+
+
+def md_results(R) -> str:
+    thr = R["threshold"]
+    L = ["# UEIC · Phase 1 results (generated)", "",
+         f"Generated {R['generated_utc']} by `python -m ueic report` from `results/ueic.sqlite`. "
+         f"Code SHA-256 `{R['code_sha256'][:16]}…`. Hash-chain check: **{'OK' if R['chain_ok'] else 'FAILED'}** "
+         f"({R['chain_msg']}).", "",
+         "> **Every number on this page is a simulator output** (provenance `simulator_output`) and is conditional on "
+         "the parameter registry (`04_assumptions_register.md`), most of which is class E/F. None of it is a "
+         "measurement of real hardware. Energy boundary: grid → conversion → accelerators + pump + fans + chiller "
+         "(see `00_problem_statement.md`).", ""]
+    from .results import verdicts
+    L += ["## Pre-registered hypotheses, evaluated mechanically", "", "| Experiment | Verdict | Detail |", "|---|---|---|"]
+    for v in sorted(verdicts(R), key=lambda v: v["key"]):
+        L.append(f"| {v['key']} | **{v['state']}** | {v['text']} |")
+    L.append("")
+
+    # E004
+    e4 = R["E004"]
+    if e4:
+        L += ["## E004 · Time-step convergence", "",
+              f"Experiment `{e4['id']}`. Pre-registered criterion: grid energy changes < 0.5% between dt = 0.5 s and 1 s.", "",
+              "| Policy | Seed | dt | Change in grid energy vs dt = 0.5 s |", "|---|---|---|---|"]
+        for r in e4["rows"]:
+            L.append(f"| {r['policy']} | {r['seed']} | {r['variant']} | {pct(r['rel_change_vs_dt0.5'], 3)} |")
+        L += ["", "Worst |change| at dt = 1 s: " + ", ".join(f"{k} {v*100:.3f}%" for k, v in e4["worst_abs_dt1_vs_dt05"].items())
+              + f". **Criterion {'met' if e4['hypothesis_met'] else 'NOT met'}.**", ""]
+
+    e = R["E001"]
+    if e:
+        L += ["## E001 · Policy benchmark", "",
+              f"Experiment `{e['id']}`: {e['n_runs']} runs, {e['n_failed']} failed. 6 scenarios × 5 policies × 10 paired seeds.", "",
+              "![Energy per successful task](../results/figures/e001_energy_per_task.png)", "",
+              "### Energy per successful task (kJ, mean [95% CI])", "",
+              "| Scenario | " + " | ".join(LABEL[p] for p in e["policies"]) + " |",
+              "|---|" + "---|" * len(e["policies"])]
+        for s in e["scenarios"]:
+            cells = []
+            for p in e["policies"]:
+                v = e["table"][s][p]["E_per_success_kJ"]
+                cells.append(f"{v['mean']:.2f} [{v['lo']:.2f}, {v['hi']:.2f}]")
+            L.append(f"| {s} | " + " | ".join(cells) + " |")
+        L += ["", "### Paired comparisons of energy per successful task", "",
+              f"Practical threshold ±{thr:.0%}. Δ SLO = change in late-or-unfinished tasks per run (mean); "
+              "Δ throttled = change in chip-seconds under hardware throttling.", "",
+              "| Scenario | Comparison | Change [95% CI] | Verdict | Δ SLO | Δ success rate | Δ throttled |",
+              "|---|---|---|---|---|---|---|"]
+        for c in e["comparisons"]:
+            L.append(f"| {c['scenario']} | {LABEL[c['a']]} vs {LABEL[c['b']]} | {ci(c, 2)} | {c['verdict']} | "
+                     f"{c['d_slo_violations']:+.1f} | {c['d_success_rate']*100:+.3f} pp | {c['d_throttled']:+.0f} |")
+        h1, h2 = e["H1"], e["H2"]
+        L += ["", "### Hypotheses", "",
+              f"* **H1** (joint < independent with CI below zero in ≥ {h1['required']} of 6 scenarios, guards held): "
+              f"**{'supported' if h1['supported'] else 'not supported'}**. CI below zero in "
+              f"{len(h1['scenarios_ci_below_zero'])}/6 ({', '.join(h1['scenarios_ci_below_zero']) or 'none'}); "
+              f"beyond the {thr:.0%} practical threshold in {len(h1['scenarios_meaningful'])}/6 "
+              f"({', '.join(h1['scenarios_meaningful']) or 'none'}).",
+              f"* **H2** (every optimising policy below fixed in every scenario): energy criterion "
+              f"**{'met' if h2['energy_criterion_met'] else 'not met'}**"
+              + (f" (failures: {h2['energy_failures']})" if h2['energy_failures'] else "") + "; pre-registered quality guard "
+              + ("**held**." if not h2["guard_failures"] else
+                 f"**failed in {len(h2['guard_failures'])} of {len([c for c in e['comparisons'] if c['b']=='fixed'])} comparisons** "
+                 "(SLO violations or success rate slightly worse than fixed; see table). "
+                 "Formally, H2 is therefore **not supported as pre-registered**."), ""]
+        L += ["### Thermal and quality guards by policy (means over seeds)", "",
+              "| Scenario | Policy | Success rate | SLO violations | p95 latency (s) | Peak T_j (°C) | chip·s > 80 °C | chip·s throttled | Reusable heat ≥45 °C (kWh) |",
+              "|---|---|---|---|---|---|---|---|---|"]
+        for s in e["scenarios"]:
+            for p in e["policies"]:
+                t = e["table"][s][p]
+                L.append(f"| {s} | {LABEL[p]} | {t['success_rate']['mean']:.4f} | {t['slo_violations']['mean']:.1f} | "
+                         f"{t['latency_p95_s']['mean']:.1f} | {t['peak_T_j_C']['mean']:.1f} | {t['chip_s_over_target']['mean']:.0f} | "
+                         f"{t['chip_s_throttled']['mean']:.0f} | {t['Q_reusable_kWh']['mean']:.2f} |")
+        L += ["", "### Energy breakdown (kWh per run, means)", "", "![Breakdown](../results/figures/e001_breakdown.png)", "",
+              "| Scenario | Policy | Grid | IT | Conversion | Pump | Fans | Chiller | Grid/IT |", "|---|---|---|---|---|---|---|---|---|"]
+        for s in e["scenarios"]:
+            for p in e["policies"]:
+                t = e["table"][s][p]
+                L.append(f"| {s} | {LABEL[p]} | {t['E_grid_kWh']['mean']:.3f} | {t['E_it_kWh']['mean']:.3f} | "
+                         f"{t['E_conv_loss_kWh']['mean']:.3f} | {t['E_pump_kWh']['mean']:.3f} | {t['E_fan_kWh']['mean']:.3f} | "
+                         f"{t['E_chiller_kWh']['mean']:.3f} | {t['grid_to_it_ratio']['mean']:.3f} |")
+        L += ["", "![Time series](../results/figures/e001_timeseries.png)", "",
+              f"Controller overhead (measured wall-clock on the simulation host, not modelled energy): joint "
+              f"{e['table'][e['scenarios'][0]]['joint']['controller_wall_mean_ms']['mean']:.2f} ms per decision, "
+              f"independent {e['table'][e['scenarios'][0]]['independent']['controller_wall_mean_ms']['mean']:.2f} ms.", ""]
+
+    e2 = R["E002"]
+    if e2:
+        L += ["## E002 · One-at-a-time sensitivity", "",
+              f"Experiment `{e2['id']}`: {e2['n_runs']} runs, {e2['n_failed']} failed. S1, 2 h window, 3 seeds per cell "
+              "(CIs are wide; use for ranking).", "",
+              "![Tornado joint vs independent](../results/figures/e002_tornado_joint_vs_independent.png)", "",
+              "![Tornado joint vs fixed](../results/figures/e002_tornado_joint_vs_fixed.png)", ""]
+        for key in ("joint_vs_independent", "joint_vs_fixed"):
+            t = e2["tornado"][key]
+            a, b = key.split("_vs_")
+            L += [f"### {LABEL[a]} vs {LABEL[b]} (default {pct(t['base'], 2)})", "",
+                  "| Rank | Parameter | Class | Range | At low | At high | Swing |", "|---|---|---|---|---|---|---|"]
+            for i, it in enumerate(t["items"][:15], 1):
+                L.append(f"| {i} | `{it['param']}` | {it['evidence']} | {it['low_value']:g} – {it['high_value']:g} {it['unit']} | "
+                         f"{pct(it['at_low'], 2)} | {pct(it['at_high'], 2)} | {it['swing']*100:.2f} pp |")
+            L.append("")
+        L += [f"Variants where joint used **more** energy than independent (mean): "
+              f"{', '.join(e2['joint_worse_mean']) or 'none'}. With CI entirely above zero: "
+              f"{', '.join(e2['joint_worse_ci']) or 'none'}.", ""]
+        thr_v = sorted({k.split('|')[0] for k, v in e2["throttled"].items() if v and v > 0})
+        L += [f"Variants in which any policy triggered hardware throttling: {', '.join(thr_v) or 'none'}.", ""]
+
+    e3 = R["E003"]
+    if e3:
+        L += ["## E003 · Model-routing cascade", "",
+              f"Experiment `{e3['id']}`: {e3['n_runs']} runs, {e3['n_failed']} failed. **Quality model is a hypothetical "
+              f"placeholder (class F)**; the transferable results are the break-even condition and the work-vs-energy gap.", "",
+              "![Routing](../results/figures/e003_routing.png)", "",
+              "| Variant | Policy | rs+rv | Analytic Δ work | Simulated Δ work [CI] | Δ energy per success [CI] | Verdict | Δ success rate | Δ p95 latency |",
+              "|---|---|---|---|---|---|---|---|---|"]
+        for r in e3["rows"]:
+            L.append(f"| {r['variant']} | {LABEL[r['policy']]} | {r['rs_plus_rv']:.2f} | {pct(r['analytic_work_ratio']-1)} | "
+                     f"{pct(r['sim_work_change'])} [{pct(r['sim_work_lo'])}, {pct(r['sim_work_hi'])}] | "
+                     f"{pct(r['energy_change'])} [{pct(r['energy_lo'])}, {pct(r['energy_hi'])}] | {r['verdict']} | "
+                     f"{r['d_success_rate']*100:+.2f} pp | {pct(r['p95_latency_change'])} |")
+        L += ["", f"Analytic break-even with a perfect verifier: rs + rv = E[p_small] = {e3['break_even_rs_rv']:.3f}.", ""]
+
+    e5 = R["E005"]
+    if e5:
+        L += ["## E005 · Digital-twin mismatch", "",
+              f"Experiment `{e5['id']}`: {e5['n_runs']} runs, {e5['n_failed']} failed. 5 seeds.", "",
+              "| Scenario | Truth \\| twin | Joint vs independent [CI] | Verdict | Joint chip·s > 80 °C | Independent chip·s > 80 °C | Joint throttled | Independent throttled | Joint peak T | Independent peak T |",
+              "|---|---|---|---|---|---|---|---|---|---|"]
+        for r in e5["rows"]:
+            L.append(f"| {r['scenario']} | {r['variant']} | {pct(r['joint_vs_independent'], 2)} [{pct(r['lo'], 2)}, {pct(r['hi'], 2)}] | "
+                     f"{r['verdict']} | {num(r['joint_chip_s_over_target'], 0)} | {num(r['independent_chip_s_over_target'], 0)} | "
+                     f"{num(r['joint_chip_s_throttled'], 0)} | {num(r['independent_chip_s_throttled'], 0)} | "
+                     f"{num(r['joint_peak_T_j_C'], 1)} | {num(r['independent_peak_T_j_C'], 1)} |")
+        L.append("")
+
+    L += ["## Experiment register (including superseded and failed)", "",
+          "| Id | Status | Runs | Title |", "|---|---|---|---|"]
+    for x in R["experiments"]:
+        L.append(f"| `{x['id']}` | {x['status']} | {json.dumps(x['summary']) if x['summary'] else ''} | {x['title']} |")
+    L.append("")
+    return "\n".join(L)
+
+
+def md_log(R) -> str:
+    L = ["# Research log", "", "Exported from the append-only `research_log` table. Do not edit by hand; add entries "
+         "with `python -m ueic log \"...\"`.", ""]
+    for utc, entry in R["research_log"]:
+        L.append(f"* **{utc}** · {entry}")
+    return "\n".join(L) + "\n"
+
+
+def build_report(store, root: Path) -> str:
+    R = compute_all(store)
+    figs = root / "results" / "figures"
+    figs.mkdir(parents=True, exist_ok=True)
+    if R["E001"]:
+        fig_e001_energy(R, figs)
+        fig_e001_breakdown(R, figs)
+        fig_e001_timeseries(R, figs)
+    if R["E002"]:
+        fig_e002_tornado(R, figs, "joint_vs_independent")
+        fig_e002_tornado(R, figs, "joint_vs_fixed")
+    if R["E003"]:
+        fig_e003(R, figs)
+    docs = root / "docs"
+    (docs / "RESULTS.md").write_text(md_results(R))
+    (docs / "04_assumptions_register.md").write_text(md_assumptions(R))
+    (docs / "research_log.md").write_text(md_log(R))
+    (root / "results" / "results_summary.json").write_text(json.dumps(R, indent=1, default=str))
+    return str(docs / "RESULTS.md")

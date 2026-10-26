@@ -1,0 +1,74 @@
+{
+  "key": "E001",
+  "title": "Policy benchmark: fixed vs compute-only vs cooling-only vs independent vs joint",
+  "research_question": "How much facility energy per successful task does each control strategy save relative to a fixed conventional policy, and does joint compute-cooling optimisation save more than energy-aware compute and cooling controllers running independently?",
+  "hypothesis": "H1: joint uses less energy per successful task than independent in at least 4 of 6 scenarios (paired 95% CI entirely below 0), without more SLO violations or thermal-limit exceedances. H2: every optimising policy uses less energy per successful task than fixed in every scenario.",
+  "null_hypothesis": "Joint and independent do not differ (CI includes 0) or differ by less than the practical threshold.",
+  "independent_variables": [
+    "policy (5 levels)",
+    "scenario (6 levels)"
+  ],
+  "dependent_variables": [
+    "E_per_success_kJ (primary)",
+    "E_grid_kWh",
+    "E_it_kWh",
+    "E_cooling_kWh",
+    "E_chiller_kWh",
+    "success_rate",
+    "slo_violations",
+    "latency_p95_s",
+    "peak_T_j_C",
+    "chip_s_over_target",
+    "chip_s_throttled",
+    "Q_reusable_kWh",
+    "Ex_rejected_kWh"
+  ],
+  "controlled_variables": [
+    "workload realisation per seed",
+    "all registry parameters at defaults",
+    "4 h arrival window + drain",
+    "dt=1 s",
+    "60 s control interval",
+    "thermal target 80 C / hardware throttle 85 C",
+    "controller model = true plant"
+  ],
+  "baseline": "fixed: full clock when busy, 18 C supply, design flow",
+  "configuration": "8 accelerators on one liquid loop; dry cooler + trim chiller; see parameter registry",
+  "evaluation_criteria": "Primary: paired relative difference in E_per_success_kJ. A difference is 'meaningful' only if the whole 95% CI lies beyond 1%. Quality guard: success_rate and SLO violations must not worsen relative to the comparator. Thermal guard: zero chip-seconds throttled.",
+  "known_limitations": "Synthetic workload (class F); controller has a perfect model of the plant; quasi-steady plant without loop thermal mass; single node; constant ambient per scenario.",
+  "design": {
+    "scenarios": [
+      "S1_moderate",
+      "S2_high_load",
+      "S3_hot",
+      "S4_cool",
+      "S5_memory_heavy",
+      "S6_degraded_cooling"
+    ],
+    "policies": [
+      "fixed",
+      "compute_only",
+      "cooling_only",
+      "independent",
+      "joint"
+    ],
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "timeseries_seeds": [
+      0
+    ]
+  },
+  "data_collection": "Simulator outputs written to the append-only SQLite store; every metric labelled with provenance; per-run config SHA-256 and code SHA-256 recorded; time series for selected seeds.",
+  "statistics": "Paired by seed (identical workload realisation across levels). Per-seed relative difference d=(A-B)/B; mean with two-sided 95% Student-t CI.",
+  "practical_significance_threshold": 0.01
+}

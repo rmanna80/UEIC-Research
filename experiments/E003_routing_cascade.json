@@ -1,0 +1,109 @@
+{
+  "key": "E003",
+  "title": "Model-routing cascade with verification: realised energy vs analytic work savings",
+  "research_question": "Does a verified small-model cascade reduce facility energy per successful task, and how does the realised energy saving compare with the analytic saving in computational work?",
+  "hypothesis": "With a perfect verifier the cascade reduces energy per successful task if and only if (small cost + verifier cost) < E[p_small] = 0.672; the realised fractional energy saving is smaller than the fractional work saving because idle, static, conversion and cooling energy do not scale with work. A verifier with false accepts lowers task success.",
+  "null_hypothesis": "Energy saving tracks work saving one-to-one, or the break-even point differs from analytic.",
+  "independent_variables": [
+    "routing on/off and small-model cost ratio",
+    "verifier false-accept rate",
+    "policy"
+  ],
+  "dependent_variables": [
+    "E_per_success_kJ",
+    "work_enqueued_s",
+    "escalations",
+    "success_rate",
+    "latency_p95_s",
+    "slo_violations"
+  ],
+  "controlled_variables": [
+    "scenario S1_moderate",
+    "task arrivals and outcome random numbers per seed"
+  ],
+  "baseline": "routing off (large model only) under the same policy",
+  "configuration": "All routing parameters are hypothetical (class F); see registry",
+  "evaluation_criteria": "Paired relative difference of each routing variant vs routing_off within policy; compare with analytic work ratio from workload.routing_expectations().",
+  "known_limitations": "Quality model is a Bernoulli placeholder, not a measured model evaluation; verifier cost and accuracy are assumed; no batching effects.",
+  "design": {
+    "scenarios": [
+      "S1_moderate"
+    ],
+    "policies": [
+      "fixed",
+      "joint"
+    ],
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "timeseries_seeds": [],
+    "variants": [
+      {
+        "label": "routing_off"
+      },
+      {
+        "label": "rs+rv=0.25",
+        "scenario_overrides": {
+          "routing": true
+        }
+      },
+      {
+        "label": "rs+rv=0.45",
+        "scenario_overrides": {
+          "routing": true
+        },
+        "param_overrides": {
+          "small_cost_ratio": 0.4
+        }
+      },
+      {
+        "label": "rs+rv=0.60",
+        "scenario_overrides": {
+          "routing": true
+        },
+        "param_overrides": {
+          "small_cost_ratio": 0.55
+        }
+      },
+      {
+        "label": "rs+rv=0.67",
+        "scenario_overrides": {
+          "routing": true
+        },
+        "param_overrides": {
+          "small_cost_ratio": 0.622
+        }
+      },
+      {
+        "label": "rs+rv=0.80",
+        "scenario_overrides": {
+          "routing": true
+        },
+        "param_overrides": {
+          "small_cost_ratio": 0.75
+        }
+      },
+      {
+        "label": "rs+rv=0.25,false_accept=0.10",
+        "scenario_overrides": {
+          "routing": true
+        },
+        "param_overrides": {
+          "verifier_false_accept": 0.1
+        }
+      }
+    ]
+  },
+  "data_collection": "Simulator outputs written to the append-only SQLite store; every metric labelled with provenance; per-run config SHA-256 and code SHA-256 recorded; time series for selected seeds.",
+  "statistics": "Paired by seed (identical workload realisation across levels). Per-seed relative difference d=(A-B)/B; mean with two-sided 95% Student-t CI.",
+  "practical_significance_threshold": 0.01
+}

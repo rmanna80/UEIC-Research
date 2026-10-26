@@ -1,0 +1,453 @@
+{
+  "key": "E002",
+  "title": "One-at-a-time sensitivity of policy comparisons to uncertain assumptions",
+  "research_question": "Which uncertain (class E/F) assumptions materially change the conclusions of E001 for joint vs independent and joint vs fixed?",
+  "hypothesis": "The sign of (joint - independent) energy per successful task is non-positive for every one-at-a-time variation; its magnitude is most sensitive to the leakage parameters (kappa_leak, p_leak_ref). The joint-vs-fixed saving is most sensitive to the V-f curve (v_min_ratio) and memory-boundness (beta_memory).",
+  "null_hypothesis": "Some variation reverses the sign of joint - independent, or other parameters dominate.",
+  "independent_variables": [
+    "one parameter at its low or high bound (25 parameters x 2)",
+    "policy (3 levels)"
+  ],
+  "dependent_variables": [
+    "E_per_success_kJ",
+    "chip_s_throttled",
+    "slo_violations"
+  ],
+  "controlled_variables": [
+    "scenario S1_moderate shortened to a 2 h arrival window (one load cycle)",
+    "all other parameters at defaults",
+    "seeds 0-2"
+  ],
+  "baseline": "default variant; fixed policy within each variant",
+  "configuration": "As E001, S1 scenario, 2 h",
+  "evaluation_criteria": "For each variant: paired relative difference joint vs independent and joint vs fixed with 95% CI (n=3 seeds, so CIs are wide; used for ranking, not confirmation). Rank parameters by the swing (high minus low) of the mean difference.",
+  "known_limitations": "One-at-a-time design misses interactions; only 3 seeds per cell; ranges are judgement calls recorded in the registry.",
+  "design": {
+    "scenarios": [
+      "S1_moderate"
+    ],
+    "policies": [
+      "fixed",
+      "independent",
+      "joint"
+    ],
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "scenario_overrides": {
+      "duration_s": 7200.0,
+      "load_period_s": 7200.0
+    },
+    "timeseries_seeds": [],
+    "variants": [
+      {
+        "label": "default"
+      },
+      {
+        "label": "kappa_leak=low",
+        "param": "kappa_leak",
+        "end": "low",
+        "param_overrides": {
+          "kappa_leak": 0.005
+        }
+      },
+      {
+        "label": "kappa_leak=high",
+        "param": "kappa_leak",
+        "end": "high",
+        "param_overrides": {
+          "kappa_leak": 0.04
+        }
+      },
+      {
+        "label": "p_leak_ref=low",
+        "param": "p_leak_ref",
+        "end": "low",
+        "param_overrides": {
+          "p_leak_ref": 30.0
+        }
+      },
+      {
+        "label": "p_leak_ref=high",
+        "param": "p_leak_ref",
+        "end": "high",
+        "param_overrides": {
+          "p_leak_ref": 180.0
+        }
+      },
+      {
+        "label": "p_dyn_max=low",
+        "param": "p_dyn_max",
+        "end": "low",
+        "param_overrides": {
+          "p_dyn_max": 300.0
+        }
+      },
+      {
+        "label": "p_dyn_max=high",
+        "param": "p_dyn_max",
+        "end": "high",
+        "param_overrides": {
+          "p_dyn_max": 700.0
+        }
+      },
+      {
+        "label": "p_static_other=low",
+        "param": "p_static_other",
+        "end": "low",
+        "param_overrides": {
+          "p_static_other": 20.0
+        }
+      },
+      {
+        "label": "p_static_other=high",
+        "param": "p_static_other",
+        "end": "high",
+        "param_overrides": {
+          "p_static_other": 100.0
+        }
+      },
+      {
+        "label": "idle_dyn_frac=low",
+        "param": "idle_dyn_frac",
+        "end": "low",
+        "param_overrides": {
+          "idle_dyn_frac": 0.0
+        }
+      },
+      {
+        "label": "idle_dyn_frac=high",
+        "param": "idle_dyn_frac",
+        "end": "high",
+        "param_overrides": {
+          "idle_dyn_frac": 0.15
+        }
+      },
+      {
+        "label": "activity_memory=low",
+        "param": "activity_memory",
+        "end": "low",
+        "param_overrides": {
+          "activity_memory": 0.5
+        }
+      },
+      {
+        "label": "activity_memory=high",
+        "param": "activity_memory",
+        "end": "high",
+        "param_overrides": {
+          "activity_memory": 1.0
+        }
+      },
+      {
+        "label": "v_min_ratio=low",
+        "param": "v_min_ratio",
+        "end": "low",
+        "param_overrides": {
+          "v_min_ratio": 0.6
+        }
+      },
+      {
+        "label": "v_min_ratio=high",
+        "param": "v_min_ratio",
+        "end": "high",
+        "param_overrides": {
+          "v_min_ratio": 0.85
+        }
+      },
+      {
+        "label": "beta_compute=low",
+        "param": "beta_compute",
+        "end": "low",
+        "param_overrides": {
+          "beta_compute": 0.85
+        }
+      },
+      {
+        "label": "beta_compute=high",
+        "param": "beta_compute",
+        "end": "high",
+        "param_overrides": {
+          "beta_compute": 1.0
+        }
+      },
+      {
+        "label": "beta_memory=low",
+        "param": "beta_memory",
+        "end": "low",
+        "param_overrides": {
+          "beta_memory": 0.15
+        }
+      },
+      {
+        "label": "beta_memory=high",
+        "param": "beta_memory",
+        "end": "high",
+        "param_overrides": {
+          "beta_memory": 0.6
+        }
+      },
+      {
+        "label": "c_th=low",
+        "param": "c_th",
+        "end": "low",
+        "param_overrides": {
+          "c_th": 100.0
+        }
+      },
+      {
+        "label": "c_th=high",
+        "param": "c_th",
+        "end": "high",
+        "param_overrides": {
+          "c_th": 1000.0
+        }
+      },
+      {
+        "label": "r_cond=low",
+        "param": "r_cond",
+        "end": "low",
+        "param_overrides": {
+          "r_cond": 0.02
+        }
+      },
+      {
+        "label": "r_cond=high",
+        "param": "r_cond",
+        "end": "high",
+        "param_overrides": {
+          "r_cond": 0.06
+        }
+      },
+      {
+        "label": "r_conv_ref=low",
+        "param": "r_conv_ref",
+        "end": "low",
+        "param_overrides": {
+          "r_conv_ref": 0.008
+        }
+      },
+      {
+        "label": "r_conv_ref=high",
+        "param": "r_conv_ref",
+        "end": "high",
+        "param_overrides": {
+          "r_conv_ref": 0.03
+        }
+      },
+      {
+        "label": "n_conv=low",
+        "param": "n_conv",
+        "end": "low",
+        "param_overrides": {
+          "n_conv": 0.33
+        }
+      },
+      {
+        "label": "n_conv=high",
+        "param": "n_conv",
+        "end": "high",
+        "param_overrides": {
+          "n_conv": 0.8
+        }
+      },
+      {
+        "label": "dp_ref=low",
+        "param": "dp_ref",
+        "end": "low",
+        "param_overrides": {
+          "dp_ref": 50000.0
+        }
+      },
+      {
+        "label": "dp_ref=high",
+        "param": "dp_ref",
+        "end": "high",
+        "param_overrides": {
+          "dp_ref": 300000.0
+        }
+      },
+      {
+        "label": "m_dp=low",
+        "param": "m_dp",
+        "end": "low",
+        "param_overrides": {
+          "m_dp": 1.0
+        }
+      },
+      {
+        "label": "m_dp=high",
+        "param": "m_dp",
+        "end": "high",
+        "param_overrides": {
+          "m_dp": 2.0
+        }
+      },
+      {
+        "label": "eta_pump=low",
+        "param": "eta_pump",
+        "end": "low",
+        "param_overrides": {
+          "eta_pump": 0.3
+        }
+      },
+      {
+        "label": "eta_pump=high",
+        "param": "eta_pump",
+        "end": "high",
+        "param_overrides": {
+          "eta_pump": 0.7
+        }
+      },
+      {
+        "label": "eta_ii_chiller=low",
+        "param": "eta_ii_chiller",
+        "end": "low",
+        "param_overrides": {
+          "eta_ii_chiller": 0.3
+        }
+      },
+      {
+        "label": "eta_ii_chiller=high",
+        "param": "eta_ii_chiller",
+        "end": "high",
+        "param_overrides": {
+          "eta_ii_chiller": 0.65
+        }
+      },
+      {
+        "label": "dt_evap=low",
+        "param": "dt_evap",
+        "end": "low",
+        "param_overrides": {
+          "dt_evap": 1.0
+        }
+      },
+      {
+        "label": "dt_evap=high",
+        "param": "dt_evap",
+        "end": "high",
+        "param_overrides": {
+          "dt_evap": 6.0
+        }
+      },
+      {
+        "label": "dt_cond=low",
+        "param": "dt_cond",
+        "end": "low",
+        "param_overrides": {
+          "dt_cond": 4.0
+        }
+      },
+      {
+        "label": "dt_cond=high",
+        "param": "dt_cond",
+        "end": "high",
+        "param_overrides": {
+          "dt_cond": 15.0
+        }
+      },
+      {
+        "label": "dt_drycooler=low",
+        "param": "dt_drycooler",
+        "end": "low",
+        "param_overrides": {
+          "dt_drycooler": 3.0
+        }
+      },
+      {
+        "label": "dt_drycooler=high",
+        "param": "dt_drycooler",
+        "end": "high",
+        "param_overrides": {
+          "dt_drycooler": 10.0
+        }
+      },
+      {
+        "label": "fan_ratio=low",
+        "param": "fan_ratio",
+        "end": "low",
+        "param_overrides": {
+          "fan_ratio": 0.005
+        }
+      },
+      {
+        "label": "fan_ratio=high",
+        "param": "fan_ratio",
+        "end": "high",
+        "param_overrides": {
+          "fan_ratio": 0.05
+        }
+      },
+      {
+        "label": "eta_conv=low",
+        "param": "eta_conv",
+        "end": "low",
+        "param_overrides": {
+          "eta_conv": 0.88
+        }
+      },
+      {
+        "label": "eta_conv=high",
+        "param": "eta_conv",
+        "end": "high",
+        "param_overrides": {
+          "eta_conv": 0.97
+        }
+      },
+      {
+        "label": "job_work_mean=low",
+        "param": "job_work_mean",
+        "end": "low",
+        "param_overrides": {
+          "job_work_mean": 5.0
+        }
+      },
+      {
+        "label": "job_work_mean=high",
+        "param": "job_work_mean",
+        "end": "high",
+        "param_overrides": {
+          "job_work_mean": 120.0
+        }
+      },
+      {
+        "label": "frac_memory=low",
+        "param": "frac_memory",
+        "end": "low",
+        "param_overrides": {
+          "frac_memory": 0.1
+        }
+      },
+      {
+        "label": "frac_memory=high",
+        "param": "frac_memory",
+        "end": "high",
+        "param_overrides": {
+          "frac_memory": 0.8
+        }
+      },
+      {
+        "label": "fixed_t_sup=low",
+        "param": "fixed_t_sup",
+        "end": "low",
+        "param_overrides": {
+          "fixed_t_sup": 12.0
+        }
+      },
+      {
+        "label": "fixed_t_sup=high",
+        "param": "fixed_t_sup",
+        "end": "high",
+        "param_overrides": {
+          "fixed_t_sup": 27.0
+        }
+      }
+    ]
+  },
+  "data_collection": "Simulator outputs written to the append-only SQLite store; every metric labelled with provenance; per-run config SHA-256 and code SHA-256 recorded; time series for selected seeds.",
+  "statistics": "Paired by seed (identical workload realisation across levels). Per-seed relative difference d=(A-B)/B; mean with two-sided 95% Student-t CI.",
+  "practical_significance_threshold": 0.01
+}
