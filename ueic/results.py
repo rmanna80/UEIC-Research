@@ -233,7 +233,7 @@ def compute_all(store: Store, threshold: float = 0.01) -> dict[str, Any]:
         "E001": e001(store, threshold), "E002": e002(store, threshold), "E003": e003(store, threshold),
         "E004": e004(store), "E005": e005(store, threshold),
         "E006": e006(store, threshold), "E007": e007(store, threshold), "E008": e008(store, threshold),
-        "M001": m001(store), "E001C": e001c(store, threshold),
+        "M001": m001(store), "E001C": e001c(store, threshold), "E009": e009(store, threshold),
         "assumptions": assumptions_table(),
         "research_log": store.research_log(),
         "experiments": [{"id": x["id"], "key": x["key"], "status": x["status"], "title": x["spec"]["title"],
@@ -320,6 +320,7 @@ def verdicts(R: dict[str, Any]) -> list[dict[str, Any]]:
                             f"{jf.index('beta_memory') + 1 if 'beta_memory' in jf else 'n/a'} (predicted top 2)."})
     out += verdicts_phase3(R)
     out += verdicts_calibrated(R)
+    out += verdicts_e009(R)
     return out
 
 
@@ -558,4 +559,88 @@ def verdicts_calibrated(R: dict[str, Any]) -> list[dict[str, Any]]:
                         + ", ".join(f"{sc.split('_', 1)[1]} {100 * r['mean']:+.2f} [{100 * r['lo']:+.2f}, {100 * r['hi']:+.2f}]"
                                     for sc, r in ji.items())
                         + f"; within +/-0.5 pp in {len(c['HC3']['scenarios'])}/6 (need 5)."})
+    return out
+
+
+E009_MATCHED = ["matched_k0.01", "matched_k0.02", "matched_k0.03", "matched_k0.02_low", "matched_k0.02_high"]
+
+
+def e009(store: Store, threshold: float) -> dict[str, Any] | None:
+    eid = store.latest_experiment("E009")
+    if not eid:
+        return None
+    exp = store.experiment(eid)
+    runs = store.runs(eid)
+    variants = [v["label"] for v in exp["spec"]["design"]["variants"]]
+    ji = []
+    for r in A.paired(runs, "E_per_success_kJ", "joint", "independent"):
+        row = _row(r)
+        row["scenario"], row["variant"] = r["group"]
+        row["verdict"] = A.verdict(r, threshold)
+        ji.append(row)
+    idx = A.index_runs(runs)
+    change = []
+    for sc in exp["spec"]["design"]["scenarios"]:
+        base = idx.get((sc, "registry_leakage"), {})
+        for v in E009_MATCHED:
+            lv = idx.get((sc, v), {})
+            if not all(p in base and p in lv for p in ("joint", "independent")):
+                continue
+            seeds = sorted(set(base["joint"]) & set(base["independent"]) & set(lv["joint"]) & set(lv["independent"]))
+            rb = np.array([base["joint"][s_]["E_per_success_kJ"] / base["independent"][s_]["E_per_success_kJ"] - 1 for s_ in seeds])
+            rm = np.array([lv["joint"][s_]["E_per_success_kJ"] / lv["independent"][s_]["E_per_success_kJ"] - 1 for s_ in seeds])
+            m, lo, hi = A.t_ci(rm - rb)
+            change.append({"scenario": sc, "variant": v, "n": len(seeds), "registry": _f(float(rb.mean())),
+                           "matched": _f(float(rm.mean())), "mean": _f(m), "lo": _f(lo), "hi": _f(hi)})
+    thermal = []
+    for m_ in ("chip_s_over_target", "chip_s_throttled", "peak_T_j_C"):
+        for r in A.summary(runs, m_):
+            thermal.append({"scenario": r["group"][0], "variant": r["group"][1], "policy": r["policy"], "metric": m_,
+                            "mean": _f(r["mean"])})
+    th = {(t["scenario"], t["variant"], t["policy"], t["metric"]): t["mean"] for t in thermal}
+    scen = exp["spec"]["design"]["scenarios"]
+    h1 = [c["scenario"] for c in change if c["variant"] == "matched_k0.02" and c["lo"] is not None and c["lo"] > 0]
+    inside = lambda v: [r["scenario"] for r in ji if r["variant"] == v and r["lo"] is not None
+                        and r["lo"] > -threshold and r["hi"] < threshold]
+    h2 = inside("matched_k0.02")
+    h3 = {v: inside(v) for v in E009_MATCHED}
+    h4_cases = [sc for sc in scen if (th.get((sc, "registry_leakage", "independent", "chip_s_over_target")) or 0) > 0]
+    h4_ok = [sc for sc in h4_cases if (th.get((sc, "matched_k0.02", "independent", "chip_s_over_target")) or 0)
+             < th[(sc, "registry_leakage", "independent", "chip_s_over_target")]]
+    return {"id": eid, "spec": exp["spec"], "variants": variants, "scenarios": scen, "joint_vs_independent": ji,
+            "change_vs_registry": change, "thermal": thermal, "n_runs": len(runs),
+            "n_failed": sum(r["status"] != "completed" for r in runs),
+            "H1": {"supported": len(h1) == len(scen), "scenarios": h1},
+            "H2": {"supported": len(h2) == len(scen), "scenarios": h2},
+            "H3": {"supported": all(len(x) == len(scen) for x in h3.values()), "by_variant": h3},
+            "H4": {"supported": len(h4_ok) == len(h4_cases), "cases": h4_cases, "ok": h4_ok}}
+
+
+def verdicts_e009(R: dict[str, Any]) -> list[dict[str, Any]]:
+    e = R.get("E009")
+    if not e:
+        return []
+    ji = {(r["scenario"], r["variant"]): r for r in e["joint_vs_independent"]}
+    sc = e["scenarios"]
+    short = lambda s_: s_.split("_", 1)[1]
+    f = lambda r: f"{100 * r['mean']:+.2f}% [{100 * r['lo']:+.2f}, {100 * r['hi']:+.2f}]"
+    out = [{"key": "E009 H1", "state": "supported" if e["H1"]["supported"] else
+            ("partly supported" if e["H1"]["scenarios"] else "not supported"),
+            "text": f"Joint's advantage over independent smaller with matched leakage (kappa 0.02) than registry leakage, "
+                    f"CI above zero in {len(e['H1']['scenarios'])}/{len(sc)} scenarios."},
+           {"key": "E009 H2", "state": "supported" if e["H2"]["supported"] else
+            ("partly supported" if e["H2"]["scenarios"] else "not supported"),
+            "text": "Joint vs independent with matched leakage: " + ", ".join(
+                f"{short(s_)} {f(ji[(s_, 'matched_k0.02')])}" for s_ in sc if (s_, "matched_k0.02") in ji)
+                    + f"; inside +/-1% in {len(e['H2']['scenarios'])}/{len(sc)} (registry: " + ", ".join(
+                f"{short(s_)} {100 * ji[(s_, 'registry_leakage')]['mean']:+.2f}%" for s_ in sc if (s_, 'registry_leakage') in ji) + ")."},
+           {"key": "E009 H3", "state": "supported" if e["H3"]["supported"] else "not supported",
+            "text": "Inside +/-1% in all scenarios for: " + (", ".join(v for v, x in e["H3"]["by_variant"].items()
+                                                                       if len(x) == len(sc)) or "none")
+                    + ". Not for: " + (", ".join(f"{v} ({len(sc) - len(x)} scenario(s))" for v, x in e["H3"]["by_variant"].items()
+                                                 if len(x) < len(sc)) or "none") + "."},
+           {"key": "E009 H4", "state": "supported" if e["H4"]["supported"] else "not supported",
+            "text": (f"Independent's chip-seconds over target fell with matched leakage in {len(e['H4']['ok'])}/"
+                     f"{len(e['H4']['cases'])} scenarios where it had any." if e["H4"]["cases"] else
+                     "Independent never exceeded the target with registry leakage; nothing to test.")}]
     return out

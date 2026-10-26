@@ -264,6 +264,37 @@ def fig_e001c(R, out):
     plt.close(fig)
 
 
+def fig_e009(R, out):
+    e = R["E009"]
+    show = ["registry_leakage", "matched_k0.01", "matched_k0.02", "matched_k0.03"]
+    names = {"registry_leakage": "Registry leakage", "matched_k0.01": "Matched, kappa 0.01",
+             "matched_k0.02": "Matched, kappa 0.02", "matched_k0.03": "Matched, kappa 0.03"}
+    rows = {(r["scenario"], r["variant"]): r for r in e["joint_vs_independent"]}
+    fig, ax = plt.subplots(figsize=(10, 3.9), dpi=150)
+    fig.patch.set_facecolor(SURF)
+    _style(ax)
+    for j, v in enumerate(show):
+        for i, sc in enumerate(e["scenarios"]):
+            r = rows.get((sc, v))
+            if not r:
+                continue
+            x = i + (j - 1.5) * 0.18
+            ax.plot([x, x], [100 * r["lo"], 100 * r["hi"]], color=SLOTS[j], lw=2)
+            ax.scatter([x], [100 * r["mean"]], color=SLOTS[j], s=36, zorder=3, edgecolor=SURF, linewidth=1.5,
+                       label=names[v] if i == 0 else None)
+    ax.axhline(0, color=AXIS, lw=1)
+    ax.axhspan(-100 * R["threshold"], 100 * R["threshold"], color=GRID, alpha=0.5, zorder=0)
+    ax.text(-0.45, -100 * R["threshold"] + 0.03, "inside the 1% practical threshold", color=MUTED, fontsize=8, va="bottom")
+    ax.set_xticks(range(len(e["scenarios"])), [s_.split("_", 1)[1].replace("_", "\n") for s_ in e["scenarios"]], fontsize=8)
+    ax.set_ylabel("Joint vs independent (%)", color=INK2, fontsize=9)
+    ax.legend(frameon=False, fontsize=8, loc="lower right", labelcolor=INK, ncol=2)
+    ax.set_title("E009 · Joint vs independent energy per successful task, leakage matched to the measured slope "
+                 "(mean, 95% CI, 5 seeds)", fontsize=10, color=INK, loc="left")
+    fig.tight_layout()
+    fig.savefig(out / "e009_matched_leakage.png", facecolor=SURF)
+    plt.close(fig)
+
+
 # ------------------------------------------------------------------------ markdown
 def md_assumptions(R) -> str:
     L = ["# 04 · Assumptions register", "",
@@ -493,6 +524,33 @@ def md_results(R) -> str:
             L.append(f"| {sc} | " + " | ".join(cells) + " |")
         L.append("")
 
+    e9 = R.get("E009")
+    if e9:
+        ms = e9["spec"].get("measurement_source", {})
+        L += ["## E009 · Joint vs independent with leakage matched to the measured slope", "",
+              f"Experiment `{e9['id']}`: {e9['n_runs']} runs, {e9['n_failed']} failed. Leakage set so the simulator's "
+              f"chip power rises {100 * ms.get('target_rel_per_K', float('nan')):.3f}% per K at s = "
+              f"{ms.get('operating_point', {}).get('s', float('nan')):.3f}, {ms.get('operating_point', {}).get('T_C', float('nan'))} °C, "
+              f"as measured on the RTX 5070 (registry: {100 * ms.get('registry_rel_per_K', float('nan')):.3f}% per K). "
+              "Clock sensitivity from M001 throughout.", "",
+              "![E009](../results/figures/e009_matched_leakage.png)", "",
+              "| Scenario | " + " | ".join(v.replace("_", " ") for v in e9["variants"]) + " |",
+              "|---|" + "---|" * len(e9["variants"])]
+        rows = {(r["scenario"], r["variant"]): r for r in e9["joint_vs_independent"]}
+        for sc in e9["scenarios"]:
+            L.append(f"| {sc} | " + " | ".join(
+                (f"{pct(rows[(sc, v)]['mean'], 2)} [{pct(rows[(sc, v)]['lo'], 2)}, {pct(rows[(sc, v)]['hi'], 2)}]"
+                 if (sc, v) in rows else "n/a") for v in e9["variants"]) + " |")
+        th = {(t["scenario"], t["variant"], t["policy"], t["metric"]): t["mean"] for t in e9["thermal"]}
+        L += ["", "### Thermal guards (seed means): chip·s above 80 °C, independent / joint", "",
+              "| Scenario | " + " | ".join(v.replace("_", " ") for v in e9["variants"]) + " |",
+              "|---|" + "---|" * len(e9["variants"])]
+        for sc in e9["scenarios"]:
+            L.append(f"| {sc} | " + " | ".join(
+                f"{num(th.get((sc, v, 'independent', 'chip_s_over_target')), 0)} / {num(th.get((sc, v, 'joint', 'chip_s_over_target')), 0)}"
+                for v in e9["variants"]) + " |")
+        L.append("")
+
     L += ["## Experiment register (including superseded and failed)", "",
           "| Id | Status | Runs | Title |", "|---|---|---|---|"]
     for x in R["experiments"]:
@@ -528,6 +586,8 @@ def build_report(store, root: Path) -> str:
         fig_e008(R, figs)
     if R.get("E001C"):
         fig_e001c(R, figs)
+    if R.get("E009"):
+        fig_e009(R, figs)
     docs = root / "docs"
     (docs / "RESULTS.md").write_text(md_results(R))
     (docs / "04_assumptions_register.md").write_text(md_assumptions(R))

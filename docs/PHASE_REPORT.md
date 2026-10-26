@@ -155,6 +155,7 @@ What this means: with clock sensitivity measured rather than assumed, energy-awa
 * The first desktop fit reported two failed fits (`v_min_ratio` = 0.3 and `kappa_leak` = 0.2, both exactly at their bounds) as class-B measurements. Acceptance rules R1–R3 now stop that. They were set after seeing that fit summary and before examining the raw data, and this is disclosed.
 * The tool reported "clock held down by a power cap" at 35% of the power limit. On this GPU the driver sets that flag whenever clocks are locked. A flag now counts as a limit only if the clock was not held or power was near the limit.
 * A conflicted `git stash pop` on the PC left three time-series files in the repository without database records; they are in `results/orphaned/` with a forensic note.
+* **Leakage attempt 2 (M002)** at 2347 MHz had steady load, but the fan ran on automatic control rather than fixed: 0% at idle, 27–35% under load. The card held 63–64 °C for 13 of 15 minutes, and the driver dropped one clock step (2340 → 2332 MHz) with a ~4 W power step. Under the old ±15 MHz clock rule that step made power appear to *fall* with temperature (−0.22 W/K). The leakage fit now keeps one clock step only. The coefficient is still not identified, but the slope agrees with attempt 1: board power rises 0.12–0.14% per K, about a third of the registry's 0.35–0.37%.
 
 ## Definition of done (charter §16), initial platform
 

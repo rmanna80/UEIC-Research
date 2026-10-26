@@ -9,7 +9,8 @@
 **Status (2026-10-26).**
 * **Laptop (RTX 4060 Laptop GPU).** Clock locking worked. The first run stopped before measuring (PyTorch could not see the GPU). A probe then showed the GPU held to about 51 W of a reported 125 W limit by a power cap, most likely a laptop power budget.
 * **Desktop PC (RTX 5070, 250 W), the calibration device: M001 recorded.** The clock sweep gave both clock sensitivities, which are now used in E001C. The voltage–frequency fit was rejected, because the simulator's straight-line form cannot follow the measured curve. The leakage fit was rejected too: the fan held the warm-up between 53 and 57 °C. Results: `10_calibration_results.md`.
-* **Still to measure:** leakage, using the improved warm-up in section 3 (higher clock, fixed fan speed, longer).
+* **Leakage, attempt 2 (M002):** the load was steady, but the fan stayed on automatic control and held the card at 63–64 °C. The driver also dropped one clock step as the card warmed. The leakage coefficient is still not identified. The slope of power with temperature is now measured at two operating points (`10`, section 4).
+* **Still to measure:** leakage over a wide temperature range. This needs the fan held at a constant speed with the card maker's tool or a third-party fan utility; with automatic fan control this card stays within a few kelvin.
 
 Sessions from the two machines are never fitted together (section 4). Details are in the research log.
 
@@ -126,6 +127,7 @@ A fitted number enters calibrated experiments only if it passes three rules. The
 | Probe: `user-set clocks (a clock lock is active)` | A lock from an earlier step is still in place | `nvidia-smi -i 0 -rgc`, probe again |
 | Probe: `power is at the GPU's reported limit ... although the driver flagged no power cap` | The GPU is at its own power limit; the driver did not set the flag | Nothing to fix on a desktop card. Use the suggested clocks |
 | `fit`: `sessions come from 2 different GPUs` | Data from two machines in one folder | `--device "<part of name or UUID>"` (see `calib show`) |
+| Leakage: `temperature rose only N K at constant clock and load` with a slope still printed | Automatic fan control held the temperature; or the driver changed clock step | Fix the fan speed for the warm-up. The slope is still recorded |
 | `fit` note: `fan speed rose from X% to Y% during the warm-up` | Desktop fans draw from the board power NVML reports | Accept the note (kappa_leak is then an upper bound), or fix the fan speed in the card maker's tool for the warm-up and run it again |
 | `temperature rose only N K` | The GPU was not cold when the warm-up started | Leave it idle longer: `--idle-before 600` |
 | `need compute sessions at >= 4 different clocks between 0.5 x and 1 x` | Too few sweep clocks in the modelled range | Use the clocks `calib probe` suggests |

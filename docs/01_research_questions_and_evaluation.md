@@ -49,5 +49,7 @@
 | E008 | Self-correcting joint control under twin mismatch | 7 cases × 3 policies × 2 scenarios × 5 seeds |
 | M001 | GPU calibration measurement: RTX 5070, 2026-10-26 | 12 sessions on one GPU; results in `10` |
 | E001C | E001 with M001's measured clock sensitivity | 6 scenarios × 5 policies × 10 seeds, seed-paired against E001 |
+| M002 | Leakage warm-up, attempt 2 (RTX 5070, 2347 MHz) | 1 session; leakage slope measured, coefficient not identified (`10`) |
+| E009 | Joint vs independent with leakage matched to the measured temperature slope | 6 leakage variants × 2 policies × 6 scenarios × 5 seeds |
 
 Full pre-registered specs, including hypotheses, variables, controls and limitations, are in `experiments/*.json`. They are frozen in the database at registration.

@@ -109,6 +109,11 @@ def _slim(R: dict) -> dict:
                                      "joint_vs_independent_change", "HC1", "HC2", "HC3", "H1", "H2")}
                   | {"hypothesis": c["spec"]["hypothesis"], "disclosure": c["spec"].get("disclosure", ""),
                      "overrides": c["spec"].get("calibration_source", {}).get("overrides", {})}) if c else None
+    e9 = R.get("E009")
+    D["E009"] = ({k: e9[k] for k in ("id", "variants", "scenarios", "joint_vs_independent", "change_vs_registry",
+                                     "thermal", "n_runs", "n_failed", "H1", "H2", "H3", "H4")}
+                 | {"disclosure": e9["spec"].get("disclosure", ""),
+                    "source": e9["spec"].get("measurement_source", {})}) if e9 else None
     D["verdicts"] = sorted(verdicts(R), key=lambda v: v["key"])
     D["policy_order"] = POLICY_ORDER
     D["explorer"] = explorer_grid()
@@ -553,7 +558,16 @@ renderers.hardware = sec => { sec.innerHTML = ''; const M = D.M001, C = D.E001C;
     p.appendChild(el('div', {class: 'scroll'}, `<table><thead><tr><th>Scenario</th><th class="n">Compute-only vs fixed, E001</th><th class="n">E001C</th><th class="n">Change (pp)</th><th class="n">Joint vs independent, E001</th><th class="n">E001C</th><th class="n">Change (pp)</th></tr></thead><tbody>${
       C.compute_vs_fixed_change.map(r => { const j = ji[r.scenario]; return `<tr><td>${scName(r.scenario)}</td><td class="n">${pct(r.orig, 1)}</td><td class="n">${pct(r.calibrated, 1)}</td><td class="n">${pp(r)}</td><td class="n">${j ? pct(j.orig, 2) : '–'}</td><td class="n">${j ? pct(j.calibrated, 2) : '–'}</td><td class="n">${j ? pp(j) : '–'}</td></tr>`; }).join('')}</tbody></table>`));
     p.appendChild(el('p', {class: 'note'}, 'Only the two accepted values changed; every other parameter is still a placeholder. Hypotheses were committed before the run. Disclosure: ' + C.disclosure.replace(/</g, '&lt;')));
-    sec.appendChild(p); } };
+    sec.appendChild(p); }
+  const E9 = D.E009;
+  if (E9) { const p = el('div', {class: 'panel'}); const src = E9.source || {};
+    p.appendChild(el('h3', {}, 'E009 · Joint vs independent with leakage matched to the measured temperature slope'));
+    p.appendChild(el('p', {class: 'note'}, `The warm-ups could not pin down the leakage coefficient, but they did measure how fast board power rises with temperature: ${fmt(100 * src.target_rel_per_K, 3)}% per K, against ${fmt(100 * src.registry_rel_per_K, 3)}% per K in the simulator. E009 sets the simulator's leakage to match that slope for three plausible coefficients. Joint control's advantage over independent control comes from running chips cooler to cut leakage, so this is where the measurement bites.`));
+    const show = ['registry_leakage', 'matched_k0.01', 'matched_k0.02', 'matched_k0.03'], names = ['Registry leakage', 'Matched, κ 0.01', 'Matched, κ 0.02', 'Matched, κ 0.03'], cols = ['var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s4)'];
+    p.appendChild(legend(names.map((l, i) => ({label: l, color: cols[i]})))); const h = el('div', {class: 'scroll'}); p.appendChild(h);
+    p.appendChild(el('p', {class: 'note'}, 'Pre-registered; 5 seeds. Disclosure: ' + E9.disclosure.replace(/</g, '&lt;')));
+    sec.appendChild(p);
+    requestAnimationFrame(() => ciDots(h, E9.joint_vs_independent.filter(r => show.includes(r.variant)).map(r => ({g: r.scenario, s: r.variant, mean: r.mean, lo: r.lo, hi: r.hi})), E9.scenarios, show, cols, names, 'Joint vs independent')); } };
 
 /* Explorer */
 const X = D.explorer; const xs = {s: X.s.indexOf(1) >= 0 ? X.s.indexOf(1) : X.s.length - 1, a: X.t_amb.indexOf(20), t: null, f: null};
