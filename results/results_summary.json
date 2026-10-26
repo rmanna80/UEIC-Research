@@ -1,6 +1,6 @@
 {
- "generated_utc": "2026-10-26T20:03:58+00:00",
- "code_sha256": "05fbfe6b2c74e03440f70776f848ddac62fadb39b376f2ad62dc1c2a307de386",
+ "generated_utc": "2026-10-26T20:38:31+00:00",
+ "code_sha256": "17d8a777e2cc0b5b28e3d161d8a36cc241f9205048eb7dbd2c759973de435483",
  "chain_ok": true,
  "chain_msg": "2861 finalised runs verified",
  "threshold": 0.01,
@@ -130728,6 +130728,10 @@
   [
    "2026-10-26T20:03:23+00:00",
    "Phase 4, RTX 4060 Laptop, first measurement (user-reported console output; data stays on the user's machine until committed): calib probe at default clocks gave sustained SM clock 1860 MHz median (2.1% variation), 51.4 W median board power, 58 C, clock held down by a limit in 100% of steady samples. NVML had reported a 125 W enforced limit when listing devices. The tool version used did not say which limit; low power and temperature point to a power budget set outside the GPU (battery, quiet/balanced mode, or CPU-GPU sharing), not yet confirmed. Tooling now decodes each NVML clock-event reason, logs the enforced power limit per sample, and adds 'calib show' to decode recorded sessions."
+  ],
+  [
+   "2026-10-26T20:37:56+00:00",
+   "Phase 4: calibration moved to the user's desktop PC (laptop readings above stay recorded; the two machines' sessions are never fitted together). Probe at default clocks (user-reported console output): sustained SM clock 2685 MHz median (0.4% variation), board power 250.0 W median / 250.1 W 95th percentile against a reported 250 W limit, 70 C. The driver set no clock-event limit flag, yet power pinned at the limit indicates the clock is set by the power limit. Suggested sweep 1342, 1680, 2017, 2347, 2685 MHz. Tooling: power-at-limit detection, one-GPU-per-calibration guard (fit --device), fan-speed range in the leakage fit with a note when the fan ramps (desktop fans are inside the NVML board-power boundary)."
   ]
  ],
  "experiments": [

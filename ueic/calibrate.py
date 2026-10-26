@@ -225,6 +225,19 @@ class Session:
     tel: list[dict[str, Any]]
     work: np.ndarray            # (n, 2) t_unix, throughput
     power_limit_W: float | None = None   # enforced limit when the session started
+    device: dict[str, Any] | None = None  # NVML identity recorded in session.json
+
+
+def device_key(dev: dict[str, Any] | None) -> str:
+    """Identity used to keep one calibration to one GPU: UUID when recorded, else the name."""
+    dev = dev or {}
+    return str(dev.get("uuid") or dev.get("name") or "unknown GPU")
+
+
+def device_label(dev: dict[str, Any] | None) -> str:
+    dev = dev or {}
+    u = dev.get("uuid")
+    return f"{dev.get('name', 'unknown GPU')}" + (f" ({u})" if u else "")
 
 
 def load_session(d: str | Path) -> Session:
@@ -232,7 +245,7 @@ def load_session(d: str | Path) -> Session:
     meta = json.loads((d / "session.json").read_text())
     work = np.loadtxt(d / "workload.csv", delimiter=",", skiprows=1, ndmin=2)
     return Session(d, meta["kind"], meta.get("label", ""), float(meta["device"]["max_sm_clock_MHz"] or np.nan),
-                   read_csv(d / "telemetry.csv"), work, meta["device"].get("power_limit_W"))
+                   read_csv(d / "telemetry.csv"), work, meta["device"].get("power_limit_W"), meta["device"])
 
 
 def steady(sess: Session, skip_s: float = 10.0) -> tuple[list[dict], np.ndarray]:
@@ -265,7 +278,10 @@ def summarize(sess: Session, skip_s: float = 10.0) -> dict[str, Any]:
                               for k, (bit, _) in LIMIT_REASONS.items() if any(x & bit for x in known)},
             "user_clocks_frac": float(np.mean([(x & USER_CLOCKS_BIT) != 0 for x in known])) if known else None,
             "power_p95_W": float(np.percentile(pw, 95)),
-            "power_limit_W": _median_or(tel, "power_limit_W", sess.power_limit_W)}
+            "power_limit_W": (lim_w := _median_or(tel, "power_limit_W", sess.power_limit_W)),
+            "at_power_limit": bool(lim_w and float(np.median(pw)) >= 0.98 * lim_w),
+            "device": device_label(sess.device), "device_key": device_key(sess.device),
+            "nvml_max_clock_MHz": sess.max_clock}
 
 
 def _median_or(rows: list[dict], key: str, default):
@@ -288,6 +304,10 @@ def interpret_limits(sm: dict[str, Any]) -> list[str]:
                    "so a lower budget was set outside the GPU. On laptops that usually means running on battery, "
                    "a quiet or balanced power mode, or the CPU and GPU sharing one power budget. Plug in, choose "
                    "the performance mode (Windows and the laptop maker's app), and probe again")
+    if lim and p and sm.get("power_W", 0) >= 0.98 * lim and reasons.get("sw_power_cap", 0) <= 0.5:
+        out.append(f"power is at the GPU's reported limit ({sm['power_W']:.1f} of {lim:.0f} W) although the driver "
+                   "flagged no power cap, so this clock is probably set by the power limit. Cross-check with "
+                   "`nvidia-smi -q -d POWER,PERFORMANCE` while a load runs")
     if (reasons.get("sw_thermal", 0) > 0.5 or reasons.get("hw_thermal", 0) > 0.1):
         out.append(f"likely cause: temperature ({sm.get('temp_C', float('nan')):.0f} C median). Clear the vents, "
                    "raise the laptop for airflow, let it cool, and probe again")
@@ -370,14 +390,57 @@ def fit_leakage(sess: Session, clock_tol_MHz: float = 15.0) -> dict[str, Any]:
             "c_W": float(c), "leak_fraction_at_ref": float(L / (c + L)), "n": int(keep.sum()),
             "T_range_C": [float(T.min()), float(T.max())], "clock_MHz": float(np.median(clk[keep])),
             "resid_std_W": float(resid.std()),
+            "fan_pct_range": _range_or_none([r.get("fan_pct") for r, k in zip(tel, keep) if k]),
             "method": "P(T) = c + L*exp(kappa*(T-60)) at constant clock and load during warm-up; assumes the "
                       "temperature-dependent part of board power is leakage (fan and VR losses are not separated)"}
 
 
-def calibrate(session_dirs: Iterable[str | Path], cfg=None) -> dict[str, Any]:
+def select_device(sessions: list[Session], device: str | None = None) -> tuple[list[Session], list[str]]:
+    """A calibration describes one GPU. Refuse to mix measurement sessions from different GPUs;
+    `device` (part of the name or UUID) chooses one when several are present. Probe sessions never
+    enter a fit, so probes from other GPUs are dropped with a note instead of blocking."""
+    notes: list[str] = []
+    if device:
+        sessions = [s for s in sessions if device.lower() in device_label(s.device).lower()]
+        if not sessions:
+            raise ValueError(f"no session matches --device {device!r}")
+    groups: dict[str, list[Session]] = {}
+    for s in sessions:
+        if s.kind != "probe":
+            groups.setdefault(device_key(s.device), []).append(s)
+    if len(groups) > 1:
+        listing = "; ".join(f"{device_label(g[0].device)}: {len(g)} sessions" for g in groups.values())
+        raise ValueError(f"sessions come from {len(groups)} different GPUs ({listing}). A calibration describes one "
+                         "GPU: pass --device with part of its name or UUID")
+    if groups:
+        key = next(iter(groups))
+        other = [s for s in sessions if device_key(s.device) != key]
+        if other:
+            notes.append(f"left out {len(other)} probe session(s) from other GPUs: "
+                         + ", ".join(sorted({device_label(s.device) for s in other})))
+        sessions = [s for s in sessions if device_key(s.device) == key]
+    return sessions, notes
+
+
+def devices_in(root: str | Path) -> dict[str, int]:
+    """Session counts per GPU in a calibration folder."""
+    out: dict[str, int] = {}
+    for d in Path(root).glob("*"):
+        if (d / "session.json").exists():
+            lab = device_label(json.loads((d / "session.json").read_text()).get("device"))
+            out[lab] = out.get(lab, 0) + 1
+    return out
+
+
+def _range_or_none(v: list) -> list[float] | None:
+    v = [float(x) for x in v if x is not None]
+    return [min(v), max(v)] if v else None
+
+
+def calibrate(session_dirs: Iterable[str | Path], cfg=None, device: str | None = None) -> dict[str, Any]:
     from .params import make_config
     cfg = cfg or make_config()
-    sessions = [load_session(d) for d in session_dirs]
+    sessions, device_notes = select_device([load_session(d) for d in session_dirs], device)
     summ = [summarize(s) for s in sessions]
     by = lambda k: [x for x in summ if x["kind"] == k]
     out: dict[str, Any] = {
@@ -386,6 +449,7 @@ def calibrate(session_dirs: Iterable[str | Path], cfg=None) -> dict[str, Any]:
         "sessions": summ, "fits": {}, "overrides": {}, "notes": [],
     }
     notes = out["notes"]
+    notes.extend(device_notes)
     # clock reference: highest steady clock among compute sessions (see module docstring)
     comp = [x for x in by("compute") if x["ok"]]
     f_ref = max(x["clock_MHz"] for x in comp) if comp else None
@@ -427,6 +491,11 @@ def calibrate(session_dirs: Iterable[str | Path], cfg=None) -> dict[str, Any]:
     warm = [s for s in sessions if s.kind == "warmup"]
     fl = fit_leakage(warm[-1]) if warm else {"ok": False, "reason": "no warm-up session"}
     out["fits"]["leakage"] = fl
+    fr = fl.get("fan_pct_range") if fl.get("ok") else None
+    if fr and fr[1] - fr[0] > 15:
+        notes.append(f"fan speed rose from {fr[0]:.0f}% to {fr[1]:.0f}% during the warm-up. On desktop cards the fans "
+                     "draw from the board power NVML reports, so part of the power rise is fan power and kappa_leak "
+                     "is an upper bound. A fixed fan speed during the warm-up removes this")
     ov = out["overrides"]
     if fb_c["ok"]:
         ov["beta_compute"] = {"value": round(fb_c["value"], 4), "se": fb_c["se"], "evidence": "B"}

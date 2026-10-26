@@ -116,10 +116,11 @@ def _power(s, T, floor=False):
 
 
 def _write_session(root, kind, clk, rng, seconds=60.0, warm=False, f_top=MAXCLK, nvml_max=MAXCLK,
-                   label_clk=None, floor=False, reasons=0, power=None, temp=62.0, power_limit=None):
+                   label_clk=None, floor=False, reasons=0, power=None, temp=62.0, power_limit=None,
+                   name="Synthetic", uuid=None, folder=None, fan_ramp=False):
     """`clk` is the clock the GPU actually ran at; `label_clk` the clock the user locked (default: same);
     `f_top` the highest clock the GPU sustains (s = 1 in the truth model); `nvml_max` what NVML reports."""
-    d = Path(root) / f"{kind}_{clk}"
+    d = Path(root) / (folder or f"{kind}_{clk}")
     d.mkdir()
     s = clk / f_top
     t = np.arange(0, seconds, 0.1)
@@ -128,13 +129,14 @@ def _write_session(root, kind, clk, rng, seconds=60.0, warm=False, f_top=MAXCLK,
     with open(d / "telemetry.csv", "w") as f:
         f.write(",".join(telemetry.FIELDS) + "\n")
         for ti, Ti, Pi in zip(t, T, P):
-            f.write(f"{1000 + ti},0,{Pi},,{Ti},{clk},9000,99,50,0,{reasons},,{kind}\n")   # pre-power_limit format
+            fan = f"{30 + 50 * (1 - np.exp(-ti / 150.0)):.0f}" if fan_ramp else ""
+            f.write(f"{1000 + ti},0,{Pi},,{Ti},{clk},9000,99,50,0,{reasons},{fan},{kind}\n")   # pre-power_limit format
     beta = TRUE["beta_memory"] if kind == "memory" else TRUE["beta_compute"]
     tw = np.arange(0, seconds, 0.5)
     thr = 100.0 * s ** beta * (1 + rng.normal(0, 0.003, tw.size))
     np.savetxt(d / "workload.csv", np.column_stack([1000 + tw, thr]), delimiter=",", header="t_unix,throughput", comments="")
     (d / "session.json").write_text(json.dumps({"kind": kind, "label": f"clk={label_clk or clk}", "device": {
-        "index": 0, "name": "Synthetic", "max_sm_clock_MHz": nvml_max, "power_limit_W": power_limit}}))
+        "index": 0, "name": name, "uuid": uuid, "max_sm_clock_MHz": nvml_max, "power_limit_W": power_limit}}))
     return d
 
 
@@ -290,3 +292,63 @@ def test_latest_session_picks_newest_folder(tmp_path):
         d.rename(tmp_path / name)
     (tmp_path / "20261026T235959_empty").mkdir()                        # failed start: no session.json
     assert cal.latest_session(tmp_path).name == "20261026T195900_probe"
+
+
+# ------------------------------------------------------------- one calibration = one GPU
+def test_sessions_from_two_gpus_are_not_fitted_together(tmp_path):
+    """Field case, 2026-10-26: a probe on a second machine (250 W limit, different clock table) landed
+    next to sessions from the RTX 4060 Laptop. Mixing them would fit one curve to two chips."""
+    rng = np.random.default_rng(10)
+    ds = [_write_session(tmp_path, "compute", c, rng, name="GPU A", uuid="GPU-aaaa", folder=f"a_{c}")
+          for c in (1000, 1250, 1500, 1750, 2000)]
+    ds += [_write_session(tmp_path, "compute", c, rng, name="GPU B", uuid="GPU-bbbb", folder=f"b_{c}")
+           for c in (1200, 1800)]
+    with pytest.raises(ValueError, match="2 different GPUs") as e:
+        cal.calibrate(ds)
+    assert "GPU A" in str(e.value) and "GPU B" in str(e.value)
+    out = cal.calibrate(ds, device="gpu a")
+    assert len(out["sessions"]) == 5 and out["fits"]["power_vs_clock"]["ok"]
+    assert cal.devices_in(tmp_path) == {"GPU A (GPU-aaaa)": 5, "GPU B (GPU-bbbb)": 2}
+    from ueic.__main__ import main
+    assert main(["calib", "fit", str(tmp_path / "*"), "--out", str(tmp_path / "c.json")]) == 2
+    assert main(["calib", "fit", str(tmp_path / "*"), "--out", str(tmp_path / "c.json"), "--device", "GPU-aaaa"]) == 0
+
+
+def test_power_at_limit_without_a_cap_flag_is_pointed_out(tmp_path, capsys):
+    """Field reading, second probe 2026-10-26: 2685 MHz, 250.0 W median against a 250 W limit,
+    no clock-event reason set. The clock is probably power-limited even though nothing is flagged."""
+    rng = np.random.default_rng(11)
+    d = _write_session(tmp_path, "probe", 2685, rng, power=250.0, temp=70.0, reasons=0, power_limit=250.0,
+                       name="Second GPU", uuid="GPU-cccc")
+    r = cal.show_session(d)
+    text = " ".join(r["interpretation"])
+    assert "reported limit" in text and "battery" not in text
+    from ueic.__main__ import main
+    assert main(["calib", "show", str(d)]) == 0
+    out = capsys.readouterr().out
+    assert "GPU: Second GPU (GPU-cccc)" in out
+
+
+def test_probe_from_another_gpu_does_not_block_a_fit(tmp_path):
+    rng = np.random.default_rng(12)
+    ds = [_write_session(tmp_path, "compute", c, rng, name="GPU A", uuid="GPU-aaaa", folder=f"a_{c}")
+          for c in (1000, 1250, 1500, 1750, 2000)]
+    ds.append(_write_session(tmp_path, "probe", 1860, rng, name="GPU B", uuid="GPU-bbbb", folder="b_probe"))
+    out = cal.calibrate(ds)
+    assert len(out["sessions"]) == 5 and any("GPU B" in n and "probe" in n for n in out["notes"])
+
+
+def test_power_limited_probe_is_marked(tmp_path):
+    rng = np.random.default_rng(13)
+    d = _write_session(tmp_path, "probe", 2685, rng, power=250.0, power_limit=250.0)
+    assert cal.show_session(d)["at_power_limit"] is True
+    d2 = _write_session(tmp_path, "probe", 1500, rng, power=120.0, power_limit=250.0)
+    assert cal.show_session(d2)["at_power_limit"] is False
+
+
+def test_fan_ramp_during_warmup_is_noted(tmp_path):
+    """Desktop cards power their fans from the board, so a fan ramp adds to the 'leakage' rise."""
+    rng = np.random.default_rng(14)
+    out = cal.calibrate([_write_session(tmp_path, "warmup", 1400, rng, seconds=900, warm=True, fan_ramp=True)])
+    assert out["fits"]["leakage"]["ok"] and out["fits"]["leakage"]["fan_pct_range"][1] > 70
+    assert any("fan speed rose" in n for n in out["notes"])

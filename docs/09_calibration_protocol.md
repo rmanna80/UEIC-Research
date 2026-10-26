@@ -6,7 +6,11 @@
 
 **Boundary.** NVML reports GPU board power only. Results calibrate the *accelerator* model, never facility energy.
 
-**Status.** Attempt 1 (RTX 4060 Laptop GPU, 2026-10-26) locked clocks successfully but stopped before measuring: the Python used could not see the GPU through PyTorch. No data was recorded. The fixes it prompted are in section 6 and the research log.
+**Status (2026-10-26).**
+* **Laptop (RTX 4060 Laptop GPU).** Clock locking worked. The first run stopped before measuring (PyTorch could not see the GPU). A probe then showed the GPU held to about 51 W of a reported 125 W limit by a power cap, most likely a laptop power budget.
+* **Desktop PC (250 W GPU), now the calibration device.** The probe sustained 2685 MHz at exactly its 250 W limit and 70 °C, and the suggested sweep is 1342–2685 MHz. The clock sweep and warm-up have not run yet.
+
+Sessions from the two machines are never fitted together (section 4). Details are in the research log.
 
 ## 1. Set up one Administrator window (Windows PowerShell)
 
@@ -53,6 +57,8 @@ The probe prints:
 
 It ends with a `calib plan` command containing five suggested lock clocks, spread from half the sustained clock to the sustained clock and snapped to the clocks your driver supports. `python -m ueic calib show` prints the same summary for any recorded session, by default the most recent.
 
+**If the probe reports power at the GPU's own limit** (for example 250 W of 250 W), that is the normal state of a desktop card under full load: the power limit sets the top clock. The suggested sweep is fine. Locks near the top may run a few MHz low, and the fit uses the measured clock. Some drivers do not raise the power-cap flag in this state, so the tool also checks power against the limit.
+
 **If the probe reports a power cap well below the GPU's limit,** a budget set outside the GPU limited it. On a laptop that usually means battery power, a quiet or balanced mode, or a CPU–GPU shared power budget. Fix what you can and probe again, because the sweep should reach the clock the GPU holds without that budget. If the cap cannot be lifted, the suggested clocks still work. The calibration then describes the GPU only up to the capped clock, and the fit records that.
 
 **Why this step exists.** In the simulator, s = 1 is the accelerator's top clock. NVML's "max SM clock" is the top of the driver's clock table, which many GPUs never reach under load. An RTX 4060 Laptop reports 3105 MHz. The fit therefore uses s = clock / f_ref, where f_ref is the highest steady clock among your compute sessions. The power fit uses only clocks between 0.5 × f_ref and f_ref, because that is the range the simulator models. Lock clocks below that range still count towards `beta_compute` and `beta_memory`.
@@ -84,7 +90,7 @@ python -m ueic run experiments\E001_policy_benchmark.json --calibration data\cal
   * each estimate with its standard error;
   * notes on values outside the ranges swept in E002, unheld locks, power- or thermal-limited sessions, and clocks left out of the power fit.
 
-  Folders without a `session.json`, such as those left by a failed start, are skipped. Probe sessions are kept as evidence but never enter a fit. The fitting code is validated in `tests/test_calibration.py`, where it recovers known parameters from synthetic sessions. These include a GPU whose NVML maximum is far above the clock it sustains, and one with a voltage floor at low clocks.
+  Folders without a `session.json`, such as those left by a failed start, are skipped. A calibration describes one GPU. If the folder holds measurement sessions from more than one GPU (for example, after pulling data recorded on another machine), `fit` stops and lists them. Choose one with `--device` and part of its name or UUID; `calib show` prints both. Probe sessions from another GPU are left out with a note. Probe sessions are kept as evidence but never enter a fit. The fitting code is validated in `tests/test_calibration.py`, where it recovers known parameters from synthetic sessions. These include a GPU whose NVML maximum is far above the clock it sustains, and one with a voltage floor at low clocks.
 * **`ingest`** writes the estimates into the append-only store as experiment `M001`. Directly measured shape parameters are labelled `physical_measurement`. The leakage power transferred to the simulated accelerator is labelled `engineering_assumption`, because it scales your GPU's leakage *fraction* to a 600 W-class device.
 * **`run --calibration`** creates a new experiment `E001C` whose spec records the calibration file's SHA-256, so every calibrated result traces back to the raw telemetry.
 
@@ -102,6 +108,9 @@ Commit the `data/calibration/` folder with the results: it is the evidence behin
 | Note: `locked at X MHz but ran at Y MHz` | Power or thermal limit below the requested clock | Plug in, use the performance power mode, or drop the top clock to what `calib probe` reported |
 | Probe: power cap with power far below the reported limit (e.g. 51 W of 125 W) | A power budget set outside the GPU: battery, quiet or balanced mode, CPU–GPU sharing | Plug in, choose the performance mode in Windows and in the laptop maker's app, avoid heavy CPU work during the run, probe again |
 | Probe: `user-set clocks (a clock lock is active)` | A lock from an earlier step is still in place | `nvidia-smi -i 0 -rgc`, probe again |
+| Probe: `power is at the GPU's reported limit ... although the driver flagged no power cap` | The GPU is at its own power limit; the driver did not set the flag | Nothing to fix on a desktop card. Use the suggested clocks |
+| `fit`: `sessions come from 2 different GPUs` | Data from two machines in one folder | `--device "<part of name or UUID>"` (see `calib show`) |
+| `fit` note: `fan speed rose from X% to Y% during the warm-up` | Desktop fans draw from the board power NVML reports | Accept the note (kappa_leak is then an upper bound), or fix the fan speed in the card maker's tool for the warm-up and run it again |
 | `temperature rose only N K` | The GPU was not cold when the warm-up started | Leave it idle longer: `--idle-before 600` |
 | `need compute sessions at >= 4 different clocks between 0.5 x and 1 x` | Too few sweep clocks in the modelled range | Use the clocks `calib probe` suggests |
 | Empty folders in `data\calibration` from earlier failed starts | Older versions created the folder before checking PyTorch | Delete them. `fit` skips them either way |
@@ -113,4 +122,4 @@ Commit the `data/calibration/` folder with the results: it is the evidence behin
 |---|---|---|
 | `beta_compute`, `beta_memory` | log(throughput) vs log(clock / f_ref) | Kernel-specific. Real LLM prefill and decode are not these kernels; L09 reports decode is far less clock-sensitive than this memory kernel may be |
 | `v_min_ratio` | P = A + P_d·s·v(s)² with v linear in s, using only clocks from 0.5 × f_ref to f_ref (at least 4) | Voltage is not observable through NVML. This fits the registry's functional form, not the true V–f table. f_ref is the highest clock you swept, so it describes the curve below that clock only. Sessions at different temperatures add leakage error |
-| `kappa_leak`, leakage fraction | P(T) = c + L·exp(κ(T − 60 °C)) at constant clock and load | Attributes *all* temperature-dependent board power to leakage. Voltage-regulator losses are not separated, so this is an upper bound on leakage sensitivity. On a laptop the fans are powered by the system, not the GPU board, so fan power is not in the reading |
+| `kappa_leak`, leakage fraction | P(T) = c + L·exp(κ(T − 60 °C)) at constant clock and load | Attributes *all* temperature-dependent board power to leakage. Voltage-regulator losses are not separated, so this is an upper bound on leakage sensitivity. On a laptop the fans are powered by the system, so fan power is not in the reading. On a desktop card the fans are powered by the board, so a fan ramp during the warm-up adds to the rise; the fit reports the fan-speed range and notes it |

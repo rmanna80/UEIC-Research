@@ -32,6 +32,7 @@ DEFAULT_DB = ROOT / "results" / "ueic.sqlite"
 
 
 def _print_summary(r: dict) -> None:
+    print(f"GPU: {r['device']}, NVML max SM clock {r['nvml_max_clock_MHz']:.0f} MHz")
     lim = r.get("power_limit_W")
     print(f"sustained SM clock {r['clock_MHz']:.0f} MHz (variation {100 * r['clock_cv']:.1f}%), "
           f"power {r['power_W']:.1f} W median / {r['power_p95_W']:.1f} W 95th percentile"
@@ -82,6 +83,7 @@ def main(argv: list[str] | None = None) -> int:
     cr.add_argument("--label", default=""); cr.add_argument("--idle-before", type=float, default=0.0)
     cr.add_argument("--out", default=str(ROOT / "data" / "calibration"))
     cf = csub.add_parser("fit"); cf.add_argument("sessions", nargs="+"); cf.add_argument("--out", required=True)
+    cf.add_argument("--device", default=None, help="part of the GPU name or UUID, when sessions from several GPUs are present")
     ci = csub.add_parser("ingest"); ci.add_argument("calibration"); ci.add_argument("--key", default="M001")
     sv = sub.add_parser("serve", help="Phase 2: local API + 3-D lab at http://127.0.0.1:8765/lab/")
     sv.add_argument("--host", default="127.0.0.1"); sv.add_argument("--port", type=int, default=8765)
@@ -142,6 +144,11 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  {r['reason']}")
                 return 1
             _print_summary(r)
+            devs = cal.devices_in(d.parent)
+            if len(devs) > 1:
+                print(f"note: {d.parent} holds sessions from {len(devs)} GPUs; `calib fit` needs --device:")
+                for lab, n in devs.items():
+                    print(f"  {lab}: {n} sessions")
             return 0
         try:
             if a.ccmd == "probe":
@@ -155,7 +162,11 @@ def main(argv: list[str] | None = None) -> int:
                     print("If clocks were still locked from an earlier step, this measured the locked clock: run "
                           f"`nvidia-smi -i {a.gpu} -rgc` and probe again.")
                 print("Suggested sweep:\n  python -m ueic calib plan --clocks " + ",".join(map(str, r["suggested_clocks"])))
-                if (r["limited_frac"] or 0) > 0.5:
+                if r.get("at_power_limit"):
+                    print("The top suggested clock is where this GPU reaches its own power limit under this kernel. "
+                          "That is normal for a desktop card at full load; the sweep is fine, and locks near the top "
+                          "may run a few MHz low, which the fit handles by using the measured clock.")
+                elif (r["limited_frac"] or 0) > 0.5:
                     print("These clocks fit the limited range. If you can lift the limit, probe again first: the "
                           "sweep should reach the clock the GPU holds without a limit. Otherwise they are usable; "
                           "the fit will record that its top clock was set by a limit.")
@@ -169,7 +180,11 @@ def main(argv: list[str] | None = None) -> int:
         if a.ccmd == "fit":
             import glob, hashlib, json as _json
             dirs = sorted({d for pat in a.sessions for d in glob.glob(pat) if Path(d, "session.json").exists()})
-            out = cal.calibrate(dirs)
+            try:
+                out = cal.calibrate(dirs, device=a.device)
+            except ValueError as e:
+                print(f"error: {e}")
+                return 2
             Path(a.out).write_text(_json.dumps(out, indent=1))
             print(f"{len(dirs)} sessions -> {a.out}")
             cr = out["clock_reference"]
