@@ -14,9 +14,9 @@ Each phase has an exit gate. A phase does not start until the previous gate is p
 
 ## Immediate next steps (ordered)
 
-1. **M003, leakage at fixed fan speeds (user-run, about 55 minutes).** The leakage slope now sets the size of every remaining real-silicon effect: joint control's energy advantage (E009) and the chip-side cost of heat reuse (E012). `python -m ueic calib plan-leak --clock 2017` prints the procedure.
-2. **Decide what the lag-aware controller needs, from E013 and E014.** If a margin or the model-free check matches it, simplify and say so. If not, test loop-model structure error (stratification, transport delay) next.
-3. **Unnoticed degradation:** fouling the twin does not know about, combined with the self-correcting controller and the lag-aware planner.
-4. **Re-run E001C, E009 and E010 with the voltage-floor V–f form** and the joint_fb fallback, so the headline numbers use the best available physics.
+1. **M003, leakage at fixed fan speeds (user-run, about 55 minutes).** The leakage slope sets the size of every remaining real-silicon effect: joint control's energy advantage (E009) and the chip-side cost of heat reuse (E012). `python -m ueic calib plan-leak --clock 2347 --fans 100,80,60,45,30` prints the procedure.
+2. **Approach-dependent dry-cooler model**, then re-ask E012's question. The current fan model (power proportional to heat rejected) made E012's warm-water hypotheses impossible to pass.
+3. **Adopt the design rule from E013/E014 in the default joint controller.** Judge safety at the warmer of measured supply and setpoint, and use the throughput-first overload fallback. Re-run E001C, E009 and E010 with it and the voltage-floor V–f form.
+4. **Loop-model structure error** (stratification, transport delay) **and unnoticed degradation** (E005/E008 with the new rule).
 5. **Routing in the joint optimiser,** plus a facility power-cap scenario and synchronised training load steps (L46).
 6. **Operation-level energy model** (FLOPs and bytes per phase) for gate 1 of `08`.

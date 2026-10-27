@@ -789,7 +789,10 @@ def md_results(R) -> str:
               f"Experiment `{e12['id']}`: {e12['n_runs']} runs, {e12['n_failed']} failed. Registry placeholders vs "
               "RTX 5070-derived parameters (clock sensitivity, leakage matched to the measured slope, voltage-floor V-f "
               "form); supply floor none or 40 °C; instant plant or 150 kg loop. Heat is counted as reusable when the "
-              "water leaving the loop is at least 45 °C. Seed means over 5 seeds.", "",
+              "water leaving the loop is at least 45 °C. Seed means over 5 seeds. **Caveat (independent audit):** the "
+              "plant's dry-cooler fan power is proportional to heat rejected, independent of approach temperature, so "
+              "above the free-cooling limit warmer water has no facility-side benefit and H1/H2 could not have passed. "
+              "\"measured\" = simulated with RTX 5070-derived parameters.", "",
               "![E012](../results/figures/e012_warm_water.png)", "",
               "| Scenario | Plant | World | Floor | Mean supply °C (I / J / JL) | Reusable heat (I / J / JL) | chip·s > 80 °C (I / J / JL) | late tasks (I / J / JL) |",
               "|---|---|---|---|---|---|---|---|"]

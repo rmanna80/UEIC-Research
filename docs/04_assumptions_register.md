@@ -18,6 +18,7 @@ Classes E and F are *not measurements*. Every E/F value with a range is swept in
 | accelerator | `s_min` | 0.5 | - | G |  | Lowest normalized clock frequency available (f/fmax) |
 | accelerator | `t_leak_ref` | 60 | degC | G |  | Reference junction temperature for leakage |
 | accelerator | `v_min_ratio` | 0.7 | - | E | 0.6 – 0.85 | Vmin/Vmax at s_min; voltage assumed linear in frequency between s_min and 1 |
+| accelerator | `vf_knee` | 0 | - | G |  | Voltage-floor form of the V-f curve (Phase 4): voltage stays at v_min_ratio up to clock ratio vf_knee, then rises linearly to 1 at s = 1. 0 = registry linear form from s_min (E001-E011). A value fitted to the RTX 5070's measured power-vs-clock shape is a shape transfer (class E), see docs/10 |
 | loop | `dp_ref` | 150000 | Pa | F | 50000 – 300000 | Loop pressure drop at design flow |
 | loop | `eta_pump` | 0.5 | - | F | 0.3 – 0.7 | Pump wire-to-water efficiency |
 | loop | `flow_design_lpm` | 1.2 | L/min per accelerator | E |  | Gives ~8 K coolant rise at ~650 W (Q = m_dot*cp*dT) |
@@ -76,4 +77,4 @@ Classes E and F are *not measurements*. Every E/F value with a range is swept in
 | workload | `slo_factor` | 5 | - | G |  | Latency SLO multiplier on nominal work |
 | workload | `u_max` | 0.85 | - | G |  | Max planned utilization (queueing headroom) for optimizing controllers |
 
-Counts by class: A: 3, E: 8, F: 27, G: 29
+Counts by class: A: 3, E: 8, F: 27, G: 30

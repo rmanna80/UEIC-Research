@@ -1,6 +1,6 @@
 # UEIC · Simulation results (generated)
 
-Generated 2026-10-26T22:36:55+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `dabf4560e2629886…`. Hash-chain check: **OK** (3793 finalised runs verified).
+Generated 2026-10-27T03:56:01+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `c6a14ddc7f133e00…`. Hash-chain check: **OK** (5443 finalised runs verified).
 
 > **Every number on this page is a simulator output** (provenance `simulator_output`) and is conditional on the parameter registry (`04_assumptions_register.md`), most of which is class E/F. E001C uses two parameters measured on a real GPU (M001); every other parameter is still a placeholder. The measurements themselves are reported in `10_calibration_results.md`. Energy boundary: grid → conversion → accelerators + pump + fans + chiller (see `00_problem_statement.md`).
 
@@ -31,6 +31,31 @@ Generated 2026-10-26T22:36:55+00:00 by `python -m ueic report` from `results/uei
 | E010 H3 | **supported** | Dynamic loop, severe degradation: joint exceeded 80 C in severe|amb40|dyn40. |
 | E010 H4 | **supported** | Joint vs independent energy -2.41% to -0.04%; CI upper bound below +1% in all 18 conditions. |
 | E010 H5 | **supported** | Joint vs fixed energy -35.4% to -40.5%; at least 10% below fixed in every condition. |
+| E011 H1 | **supported** | joint_lag throttled in 0/27 conditions. |
+| E011 H2 | **supported** | Dynamic loops, chip-s above 80 C summed over 18 conditions (seed means): independent 10008, joint 17218, joint_lag 0; joint_lag above target in 0/18. |
+| E011 H3 | **supported** | Quasi-steady plant: joint_lag's runs identical to joint's, seed by seed, in 9/9 conditions. |
+| E011 H4 | **supported** | joint_lag vs joint energy -8.77% to +0.00%; not below +0.5% in 0, not below independent where it overheated in 0. |
+| E011 H5 | **not supported** | joint_lag's late tasks more than 2 above the worse of joint and independent in 2/27 conditions: severe|amb40|dyn40, severe|amb40|dyn150. |
+| E011B H1 | **supported** | joint_fb vs joint energy per successful task -4.74% to -4.50% over 27 conditions; CI upper bound not below -2% in 0. |
+| E011B H2 | **supported** | joint_lag vs joint_fb in the 14 benign dynamic conditions +0.00% to +0.00%; CI outside +/-0.5% in 0. |
+| E011B H3 | **supported** | Chip-s above 80 C where joint overheated in E011 (joint / joint_fb / joint_lag): moderate|amb40|dyn40 1473 / 1188 / 0; severe|amb40|dyn40 5493 / 4094 / 0; moderate|amb40|dyn150 1820 / 1432 / 0; severe|amb40|dyn150 8433 / 6155 / 0. |
+| E011B H4 | **supported** | Late tasks per run in severe|amb40 (joint / joint_fb / joint_lag): dyn40 2.0 / 2.2 / 7.6; dyn150 2.0 / 2.6 / 7.6. |
+| E011B H5 | **supported** | 270/270 joint and joint_lag runs compared with E011; 0 differ. |
+| E012 H1 | **not supported** | joint_lag mean supply temperature, measured minus registry world, no floor: moderate/quasi +0.0 K, moderate/dyn150 +0.0 K, hot/quasi +0.0 K, hot/dyn150 -0.0 K, cool/quasi +0.0 K, cool/dyn150 +0.0 K (needed >= +10 K). |
+| E012 H2 | **not supported** | Reusable share of rejected heat, joint_lag, no floor, quasi-steady (measured / registry): moderate 0% / 0%, cool 0% / 0%. |
+| E012 H3 | **not supported** | Energy cost of the 40 C floor for joint_lag. Measured world: moderate/quasi +2.71%, moderate/dyn150 +2.74%, hot/quasi +0.00%, hot/dyn150 +0.00%, cool/quasi +4.43%, cool/dyn150 +4.48%. Registry world: moderate/quasi +7.70%, moderate/dyn150 +7.70%, hot/quasi +0.00%, hot/dyn150 +0.00%, cool/quasi +12.86%, cool/dyn150 +12.86%. Not below +0.5% (measured): S1_moderate/quasi, S1_moderate/dyn150, S4_cool/quasi, S4_cool/dyn150. Registry not costlier: S3_hot/quasi, S3_hot/dyn150. |
+| E012 H4 | **supported** | joint_lag above 80 C in no condition. |
+| E012 H5 | **not supported** | Steady-state joint above 80 C with the 150 kg loop in no condition. |
+| E013 H1 | **supported** | joint_fb without margin above 80 C in 4/12 conditions (chip-s summed over conditions: 12868). |
+| E013 H2 | **supported** | Chip-s above 80 C summed over conditions by margin: 0 K 12868, 3 K 8394, 6 K 10348, 9 K 7232; no margin tested was safe everywhere. |
+| E013 H3 | **supported** | joint_lag vs joint_fb with a 9 K margin: energy -7.29% to +0.00%; cheaper (CI below 0) in 10/12 conditions (needed 9). |
+| E013 H4 | **not supported** | joint_lag more than 1 late task above joint_fb (9 K margin) in 2 conditions: severe|amb40|dyn40, severe|amb40|dyn150. |
+| E013 H5 | **supported** | joint_lag above 80 C in 0/12 conditions. |
+| E014 H1 | **supported** | Exact-model joint_lag above 80 C in 0/6 conditions. |
+| E014 H2 | **supported** | Chip-s above 80 C summed over conditions with a wrong loop model: mass_x0.25 0, mass_x4 0, ramp_x0.25 0, ramp_x4 0. |
+| E014 H3 | **supported** | Model-free joint_meas: chip-s above 80 C summed 0, throttled 0. |
+| E014 H4 | **supported** | joint_meas vs joint_lag energy +0.00% to +0.00%; outside +/-1% or late tasks off by > 1 in 0. |
+| E014 H5 | **supported** | Wrong-model vs exact-model joint_lag energy +0.00% to +0.00%; CI outside +/-1% in 0. |
 
 ## E004 · Time-step convergence
 
@@ -500,6 +525,158 @@ Experiment `E010-20261026T223109-050d5a`: 270 runs, 0 failed. S6 load profile; l
 | dyn40 | severe | 30 °C | 0 / 709 / 0 | 0 / 36 / 0 | 63.4 / 85.3 / 78.4 | -0.62% [-0.77%, -0.46%] | -37.8% [-39.3%, -36.2%] |
 | dyn40 | severe | 40 °C | 0 / 1785 / 5493 | 0 / 170 / 212 | 63.4 / 85.5 / 85.1 | -2.41% [-3.17%, -1.64%] | -38.1% [-40.0%, -36.1%] |
 
+## E011 · Lag-aware joint control
+
+Experiment `E011-20261027T024211-6b9ce0`: 405 runs, 0 failed. As E010 plus a 150 kg loop with a 0.25 K/min ramp; `joint_lag` checks thermal safety at the supply temperature the chips will actually see before the next decision. Thermal values are seed means over 5 seeds; energy is paired. **The energy columns mix two changes** (lag-awareness and a different overload fallback); E011B separates them.
+
+![E011](../results/figures/e011_lag_aware.png)
+
+| Plant | Cold plate | Ambient | chip·s > 80 °C (I / J / JL) | throttled (I / J / JL) | late tasks (I / J / JL) | JL vs J | JL vs I |
+|---|---|---|---|---|---|---|---|
+| quasi | clean | 20 °C | 0 / 0 / 0 | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 | +0.00% [+0.00%, +0.00%] | -0.07% [-0.08%, -0.06%] |
+| quasi | clean | 30 °C | 0 / 0 / 0 | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 | +0.00% [+0.00%, +0.00%] | -0.04% [-0.05%, -0.03%] |
+| quasi | clean | 40 °C | 699 / 0 / 0 | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 | +0.00% [+0.00%, +0.00%] | -0.18% [-0.26%, -0.11%] |
+| quasi | moderate | 20 °C | 0 / 0 / 0 | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 | +0.00% [+0.00%, +0.00%] | -0.12% [-0.13%, -0.11%] |
+| quasi | moderate | 30 °C | 173 / 0 / 0 | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 | +0.00% [+0.00%, +0.00%] | -0.05% [-0.07%, -0.03%] |
+| quasi | moderate | 40 °C | 1624 / 0 / 0 | 141 / 0 / 0 | 2.0 / 2.0 / 2.0 | +0.00% [+0.00%, +0.00%] | -1.50% [-1.77%, -1.24%] |
+| quasi | severe | 20 °C | 8 / 0 / 0 | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 | +0.00% [+0.00%, +0.00%] | -0.12% [-0.14%, -0.10%] |
+| quasi | severe | 30 °C | 719 / 0 / 0 | 37 / 0 / 0 | 2.0 / 2.0 / 2.0 | +0.00% [+0.00%, +0.00%] | -0.63% [-0.79%, -0.48%] |
+| quasi | severe | 40 °C | 1985 / 0 / 0 | 246 / 0 / 0 | 2.0 / 2.0 / 2.0 | +0.00% [+0.00%, +0.00%] | -1.80% [-2.13%, -1.47%] |
+| dyn40 | clean | 20 °C | 0 / 0 / 0 | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 | -4.63% [-5.82%, -3.43%] | -4.66% [-5.86%, -3.47%] |
+| dyn40 | clean | 30 °C | 0 / 0 / 0 | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 | -4.60% [-5.79%, -3.42%] | -4.64% [-5.84%, -3.44%] |
+| dyn40 | clean | 40 °C | 704 / 0 / 0 | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 | -4.58% [-5.77%, -3.40%] | -4.75% [-5.90%, -3.59%] |
+| dyn40 | moderate | 20 °C | 0 / 0 / 0 | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 | -4.65% [-5.84%, -3.45%] | -4.73% [-5.94%, -3.52%] |
+| dyn40 | moderate | 30 °C | 173 / 0 / 0 | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 | -4.64% [-5.83%, -3.44%] | -4.68% [-5.87%, -3.50%] |
+| dyn40 | moderate | 40 °C | 1602 / 1473 / 0 | 108 / 0 / 0 | 2.0 / 2.0 / 2.0 | -2.90% [-3.89%, -1.92%] | -4.46% [-5.15%, -3.76%] |
+| dyn40 | severe | 20 °C | 8 / 0 / 0 | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 | -4.68% [-5.89%, -3.47%] | -4.75% [-5.95%, -3.54%] |
+| dyn40 | severe | 30 °C | 709 / 0 / 0 | 36 / 0 / 0 | 2.0 / 2.0 / 2.0 | -4.59% [-5.77%, -3.41%] | -5.18% [-6.22%, -4.15%] |
+| dyn40 | severe | 40 °C | 1785 / 5493 / 0 | 170 / 212 / 0 | 2.0 / 2.0 / 7.6 | -8.77% [-10.88%, -6.66%] | -10.97% [-12.47%, -9.48%] |
+| dyn150 | clean | 20 °C | 0 / 0 / 0 | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 | -4.63% [-5.82%, -3.43%] | -4.64% [-5.84%, -3.45%] |
+| dyn150 | clean | 30 °C | 0 / 0 / 0 | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 | -4.60% [-5.79%, -3.42%] | -4.64% [-5.84%, -3.44%] |
+| dyn150 | clean | 40 °C | 705 / 0 / 0 | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 | -4.58% [-5.77%, -3.40%] | -4.75% [-5.91%, -3.59%] |
+| dyn150 | moderate | 20 °C | 0 / 0 / 0 | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 | -4.65% [-5.84%, -3.45%] | -4.71% [-5.92%, -3.49%] |
+| dyn150 | moderate | 30 °C | 173 / 0 / 0 | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 | -4.64% [-5.83%, -3.44%] | -4.68% [-5.87%, -3.50%] |
+| dyn150 | moderate | 40 °C | 1936 / 1820 / 0 | 115 / 0 / 0 | 2.0 / 2.0 / 2.0 | -2.85% [-3.88%, -1.82%] | -4.23% [-4.94%, -3.52%] |
+| dyn150 | severe | 20 °C | 7 / 0 / 0 | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 | -4.68% [-5.89%, -3.47%] | -4.72% [-5.92%, -3.53%] |
+| dyn150 | severe | 30 °C | 683 / 0 / 0 | 35 / 0 / 0 | 2.0 / 2.0 / 2.0 | -4.59% [-5.77%, -3.41%] | -5.15% [-6.18%, -4.12%] |
+| dyn150 | severe | 40 °C | 1523 / 8433 / 0 | 92 / 418 / 0 | 2.0 / 2.0 / 7.6 | -7.91% [-10.59%, -5.23%] | -10.80% [-12.29%, -9.31%] |
+
+## E011B · Ablation: overload fallback vs lag-awareness
+
+Experiment `E011B-20261027T030500-ae8b52`: 405 runs, 0 failed. Registered after E011's results were seen. `joint_fb` is steady-state joint control with `joint_lag`'s overload fallback, so joint_fb vs joint isolates the fallback and joint_lag vs joint_fb isolates lag-awareness. Energy is paired over 5 seeds; thermal values and late tasks are seed means.
+
+![E011B](../results/figures/e011b_fallback_ablation.png)
+
+| Plant | Cold plate | Ambient | Fallback: FB vs J | Lag-awareness: JL vs FB | Total: JL vs J | chip·s > 80 °C (J / FB / JL) | late tasks (J / FB / JL) |
+|---|---|---|---|---|---|---|---|
+| quasi | clean | 20 °C | -4.63% [-5.82%, -3.43%] | n/a¹ | +0.00% [+0.00%, +0.00%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| quasi | clean | 30 °C | -4.60% [-5.79%, -3.42%] | n/a¹ | +0.00% [+0.00%, +0.00%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| quasi | clean | 40 °C | -4.58% [-5.77%, -3.40%] | n/a¹ | +0.00% [+0.00%, +0.00%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| quasi | moderate | 20 °C | -4.65% [-5.84%, -3.45%] | n/a¹ | +0.00% [+0.00%, +0.00%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| quasi | moderate | 30 °C | -4.64% [-5.83%, -3.44%] | n/a¹ | +0.00% [+0.00%, +0.00%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| quasi | moderate | 40 °C | -4.50% [-5.65%, -3.34%] | n/a¹ | +0.00% [+0.00%, +0.00%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| quasi | severe | 20 °C | -4.68% [-5.89%, -3.47%] | n/a¹ | +0.00% [+0.00%, +0.00%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| quasi | severe | 30 °C | -4.59% [-5.77%, -3.41%] | n/a¹ | +0.00% [+0.00%, +0.00%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| quasi | severe | 40 °C | -4.74% [-5.96%, -3.52%] | n/a¹ | +0.00% [+0.00%, +0.00%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| dyn40 | clean | 20 °C | -4.63% [-5.82%, -3.43%] | +0.00% [+0.00%, +0.00%] | -4.63% [-5.82%, -3.43%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| dyn40 | clean | 30 °C | -4.60% [-5.79%, -3.42%] | +0.00% [+0.00%, +0.00%] | -4.60% [-5.79%, -3.42%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| dyn40 | clean | 40 °C | -4.58% [-5.77%, -3.40%] | +0.00% [+0.00%, +0.00%] | -4.58% [-5.77%, -3.40%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| dyn40 | moderate | 20 °C | -4.65% [-5.84%, -3.45%] | +0.00% [+0.00%, +0.00%] | -4.65% [-5.84%, -3.45%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| dyn40 | moderate | 30 °C | -4.64% [-5.83%, -3.44%] | +0.00% [+0.00%, +0.00%] | -4.64% [-5.83%, -3.44%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| dyn40 | moderate | 40 °C | -4.50% [-5.66%, -3.35%] | +1.68% [+1.41%, +1.95%] | -2.90% [-3.89%, -1.92%] | 1473 / 1188 / 0 | 2.0 / 2.0 / 2.0 |
+| dyn40 | severe | 20 °C | -4.68% [-5.89%, -3.47%] | +0.00% [+0.00%, +0.00%] | -4.68% [-5.89%, -3.47%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| dyn40 | severe | 30 °C | -4.59% [-5.77%, -3.41%] | +0.00% [+0.00%, +0.00%] | -4.59% [-5.77%, -3.41%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| dyn40 | severe | 40 °C | -4.69% [-5.84%, -3.55%] | -4.28% [-5.46%, -3.10%] | -8.77% [-10.88%, -6.66%] | 5493 / 4094 / 0 | 2.0 / 2.2 / 7.6 |
+| dyn150 | clean | 20 °C | -4.63% [-5.82%, -3.43%] | +0.00% [+0.00%, +0.00%] | -4.63% [-5.82%, -3.43%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| dyn150 | clean | 30 °C | -4.60% [-5.79%, -3.42%] | +0.00% [+0.00%, +0.00%] | -4.60% [-5.79%, -3.42%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| dyn150 | clean | 40 °C | -4.58% [-5.77%, -3.40%] | +0.00% [+0.00%, +0.00%] | -4.58% [-5.77%, -3.40%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| dyn150 | moderate | 20 °C | -4.65% [-5.84%, -3.45%] | +0.00% [+0.00%, +0.00%] | -4.65% [-5.84%, -3.45%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| dyn150 | moderate | 30 °C | -4.64% [-5.83%, -3.44%] | +0.00% [+0.00%, +0.00%] | -4.64% [-5.83%, -3.44%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| dyn150 | moderate | 40 °C | -4.51% [-5.66%, -3.36%] | +1.74% [+1.52%, +1.95%] | -2.85% [-3.88%, -1.82%] | 1820 / 1432 / 0 | 2.0 / 2.0 / 2.0 |
+| dyn150 | severe | 20 °C | -4.68% [-5.89%, -3.47%] | +0.00% [+0.00%, +0.00%] | -4.68% [-5.89%, -3.47%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| dyn150 | severe | 30 °C | -4.59% [-5.77%, -3.41%] | +0.00% [+0.00%, +0.00%] | -4.59% [-5.77%, -3.41%] | 0 / 0 / 0 | 2.0 / 2.0 / 2.0 |
+| dyn150 | severe | 40 °C | -4.54% [-5.68%, -3.39%] | -3.54% [-5.23%, -1.85%] | -7.91% [-10.59%, -5.23%] | 8433 / 6155 / 0 | 2.0 / 2.6 / 7.6 |
+
+¹ With an instant plant `joint_lag` hands over to steady-state joint control by design, including joint's original fallback, so joint_lag vs joint_fb there only measures the fallback again.
+
+## E012 · Warm water on real silicon
+
+Experiment `E012-20261027T032027-7b1f8c`: 360 runs, 0 failed. Registry placeholders vs RTX 5070-derived parameters (clock sensitivity, leakage matched to the measured slope, voltage-floor V-f form); supply floor none or 40 °C; instant plant or 150 kg loop. Heat is counted as reusable when the water leaving the loop is at least 45 °C. Seed means over 5 seeds. **Caveat (independent audit):** the plant's dry-cooler fan power is proportional to heat rejected, independent of approach temperature, so above the free-cooling limit warmer water has no facility-side benefit and H1/H2 could not have passed. "measured" = simulated with RTX 5070-derived parameters.
+
+![E012](../results/figures/e012_warm_water.png)
+
+| Scenario | Plant | World | Floor | Mean supply °C (I / J / JL) | Reusable heat (I / J / JL) | chip·s > 80 °C (I / J / JL) | late tasks (I / J / JL) |
+|---|---|---|---|---|---|---|---|
+| S1_moderate | quasi | registry | nofloor | 25.5 / 25.0 / 25.0 | 0% / 0% / 0% | 0 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S1_moderate | dyn150 | registry | nofloor | 25.0 / 25.0 / 25.0 | 0% / 0% / 0% | 0 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S1_moderate | quasi | registry | floor40 | 40.0 / 40.0 / 40.0 | 42% / 25% / 25% | 398 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S1_moderate | dyn150 | registry | floor40 | 40.0 / 40.0 / 40.0 | 42% / 25% / 25% | 398 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S1_moderate | quasi | measured | nofloor | 25.7 / 25.0 / 25.0 | 0% / 0% / 0% | 0 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S1_moderate | dyn150 | measured | nofloor | 25.1 / 25.0 / 25.0 | 0% / 0% / 0% | 0 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S1_moderate | quasi | measured | floor40 | 40.0 / 40.0 / 40.0 | 42% / 41% / 41% | 0 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S1_moderate | dyn150 | measured | floor40 | 40.0 / 40.0 / 40.0 | 42% / 41% / 39% | 0 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S3_hot | quasi | registry | nofloor | 39.8 / 40.0 / 40.0 | 43% / 25% / 25% | 400 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S3_hot | dyn150 | registry | nofloor | 39.8 / 40.0 / 40.0 | 44% / 25% / 25% | 368 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S3_hot | quasi | registry | floor40 | 40.0 / 40.0 / 40.0 | 42% / 25% / 25% | 398 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S3_hot | dyn150 | registry | floor40 | 40.0 / 40.0 / 40.0 | 42% / 25% / 25% | 398 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S3_hot | quasi | measured | nofloor | 40.0 / 40.0 / 40.0 | 42% / 41% / 41% | 0 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S3_hot | dyn150 | measured | nofloor | 40.0 / 40.0 / 40.0 | 42% / 41% / 39% | 0 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S3_hot | quasi | measured | floor40 | 40.0 / 40.0 / 40.0 | 42% / 41% / 41% | 0 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S3_hot | dyn150 | measured | floor40 | 40.0 / 40.0 / 40.0 | 42% / 41% / 39% | 0 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S4_cool | quasi | registry | nofloor | 15.8 / 13.0 / 13.0 | 0% / 0% / 0% | 0 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S4_cool | dyn150 | registry | nofloor | 13.1 / 13.0 / 13.0 | 0% / 0% / 0% | 0 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S4_cool | quasi | registry | floor40 | 40.0 / 40.0 / 40.0 | 42% / 25% / 25% | 398 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S4_cool | dyn150 | registry | floor40 | 40.0 / 40.0 / 40.0 | 42% / 25% / 25% | 398 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S4_cool | quasi | measured | nofloor | 15.9 / 13.0 / 13.0 | 0% / 0% / 0% | 0 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S4_cool | dyn150 | measured | nofloor | 13.1 / 13.0 / 13.0 | 0% / 0% / 0% | 0 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S4_cool | quasi | measured | floor40 | 40.0 / 40.0 / 40.0 | 42% / 41% / 41% | 0 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+| S4_cool | dyn150 | measured | floor40 | 40.0 / 40.0 / 40.0 | 42% / 41% / 39% | 0 / 0 / 0 | 0.4 / 0.4 / 0.4 |
+
+### Cost of the 40 °C floor for lag-aware joint control (energy per successful task, paired)
+
+| Scenario | Plant | Registry world | Measured world | Registry minus measured |
+|---|---|---|---|---|
+| S1_moderate | quasi | +7.70% [+7.61%, +7.79%] | +2.71% [+2.65%, +2.77%] | +4.99% [+4.95%, +5.02%] |
+| S1_moderate | dyn150 | +7.70% [+7.61%, +7.79%] | +2.74% [+2.69%, +2.79%] | +4.96% [+4.91%, +5.01%] |
+| S3_hot | quasi | +0.00% [+0.00%, +0.00%] | +0.00% [+0.00%, +0.00%] | +0.00% [+0.00%, +0.00%] |
+| S3_hot | dyn150 | +0.00% [+0.00%, +0.00%] | +0.00% [+0.00%, +0.00%] | +0.00% [+0.00%, +0.00%] |
+| S4_cool | quasi | +12.86% [+12.71%, +13.01%] | +4.43% [+4.33%, +4.53%] | +8.43% [+8.37%, +8.49%] |
+| S4_cool | dyn150 | +12.86% [+12.71%, +13.01%] | +4.48% [+4.40%, +4.56%] | +8.38% [+8.30%, +8.46%] |
+
+## E013 · Fixed thermal margin vs lag-aware planning
+
+Experiment `E013-20261027T033335-e7198c`: 300 runs, 0 failed. `joint_fb` plans against 80 − m °C; `joint_lag` plans against 80 °C. Time above target is always measured against 80 °C. Smallest margin with no time above 80 °C in every condition: none of those tested.
+
+![E013](../results/figures/e013_margin_vs_lag.png)
+
+| Loop | Cold plate | Ambient | chip·s > 80 °C, joint_fb at m = 0 / 3 / 6 / 9 | joint_lag | joint_fb energy vs joint_lag at m = 0 / 3 / 6 / 9 | late tasks joint_fb (m*) / joint_lag |
+|---|---|---|---|---|---|---|
+| dyn40 | clean | 30 °C | 0 / 0 / 0 / 0 | 0 | +0.00% / +0.00% / +0.00% / +0.00% | 2.0 / 2.0 |
+| dyn40 | clean | 40 °C | 0 / 0 / 0 / 0 | 0 | +0.00% / +0.18% / +1.11% / +2.27% | 2.0 / 2.0 |
+| dyn40 | moderate | 30 °C | 0 / 0 / 0 / 0 | 0 | +0.00% / +0.16% / +0.16% / +0.87% | 2.0 / 2.0 |
+| dyn40 | moderate | 40 °C | 1188 / 500 / 1258 / 673 | 0 | -1.65% / -0.53% / +0.47% / +1.39% | 2.0 / 2.0 |
+| dyn40 | severe | 30 °C | 0 / 0 / 0 / 3 | 0 | +0.00% / +0.55% / +1.92% / +2.79% | 2.0 / 2.0 |
+| dyn40 | severe | 40 °C | 4094 / 2404 / 1941 / 1383 | 0 | +4.48% / +5.65% / +6.58% / +7.87% | 2.0 / 7.6 |
+| dyn150 | clean | 30 °C | 0 / 0 / 0 / 0 | 0 | +0.00% / +0.00% / +0.00% / +0.00% | 2.0 / 2.0 |
+| dyn150 | clean | 40 °C | 0 / 0 / 0 / 0 | 0 | +0.00% / +0.18% / +1.11% / +1.96% | 2.0 / 2.0 |
+| dyn150 | moderate | 30 °C | 0 / 0 / 0 / 0 | 0 | +0.00% / +0.16% / +0.16% / +0.81% | 2.0 / 2.0 |
+| dyn150 | moderate | 40 °C | 1432 / 857 / 2772 / 1392 | 0 | -1.71% / -0.74% / -0.61% / +0.94% | 2.0 / 2.0 |
+| dyn150 | severe | 30 °C | 0 / 0 / 0 / 36 | 0 | +0.00% / +0.55% / +1.49% / +1.65% | 2.0 / 2.0 |
+| dyn150 | severe | 40 °C | 6155 / 4633 / 4376 / 3744 | 0 | +3.69% / +5.47% / +6.31% / +7.70% | 2.0 / 7.6 |
+
+## E014 · Loop-model error and a model-free ablation
+
+Experiment `E014-20261027T034608-cc32d7`: 180 runs, 0 failed. `joint_lag` with its loop mass and ramp wrong by 4× either way; `joint_meas` checks safety at max(measured supply, setpoint) with no loop model. 40 °C ambient, both slow loops. Energy paired against exact-model `joint_lag`.
+
+| Loop | Cold plate | chip·s > 80 °C, joint_lag: exact / mass_x0.25 / mass_x4 / ramp_x0.25 / ramp_x4 | joint_meas | late tasks joint_lag (exact) / joint_meas | joint_meas vs joint_lag | wrong-model energy range |
+|---|---|---|---|---|---|---|
+| dyn40 | clean | 0 / 0 / 0 / 0 / 0 | 0 | 2.0 / 2.0 | +0.00% [+0.00%, +0.00%] | +0.00% to +0.00% |
+| dyn40 | moderate | 0 / 0 / 0 / 0 / 0 | 0 | 2.0 / 2.0 | +0.00% [+0.00%, +0.00%] | +0.00% to +0.00% |
+| dyn40 | severe | 0 / 0 / 0 / 0 / 0 | 0 | 7.6 / 7.6 | +0.00% [+0.00%, +0.00%] | +0.00% to +0.00% |
+| dyn150 | clean | 0 / 0 / 0 / 0 / 0 | 0 | 2.0 / 2.0 | +0.00% [+0.00%, +0.00%] | +0.00% to +0.00% |
+| dyn150 | moderate | 0 / 0 / 0 / 0 / 0 | 0 | 2.0 / 2.0 | +0.00% [+0.00%, +0.00%] | +0.00% to +0.00% |
+| dyn150 | severe | 0 / 0 / 0 / 0 / 0 | 0 | 7.6 / 7.6 | +0.00% [+0.00%, +0.00%] | +0.00% to +0.00% |
+
 ## Experiment register (including superseded and failed)
 
 | Id | Status | Runs | Title |
@@ -522,3 +699,8 @@ Experiment `E010-20261026T223109-050d5a`: 270 runs, 0 failed. S6 load profile; l
 | `M002-20261026T221416-c4ad2d` | completed | {"failed": 0, "measurement": true, "runs": 1} | Leakage warm-up, attempt 2 (RTX 5070, 2347 MHz, automatic fan) |
 | `E009-20261026T221745-087238` | completed | {"failed": 0, "runs": 360} | Joint vs independent control with leakage matched to a real GPU's measured temperature slope |
 | `E010-20261026T223109-050d5a` | completed | {"failed": 0, "runs": 270} | Thermal safety: joint vs independent control under cooling degradation and heat (measured leakage) |
+| `E011-20261027T024211-6b9ce0` | completed | {"failed": 0, "runs": 405} | Lag-aware joint control under cooling degradation, heat and slow coolant loops |
+| `E011B-20261027T030500-ae8b52` | completed | {"failed": 0, "runs": 405} | Ablation of E011: how much of lag-aware control's energy saving is the overload fallback? |
+| `E012-20261027T032027-7b1f8c` | completed | {"failed": 0, "runs": 360} | Warm water on real silicon: does energy-optimal control make AI waste heat reusable, and what does a heat-reuse supply floor cost? |
+| `E013-20261027T033335-e7198c` | completed | {"failed": 0, "runs": 300} | Fixed thermal margin vs lag-aware planning under slow coolant loops |
+| `E014-20261027T034608-cc32d7` | completed | {"failed": 0, "runs": 180} | Robustness of lag-aware control to loop-model error, and a model-free ablation |

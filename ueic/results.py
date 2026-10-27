@@ -233,7 +233,7 @@ def compute_all(store: Store, threshold: float = 0.01) -> dict[str, Any]:
         "E001": e001(store, threshold), "E002": e002(store, threshold), "E003": e003(store, threshold),
         "E004": e004(store), "E005": e005(store, threshold),
         "E006": e006(store, threshold), "E007": e007(store, threshold), "E008": e008(store, threshold),
-        "M001": m001(store), "E001C": e001c(store, threshold), "E009": e009(store, threshold), "E010": e010(store, threshold), "E011": e011(store, threshold), "E011B": e011b(store, threshold), "E012": e012(store, threshold), "E013": e013(store, threshold),
+        "M001": m001(store), "E001C": e001c(store, threshold), "E009": e009(store, threshold), "E010": e010(store, threshold), "E011": e011(store, threshold), "E011B": e011b(store, threshold), "E012": e012(store, threshold), "E013": e013(store, threshold), "E014": e014(store, threshold),
         "assumptions": assumptions_table(),
         "research_log": store.research_log(),
         "experiments": [{"id": x["id"], "key": x["key"], "status": x["status"], "title": x["spec"]["title"],
@@ -326,6 +326,7 @@ def verdicts(R: dict[str, Any]) -> list[dict[str, Any]]:
     out += verdicts_e011b(R)
     out += verdicts_e012(R)
     out += verdicts_e013(R)
+    out += verdicts_e014(R)
     return out
 
 
@@ -986,6 +987,81 @@ def verdicts_e013(R: dict[str, Any]) -> list[dict[str, Any]]:
                  + (": " + ", ".join(e["H4"]["failures"]) if e["H4"]["failures"] else "") + "."},
         {"key": "E013 H5", "state": st(e["H5"]["supported"]),
          "text": f"joint_lag above 80 C in {len(e['H5']['failures'])}/{len(e['conditions'])} conditions."},
+    ]
+
+
+E014_ERRORS = ("exact", "mass_x0.25", "mass_x4", "ramp_x0.25", "ramp_x4")
+
+
+def e014(store: Store, threshold: float) -> dict[str, Any] | None:
+    """E014: joint_lag with wrong loop models, and the model-free joint_meas, vs exact-model joint_lag."""
+    eid = store.latest_experiment("E014")
+    if not eid:
+        return None
+    exp = store.experiment(eid)
+    runs = store.runs(eid)
+    sc0 = exp["spec"]["design"]["scenarios"][0]
+    idx = A.index_runs(runs)
+    bases = list(dict.fromkeys(v["label"].rsplit("|", 1)[0] for v in exp["spec"]["design"]["variants"]))
+    get = lambda base, err, pol: idx.get((sc0, f"{base}|{err}"), {}).get(pol, {})
+    mean = lambda d, k: _f(float(np.mean([x[k] for x in d.values()]))) if d else None
+
+    def rel(a, b, k="E_per_success_kJ"):
+        seeds = sorted(set(a) & set(b))
+        if not seeds:
+            return None
+        m_, lo, hi = A.t_ci(np.array([a[x][k] / b[x][k] - 1.0 for x in seeds]))
+        return {"mean": _f(m_), "lo": _f(lo), "hi": _f(hi), "n": len(seeds)}
+    conds = []
+    for b in bases:
+        dg, amb, pl = b.split("|")
+        ref = get(b, "exact", "joint_lag")
+        conds.append({"label": b, "degradation": dg, "t_amb": float(amb[3:]), "plant": pl,
+                      "joint_lag": {err: {k: mean(get(b, err, "joint_lag"), k) for k in E010_METRICS} for err in E014_ERRORS},
+                      "joint_meas": {k: mean(get(b, "exact", "joint_meas"), k) for k in E010_METRICS},
+                      "lag_err_vs_exact": {err: rel(get(b, err, "joint_lag"), ref) for err in E014_ERRORS[1:]},
+                      "meas_vs_lag": rel(get(b, "exact", "joint_meas"), ref)})
+    ov = lambda d: d.get("chip_s_over_target") or 0.0
+    inside = lambda r: bool(r and r["lo"] is not None and r["lo"] > -0.01 and r["hi"] < 0.01)
+    h1 = [c["label"] for c in conds if ov(c["joint_lag"]["exact"]) > 0]
+    h2 = [f"{c['label']}/{err}" for c in conds for err in E014_ERRORS[1:] if ov(c["joint_lag"][err]) > 0]
+    h3 = [c["label"] for c in conds if ov(c["joint_meas"]) > 10 or (c["joint_meas"].get("chip_s_throttled") or 0) > 0]
+    h4 = [c["label"] for c in conds if not inside(c["meas_vs_lag"])
+          or abs((c["joint_meas"].get("slo_violations") or 0) - (c["joint_lag"]["exact"].get("slo_violations") or 0)) > 1]
+    h5 = [f"{c['label']}/{err}" for c in conds for err in E014_ERRORS[1:] if not inside(c["lag_err_vs_exact"][err])]
+    return {"id": eid, "spec": exp["spec"], "conditions": conds, "errors": list(E014_ERRORS), "n_runs": len(runs),
+            "n_failed": sum(r["status"] != "completed" for r in runs),
+            "H1": {"supported": not h1, "failures": h1}, "H2": {"supported": not h2, "failures": h2},
+            "H3": {"supported": not h3, "failures": h3}, "H4": {"supported": not h4, "failures": h4},
+            "H5": {"supported": not h5, "failures": h5}}
+
+
+def verdicts_e014(R: dict[str, Any]) -> list[dict[str, Any]]:
+    e = R.get("E014")
+    if not e:
+        return []
+    st = lambda ok: "supported" if ok else "not supported"
+    cs = e["conditions"]
+    tot = lambda f: sum(f(c) or 0 for c in cs)
+    fl = lambda xs: (": " + ", ".join(xs)) if xs else ""
+    mv = [c["meas_vs_lag"]["mean"] for c in cs if c["meas_vs_lag"]]
+    ev = [r["mean"] for c in cs for r in c["lag_err_vs_exact"].values() if r]
+    return [
+        {"key": "E014 H1", "state": st(e["H1"]["supported"]),
+         "text": f"Exact-model joint_lag above 80 C in {len(e['H1']['failures'])}/{len(cs)} conditions{fl(e['H1']['failures'])}."},
+        {"key": "E014 H2", "state": st(e["H2"]["supported"]),
+         "text": "Chip-s above 80 C summed over conditions with a wrong loop model: "
+                 + ", ".join(f"{err} {tot(lambda c, err=err: c['joint_lag'][err]['chip_s_over_target']):.0f}" for err in e["errors"][1:])
+                 + f"{fl(e['H2']['failures'])}."},
+        {"key": "E014 H3", "state": st(e["H3"]["supported"]),
+         "text": f"Model-free joint_meas: chip-s above 80 C summed {tot(lambda c: c['joint_meas']['chip_s_over_target']):.0f}, "
+                 f"throttled {tot(lambda c: c['joint_meas']['chip_s_throttled']):.0f}{fl(e['H3']['failures'])}."},
+        {"key": "E014 H4", "state": st(e["H4"]["supported"]),
+         "text": (f"joint_meas vs joint_lag energy {100 * min(mv):+.2f}% to {100 * max(mv):+.2f}%" if mv else "no pairs")
+                 + f"; outside +/-1% or late tasks off by > 1 in {len(e['H4']['failures'])}{fl(e['H4']['failures'])}."},
+        {"key": "E014 H5", "state": st(e["H5"]["supported"]),
+         "text": (f"Wrong-model vs exact-model joint_lag energy {100 * min(ev):+.2f}% to {100 * max(ev):+.2f}%" if ev else "no pairs")
+                 + f"; CI outside +/-1% in {len(e['H5']['failures'])}{fl(e['H5']['failures'][:4])}."},
     ]
 
 

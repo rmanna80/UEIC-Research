@@ -182,9 +182,9 @@ What this means: **joint control's case on real silicon is thermal safety under 
 | H2: joint_lag never exceeds 80 °C with a slow loop (18) | **supported** | 0 chip·s; steady-state joint 17,218 and independent 10,008, summed over the 18 |
 | H3: identical to joint with an instant plant (9) | **supported** | runs bitwise identical, seed by seed. The first version of the test compared seed means and failed on a 3.6e-15 kJ summation-order difference; corrected and disclosed |
 | H4: no more energy than joint; less than independent where independent overheated | **supported**, but see E011B | −8.8% to 0.0% vs joint |
-| H5: at most 2 more late tasks per run than the worse of joint and independent | **not supported** | severe fouling at 40 °C on both slow loops: 7.6 vs 2.0 per run (of about 3,600 tasks) |
+| H5: at most 2 more late tasks per run than the worse of joint and independent | **not supported** | severe fouling at 40 °C on both slow loops: 7.6 vs 2.0 per run (of about 3,700–3,800 tasks). Seeds give 0, 0, 32, 4 and 2, so one seed carries most of it |
 
-**The energy result was confounded.** joint_lag was about 4.6% cheaper than joint even where lag-awareness should change nothing. A diagnostic of one cell (clean plates, 20 °C, 40 kg loop, seed 0) traced the gap to the 24 of 240 intervals where demand exceeded planned capacity. There joint runs every clock at maximum, while joint_lag's fallback kept memory-bound work at the lowest clock, which costs no throughput because M001 measured memory-bound throughput as independent of SM clock.
+**The energy result was confounded.** joint_lag was about 4.6% cheaper than joint even where lag-awareness should change nothing. A diagnostic of one cell (clean plates, 20 °C, 40 kg loop, seed 0) traced the gap to the 24 of 240 intervals where demand exceeded planned capacity. There joint runs every clock at maximum, while joint_lag's fallback kept memory-bound work at the lowest clock. In the simulator that costs no throughput, because beta_memory = 0, transferred from M001's streaming kernel (measured −0.056 ± 0.079). That kernel is a bound for LLM decode, not a measurement of it, so the size of this saving inherits that caveat.
 
 **E011B: ablation (registered after E011's results, 405 runs, 0 failed).** `joint_fb` is steady-state joint control with joint_lag's fallback.
 
@@ -192,41 +192,79 @@ What this means: **joint control's case on real silicon is thermal safety under 
 |---|---|---|
 | H1: the fallback saves > 2% in all 27 conditions | **supported** | joint_fb vs joint −4.50% to −4.74%, every CI upper bound below −3.3% |
 | H2: lag-awareness costs nothing where it is not needed (14 benign slow-loop conditions, ±0.5%) | **supported** | exactly 0.00%: identical decisions |
-| H3: lag-awareness, not the fallback, gives the safety | **supported** | where joint overheated, joint_fb still did (1,188–6,155 chip·s); joint_lag 0 |
-| H4: the late tasks are the price of lag-awareness | **supported** | severe/40 °C: joint 2.0, joint_fb 2.2–2.6, joint_lag 7.6 per run |
+| H3: lag-awareness, not the fallback, gives the safety | **supported** as worded | where joint overheated, joint_fb still did (1,188–6,155 chip·s); joint_lag 0. This shows the new fallback is not enough. joint_lag's fallback is itself defined by safety at the predicted supply, and the design has no lag-aware arm with the old fallback, so it does not show which part of joint_lag is sufficient |
+| H4: the late tasks are the price of lag-awareness | **supported** by the seed-mean rule | severe/40 °C: joint 2.0, joint_fb 2.2–2.6, joint_lag 7.6 per run. The paired difference joint_lag − joint_fb is +5.4 [−6.2, +17.0] and +5.0 [−5.5, +15.5]: both CIs include zero, and one seed (32 vs 10–12) carries most of it |
 | H5: joint and joint_lag reproduce E011 run by run | **supported** | 270 of 270 identical |
 
 What E011 and E011B mean together:
-* **Lag-awareness alone** removed all overheating under slow loops.
-  * Where it was not needed it changed nothing.
+* **The lag-aware safety check removed all overheating under slow loops.** That covers both its normal decisions and its overload fallback, which keeps the same check. The fallback's memory-clock choice alone (joint_fb) did not.
+  * On slow loops where the delay did not bind, joint_lag's decisions were identical to joint_fb's.
+  * With an instant plant, joint_lag hands over to steady-state joint control by design, including joint's original fallback. There it carries joint's 4.7–5.0% fallback penalty relative to joint_fb.
   * With moderate fouling at 40 °C it cost 1.7% energy to avoid 1,200–1,400 chip·s above 80 °C.
-  * With severe fouling at 40 °C it used 3.5–4.3% *less* energy than the overheating alternative, but about 5 more late tasks per run, because it slowed clocks while the loop caught up.
-* **The overload fallback** is a separate 4.5–4.7% saving. It is not new: it is the phase-aware DVFS insight (L09–L11) applied when capacity runs short.
+  * With severe fouling at 40 °C it used 3.5–4.3% *less* energy than the overheating alternative, and had about 5 more late tasks per run on seed means. That service cost is uncertain: the paired CIs include zero and one seed dominates. Slower clocks while the loop catches up are the likely mechanism, but this was not measured.
+* **The overload fallback** is a separate 4.5–4.7% saving, given clock-insensitive memory-bound work (beta_memory = 0 from a streaming kernel). It is not new: it is the phase-aware DVFS insight (L09–L11) applied when capacity runs short.
   * Earlier experiments gave independent and joint control the same all-clocks-to-maximum fallback, so their comparisons stay like-for-like.
-  * Absolute clock-control savings were understated wherever overload occurred.
+  * Absolute clock-control savings were probably understated wherever overload occurred. This is inferred; the earlier experiments were not re-run.
 
-All of this is simulation, and the controller knows the loop's mass and ramp exactly. Whether a fixed safety margin does as well is tested in E013.
+All of this is simulation, and the controller knows the loop's mass and ramp exactly. E013 and E014 test the obvious objections.
+
+**E013: a fixed thermal margin instead of lag-awareness (pre-registered, 300 runs, 0 failed).** The design covered the 12 slow-loop conditions at 30 and 40 °C. `joint_fb` planned against 80 − m °C for m = 0, 3, 6 and 9 K; joint_lag planned against 80 °C. Time above target was always measured against 80 °C.
+
+| Hypothesis | Verdict | Result |
+|---|---|---|
+| H1: no margin overheats somewhere | **supported** | 4 of 12 conditions, 12,868 chip·s summed |
+| H2: a 3 K margin is not enough | **supported** | summed chip·s above 80 °C by margin: 0 K 12,868, 3 K 8,394, 6 K 10,348, 9 K 7,232. No margin was safe everywhere, and the 9 K margin created small excursions (3 and 36 chip·s) at 30 °C with severe fouling |
+| H3: joint_lag is cheaper than the safest margin (9 K) in ≥ 9 of 12 | **supported** | cheaper in 10 of 12 (−0.8% to −7.3%); equal in the 2 clean, 30 °C conditions |
+| H4: joint_lag's late tasks within 1 of the margin's | **not supported** | severe fouling at 40 °C: 7.6 vs 2.0 |
+| H5: joint_lag never exceeds 80 °C | **supported** | 0 in 12 |
+
+**E014: a wrong loop model, and no loop model (pre-registered, 180 runs, 0 failed).** The design covered the 6 slow-loop conditions at 40 °C. joint_lag ran with its loop mass, or its ramp limit, wrong by 4× either way. `joint_meas` has no loop model: it checks safety at the warmer of the measured supply and the setpoint.
+
+| Hypothesis | Verdict | Result |
+|---|---|---|
+| H1: exact-model joint_lag never exceeds 80 °C | **supported** | 0 in 6 |
+| H2: robust to each wrong model | **supported** | 0 chip·s above 80 °C for all four |
+| H3: joint_meas at most 10 chip·s above 80 °C, never throttles | **supported** | 0 and 0 |
+| H4: joint_meas energy within ±1% and late tasks within 1 | **supported** | identical: 0.00% |
+| H5: wrong models cost within ±1% | **supported** | identical: 0.00% (the controllers' configurations were confirmed different) |
+
+What E013 and E014 mean together:
+* **A margin cannot buy time from a rate-limited plant.** The plant moves its setpoint at its ramp rate whatever the target. A lower target makes the controller command colder water, but the chips see the same water during the ramp. This is the explanation the plant model implies; it was not separately instrumented. Only the fast actuator, the clocks, can close the gap, and that is what the lag-aware check uses.
+* **The loop model was never what made joint_lag safe.** In every condition tested, its decisions were identical to those of a one-line rule: never judge thermal safety at a colder setpoint that has not arrived; use the warmer of measured supply and setpoint. Getting the loop's mass or ramp wrong by 4× changed nothing.
+* **The candidate contribution therefore shrinks to a design rule** for steady-state joint optimisers on slow liquid loops. It is simple and cheap, and in simulation it removed every overheating event at no cost where the delay did not bind. Feedback on a measured state is ordinary control practice, so this is a corrected design, not a discovery. Its practical value depends on how often deployed optimisers judge safety at the commanded setpoint, which this review did not establish. E010 showed what goes wrong when they do.
+* **Still untested:** loop-model structure error (stratification, transport delay) and a real loop.
 
 **E012: warm water on real-silicon parameters (pre-registered, 360 runs, 0 failed).** The idea under test was that a nearly flat energy-per-work curve and a small leakage slope would let energy-optimal control run the coolant warm enough to make the waste heat reusable. Two parameter worlds were compared:
 * the registry placeholders;
-* RTX 5070-derived values: M001 clock sensitivity, leakage matched to the M002 slope, and the voltage-floor V–f form fitted to M001's power curve (rms shape error 0.016 vs 0.049 for the registry's form).
+* RTX 5070-derived values: M001 clock sensitivity, leakage matched to the slope from M001's warm-up (0.135%/K at 2.0 GHz), and the voltage-floor V–f form fitted to M001's power curve (rms shape error 0.016 vs 0.049 for the registry's form).
 
-Each world ran with no supply floor and with a 40 °C floor, on an instant plant and a 150 kg loop, in 20, 35 and 8 °C ambient.
+Both worlds are simulations of the same 600 W-class accelerator. "Measured world" below means simulated with RTX 5070-derived parameters (class E transfer), not measured. Each world ran with no supply floor and with a 40 °C floor, on an instant plant and a 150 kg loop, in 20, 35 and 8 °C ambient.
 
 | Hypothesis | Verdict | Result |
 |---|---|---|
 | H1: measured world runs ≥ 10 K warmer without a floor | **not supported** | 0.0 K difference everywhere. Both worlds sit at the coldest supply free cooling allows: 25 °C at 20 °C ambient, 13 °C at 8 °C, 40 °C at 35 °C |
 | H2: measured world makes ≥ 50% of heat reusable at 20 and 8 °C ambient | **not supported** | 0% in both worlds: return water never reaches 45 °C without a floor |
-| H3: the 40 °C floor costs < 0.5%, and less than in the registry world | **not supported** (second half holds) | measured world +2.7% (20 °C ambient) and +4.4–4.5% (8 °C); registry world +7.7% and +12.9%; no cost at 35 °C, where free cooling already forces 40 °C |
+| H3: the 40 °C floor costs < 0.5%, and less than in the registry world | **not supported** (second half holds at 20 and 8 °C ambient; at 35 °C both costs are exactly 0) | measured world +2.7% (20 °C ambient) and +4.4–4.5% (8 °C); registry world +7.7% and +12.9%; no cost at 35 °C, where free cooling already forces 40 °C |
 | H4: joint_lag never exceeds 80 °C | **supported** | 0 in all 24 cells |
 | H5: steady-state joint overheats somewhere with the 150 kg loop | **not supported** | these scenarios run at lower load than S6. Joint never exceeded 80 °C. Independent did, but only in the registry world whenever supply sat at 40 °C (368–400 chip·s), never in the measured world |
 
 What it means:
-* **The warm-water hypothesis failed.** With free cooling available, colder water costs almost nothing, so even a small leakage slope pulls the energy optimum to the coldest water the dry cooler can deliver. Real-silicon parameters did not change that.
-* **Heat reuse has a chip-side price, and real silicon makes it about a third of the placeholder estimate.** Holding supply at 40 °C costs about 0.16–0.18% energy per successful task per kelvin above the free-cooling temperature, against 0.48–0.51%/K in the registry world. These per-kelvin figures divide the floor cost by the supply rise; they are derived here, not separately measured. Nearly all of the cost is IT energy (+2.7% at 20 °C ambient), while cooling energy barely moves.
-* **PUE does not register this cost.** The ratio of facility to IT energy stayed at 1.089 with and without the floor, while energy per successful task rose 2.7–4.4%. That fits Schneider's facility-side finding (L48), under 1% PUE gain from 45 °C water: the chip-side cost of warm water sits inside the IT power that PUE divides by. The PUE value is this model's.
-* **One effect does favour real silicon.** At 35 °C ambient, where supply is ~40 °C anyway, the measured world makes 39–41% of rejected heat reusable against 25% in the registry world. With low leakage sensitivity the joint controller stops raising flow to cool chips, so the return water runs warmer.
-* **This cost scales with the leakage slope**, the weakest measured input: one card, a 4 K window. M003 (`09` §8) would narrow it.
+* **H1 and H2 could not have passed in this plant model, and I should have seen that before registering them** (found by the independent audit).
+  * The dry cooler's fan power is a fixed fraction of the heat it rejects, whatever the approach temperature (`physics.plant`), and the cooler reaches any supply down to ambient + 5 K.
+  * So above the free-cooling limit, warmer water has no facility-side benefit, and any positive leakage slope puts the optimum at the coldest free-cooled supply.
+  * The failure is a property of the model, not evidence about silicon.
+* **A rough estimate with an approach-dependent fan law points the same way, but is untested.** It assumes fan power ∝ (5 K / approach)³ at design duty, fans at ~2% of facility energy, and a marginal leakage cost of ~0.15–0.18%/K (class F; computed here, not simulated).
+  * The energy-optimal approach would then be ~8 K in the RTX 5070-derived world vs ~6 K in the registry world: about 2 K warmer supply, not 10–20 K.
+  * Testing this needs an approach-dependent dry-cooler model, now the top plant-model item.
+* **Heat reuse has a chip-side price.** With RTX 5070-derived parameters it is about a third of the placeholder estimate: holding supply at 40 °C costs about 0.16–0.18% energy per successful task per kelvin above the free-cooling temperature, against 0.48–0.51%/K with placeholders.
+  * The per-kelvin figures divide the floor cost by the supply rise.
+  * The one-third ratio follows the leakage power parameter (27.4 vs 90 W, ratio 0.30), so it restates the measured slope in energy terms rather than adding independent evidence.
+  * About 91% of the added energy is IT energy and about 6% conversion losses. Cooling energy rose by a similar *fraction* (+3–6%) but is small in absolute terms.
+* **A PUE-style ratio does not register this cost.** The ratio of facility to IT energy stayed at 1.089 with and without the floor while energy per successful task rose 2.7–4.4% (instant plant).
+  * In the registry world the ratio did move (1.092–1.093 → 1.096).
+  * That PUE hides IT-side changes is a known criticism. It is consistent in direction with Schneider's facility-side analysis (L48, class D, via press: under 1% PUE gain from 45 °C water). L48 compared 32 → 45 °C with chillers, not free cooling, so the two are not directly comparable. The PUE value is this model's.
+* **One difference between the worlds is fragile.** At 35 °C ambient the RTX 5070-derived world counts 39–41% of rejected heat as reusable against 25% for the registry world. But mean return temperatures differ by only 0.4–0.5 K (44.3–44.4 vs 43.9 °C) around the 45 °C threshold, so this is threshold-sensitive. The suggested mechanism (less flow spent cooling chips) was not isolated.
+* **In the model the only temperature dependence of chip power is leakage, so this cost is set by the leakage slope.** That is the weakest measured input: one card, a 4 K window. M003 (`09` §8) would narrow it.
 
 **Failures and corrections during this measurement:**
 * The first desktop fit reported two failed fits (`v_min_ratio` = 0.3 and `kappa_leak` = 0.2, both exactly at their bounds) as class-B measurements. Acceptance rules R1–R3 now stop that. They were set after seeing that fit summary and before examining the raw data, and this is disclosed.
@@ -239,7 +277,7 @@ What it means:
 | # | Criterion | Status |
 |---|---|---|
 | 1 | Research questions documented | Done (`01`) |
-| 2 | Credible literature review | Done for 43 verified sources; not a systematic review (`02`) |
+| 2 | Credible literature review | Done for 50 verified sources; not a systematic review (`02`); targeted prior-art check for the newer results (`11`) |
 | 3 | Architecture documented | Done (`03`) |
 | 4 | Functioning simulation | Done |
 | 5 | Reproducible baseline | Done (bitwise-reproducible per seed; bundles) |
@@ -258,9 +296,9 @@ What it means:
 
 ## What should happen next
 
-1. **Make the joint controller lag-aware.** Plan over a short horizon with the tank and ramp model instead of a steady state. E010 shows that this is what decides whether joint control is safe in the conditions where it matters most: with a slow loop at 40 °C and fouled cold plates it overheated more than independent control. Re-run E010's dynamic-loop half with it (pre-registered).
-2. **Unnoticed degradation.** E010's controllers knew the true cold-plate state. Combine fouling the twin does not know about (E005/E008) with the self-correcting controller and the lag-aware planner.
-3. **Give the simulator a measured voltage–frequency form** (a voltage floor plus a steep top section), then re-run E001C, E009 and E010.
-4. **Leakage over a wide temperature range** only if the fan can be held at a fixed speed.
-5. **Remaining Phase 3 items:** routing decided jointly with clocks and cooling; a facility power-cap scenario; multi-node placement with migration cost.
+1. **M003, leakage at fixed fan speeds (you run it; about 55 minutes).** Every remaining real-silicon effect scales with the leakage slope: joint control's energy advantage (E009) and the chip-side cost of heat reuse (E012). Today it rests on a 4 K window. `python -m ueic calib plan-leak --clock 2347 --fans 100,80,60,45,30` prints the procedure; use 30% only if your fan tool allows it (`09` §8).
+2. **Approach-dependent dry-cooler model.** The plant's fan power is proportional to heat rejected, which guaranteed E012's warm-water result. Model fan power against approach temperature (fan affinity laws, class F placeholders swept in E002 style), then re-ask E012's question.
+3. **Adopt the design rule in the default joint controller.** Judge safety at the warmer of measured supply and setpoint, and use the throughput-first, power-second overload fallback. Then re-run E001C, E009 and E010 with it and the voltage-floor V–f form, so the headline numbers use the best available physics.
+4. **Loop-model structure error and unnoticed degradation:** a stratified or delayed loop the controller models as one tank, and fouling the twin does not know about (E005/E008).
+5. **Remaining Phase 3 items:** routing decided jointly with clocks and cooling; a facility power-cap scenario; synchronised training load steps (L46); multi-node placement with migration cost.
 6. **Operation-level energy model** (FLOPs and bytes per prefill and decode phase) for gate 1 of the hardware feasibility assessment.
