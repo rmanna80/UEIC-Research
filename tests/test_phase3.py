@@ -204,3 +204,27 @@ def test_joint_lag_removes_overheating_under_loop_lag():
     assert plain.m("chip_s_over_target") > 100 and lag.m("chip_s_over_target") == 0
     assert lag.m("E_per_success_kJ") <= plain.m("E_per_success_kJ")
     assert lag.m("energy_balance_rel_residual") < 1e-9
+
+
+def test_joint_fb_differs_from_joint_only_when_capacity_binds():
+    """joint_fb (E011B ablation) checks feasibility at the commanded setpoint like joint; only the
+    overload fallback differs. Below capacity both pick the same action; above capacity with
+    clock-insensitive memory-bound work (beta_memory 0, as measured in M001) joint runs every clock
+    at maximum while joint_fb keeps the memory-bound clock at the bottom of the grid."""
+    from ueic.policies import optimise_joint, s_grid, t_grid, f_grid
+    cfg = make_config({"beta_memory": 0.0})
+    T_cmd = np.broadcast_to(t_grid(cfg)[:, None], (len(t_grid(cfg)), len(f_grid(cfg)))).astype(float)
+    for D in (np.array([0.5, 0.5]), np.array([4.0, 2.0]), np.array([4.5, 1.0]), np.array([4.2, 2.5])):
+        a, b = optimise_joint(cfg, D, 25.0), optimise_joint(cfg, D, 25.0, T_seen=T_cmd)
+        assert a[3] == "joint:opt" and a[:3] == b[:3] and b[3] == "joint_lag:opt"
+    big = np.array([1e3, 1e3])
+    a, b = optimise_joint(cfg, big, 25.0), optimise_joint(cfg, big, 25.0, T_seen=T_cmd)
+    assert a[3] == "joint:capacity-limited" and a[0] == (1.0, 1.0)
+    assert b[3] == "joint_lag:safety-first" and b[0] == (1.0, float(s_grid(cfg)[0]))
+
+
+def test_joint_fb_policy_is_registered_and_labels_its_decisions():
+    from ueic.policies import POLICIES
+    cfg = make_config()
+    r = simulate(cfg, SHORT, POLICIES["joint_fb"](cfg), seed=6, record_timeseries=False)
+    assert r.m("energy_balance_rel_residual") < 1e-9

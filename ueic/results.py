@@ -753,8 +753,16 @@ def e011(store: Store, threshold: float) -> dict[str, Any] | None:
     quasi = [c for c in conds if c["plant"] == "quasi"]
     h1 = [c["label"] for c in conds if g(c, "joint_lag", "chip_s_throttled") > 0]
     h2 = [c["label"] for c in dyn if g(c, "joint_lag", "chip_s_over_target") > 0]
-    h3 = [c["label"] for c in quasi if any(c["by_policy"].get("joint_lag", {}).get(m) != c["by_policy"].get("joint", {}).get(m)
-                                           for m in E010_METRICS)]
+    # H3 ("identical decisions") is checked run by run, seed against seed. The first version of this test compared
+    # seed means and failed on severe|amb30|quasi by 3.6e-15 kJ: the runs are bitwise identical, but the store
+    # holds the seeds in a different completion order for the two policies, so the floating-point sums differ.
+    idx = A.index_runs(runs)
+    sc0 = exp["spec"]["design"]["scenarios"][0]
+
+    def same_runs(lab):
+        a, b = idx.get((sc0, lab), {}).get("joint", {}), idx.get((sc0, lab), {}).get("joint_lag", {})
+        return bool(a) and set(a) == set(b) and all(a[s_].get(m) == b[s_].get(m) for s_ in a for m in E010_METRICS)
+    h3 = [c["label"] for c in quasi if not same_runs(c["label"])]
     h4a = [c["label"] for c in conds if not (c["lag_vs_joint"] and c["lag_vs_joint"]["hi"] is not None
                                              and c["lag_vs_joint"]["hi"] < 0.005)]
     h4b = [c["label"] for c in conds if g(c, "independent", "chip_s_over_target") > 0
@@ -788,7 +796,8 @@ def verdicts_e011(R: dict[str, Any]) -> list[dict[str, Any]]:
                  f"joint_lag {tot('joint_lag', 'chip_s_over_target', dyn):.0f}; joint_lag above target in "
                  f"{len(e['H2']['failures'])}/18{fmt_fail(e['H2']['failures'])}."},
         {"key": "E011 H3", "state": st(e["H3"]["supported"]),
-         "text": f"Quasi-steady plant: joint_lag identical to joint in {9 - len(e['H3']['failures'])}/9 conditions."},
+         "text": f"Quasi-steady plant: joint_lag's runs identical to joint's, seed by seed, in "
+                 f"{9 - len(e['H3']['failures'])}/9 conditions."},
         {"key": "E011 H4", "state": st(e["H4"]["supported"]),
          "text": f"joint_lag vs joint energy {100 * min(lj):+.2f}% to {100 * max(lj):+.2f}%; not below +0.5% in "
                  f"{len(e['H4']['vs_joint_failures'])}, not below independent where it overheated in "

@@ -121,6 +121,7 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
              q_cool=0.0, exergy=0.0, reusable=0.0, loop=0.0)
     t_over_target = 0.0
     t_throttled = 0.0
+    int_Tsup = int_Tret = t_int = 0.0                     # time-weighted coolant temperatures (E012)
     peak_T = float(T.max())
     busy_time = np.zeros(2)
 
@@ -290,6 +291,9 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
         E["loop"] += Q_loop * dt
         E["exergy"] += ex * dt
         E["reusable"] += q_reuse * dt
+        int_Tsup += T_sup * dt
+        int_Tret += T_ret * dt
+        t_int += dt
         p_peak_int = max(p_peak_int, float(P_busy[busy].max()) if busy.any() else float(P.max()))
         q_int += q_rate * dt
 
@@ -361,6 +365,8 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
         "Q_reusable_kWh": (E["reusable"] * J, "kWh", S),
         "Ex_rejected_kWh": (E["exergy"] * J, "kWh", S),
         "E_loop_storage_kWh": (E["loop"] * J, "kWh", S),
+        "T_sup_mean_C": (int_Tsup / t_int if t_int > 0 else float("nan"), "degC", S),
+        "T_ret_mean_C": (int_Tret / t_int if t_int > 0 else float("nan"), "degC", S),
         "grid_to_it_ratio": (E_grid / max(E["it"], 1e-9), "-", S),
         "energy_balance_rel_residual": (rel_resid, "-", S),
         "tasks": (float(n), "count", S),

@@ -1,0 +1,416 @@
+{
+  "key": "E011B",
+  "title": "Ablation of E011: how much of lag-aware control's energy saving is the overload fallback?",
+  "research_question": "E011's joint_lag differed from joint in two ways: it checks safety at the supply temperature the chips will actually see, and it falls back differently when demand exceeds planned capacity. Which change produced E011's safety result and which its energy result?",
+  "hypothesis": "Same 27 conditions as E011 (3 cold-plate states x 3 ambients x 3 plants, S6 profile, measured leakage slope and clock sensitivity), policies joint, joint_fb, joint_lag, seeds 0-4. H1 (the fallback is the energy effect): joint_fb uses less energy per successful task than joint in all 27 conditions, by more than 2% (95% CI upper bound of joint_fb/joint - 1 below -2%). H2 (lag-awareness is nearly free where it is not needed): in the 14 dynamic-loop conditions where joint stayed below 80 C in E011, the 95% CI of joint_lag/joint_fb - 1 lies inside +/-0.5%. H3 (lag-awareness is the safety effect): joint_fb exceeds 80 C (seed-mean chip-seconds above target > 0) in all 4 dynamic-loop conditions where joint did in E011 (moderate|amb40|dyn40, severe|amb40|dyn40, moderate|amb40|dyn150, severe|amb40|dyn150); joint_lag in none of the 27. H4 (the late tasks are the price of lag-awareness): joint_fb's SLO violations (seed mean) exceed joint's by at most 1 in every condition, and joint_lag's exceed joint_fb's in severe|amb40|dyn40 and severe|amb40|dyn150. H5 (determinism): joint's and joint_lag's runs reproduce E011's stored metrics exactly, run by run, in all 27 conditions (all simulated metrics present in both; wall-clock timings excluded).",
+  "null_hypothesis": "The overload fallback does not change energy or safety; E011's differences come from lag-awareness alone.",
+  "independent_variables": [
+    "cold-plate state (3)",
+    "ambient (3)",
+    "plant (3)",
+    "policy (joint, joint_fb, joint_lag)"
+  ],
+  "dependent_variables": [
+    "E_per_success_kJ",
+    "chip_s_over_target",
+    "chip_s_throttled",
+    "peak_T_j_C",
+    "slo_violations",
+    "success_rate"
+  ],
+  "controlled_variables": [
+    "S6 load profile",
+    "seeds 0-4",
+    "warm start",
+    "leakage matched to the measured slope (kappa 0.02)",
+    "clock sensitivity from M001",
+    "twin knows the true cold-plate state and the loop's mass and ramp limit"
+  ],
+  "baseline": "joint within each condition (fallback effect); joint_fb within each condition (lag-awareness effect)",
+  "configuration": "Identical to E011: Every cell: {'beta_compute': 0.983, 'beta_memory': 0.0, 'kappa_leak': 0.02, 'p_leak_ref': 28.962}. Plants: {'quasi': {'loop_mass_kg': 0.0, 'tsup_ramp_K_per_min': 0.0}, 'dyn40': {'loop_mass_kg': 40.0, 'tsup_ramp_K_per_min': 1.0}, 'dyn150': {'loop_mass_kg': 150.0, 'tsup_ramp_K_per_min': 0.25}}. Cold-plate states: {'clean': {'r_cond': 0.035, 'r_conv_ref': 0.015}, 'moderate': {'r_cond': 0.04, 'r_conv_ref': 0.0225}, 'severe': {'r_cond': 0.045, 'r_conv_ref': 0.03}}.",
+  "evaluation_criteria": "Energy as paired relative differences with 95% t-CI over 5 seeds; thermal outcomes and SLO violations as seed means. Decomposition reported per condition: joint_lag/joint - 1 = (joint_fb/joint - 1) + (joint_lag/joint_fb - 1) + cross term.",
+  "known_limitations": "Everything in E011's limitations. The fallback compared here is a design choice inside UEIC's controllers; independent control keeps its original fallback (all clocks to maximum when infeasible), so joint vs independent comparisons in earlier experiments are like-for-like but understate what better overload handling saves. Ablation hypotheses were written after E011's results were seen.",
+  "disclosure": "Known when these hypotheses were written: all E011 results (joint_lag 0 chip-s above 80 C vs joint 17,218 summed over the dynamic conditions; joint_lag vs joint energy -4.6% in benign dynamic conditions, -2.9% and -8.8% where joint overheated; joint_lag's late tasks 7.6 vs 2.0 per run in severe|amb40 with both dynamic loops) and one diagnostic of decision branches in clean|amb20|dyn40, seed 0. joint_fb was exercised only by decision-level unit tests and one run of the default configuration on a 30-minute test scenario; no E011B condition was simulated with it before registration. The simulator gained the T_sup_mean_C and T_ret_mean_C metrics after E011 ran; they change no other output (H5 checks this).",
+  "design": {
+    "scenarios": [
+      "S6_degraded_cooling"
+    ],
+    "policies": [
+      "joint",
+      "joint_fb",
+      "joint_lag"
+    ],
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "timeseries_seeds": [
+      0
+    ],
+    "param_overrides": {
+      "beta_compute": 0.983,
+      "beta_memory": 0.0,
+      "kappa_leak": 0.02,
+      "p_leak_ref": 28.962
+    },
+    "variants": [
+      {
+        "label": "clean|amb20|quasi",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 0.0,
+          "tsup_ramp_K_per_min": 0.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 20.0
+        }
+      },
+      {
+        "label": "clean|amb30|quasi",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 0.0,
+          "tsup_ramp_K_per_min": 0.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        }
+      },
+      {
+        "label": "clean|amb40|quasi",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 0.0,
+          "tsup_ramp_K_per_min": 0.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        }
+      },
+      {
+        "label": "moderate|amb20|quasi",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 0.0,
+          "tsup_ramp_K_per_min": 0.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 20.0
+        }
+      },
+      {
+        "label": "moderate|amb30|quasi",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 0.0,
+          "tsup_ramp_K_per_min": 0.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        }
+      },
+      {
+        "label": "moderate|amb40|quasi",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 0.0,
+          "tsup_ramp_K_per_min": 0.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        }
+      },
+      {
+        "label": "severe|amb20|quasi",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 0.0,
+          "tsup_ramp_K_per_min": 0.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 20.0
+        }
+      },
+      {
+        "label": "severe|amb30|quasi",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 0.0,
+          "tsup_ramp_K_per_min": 0.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        }
+      },
+      {
+        "label": "severe|amb40|quasi",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 0.0,
+          "tsup_ramp_K_per_min": 0.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        }
+      },
+      {
+        "label": "clean|amb20|dyn40",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 20.0
+        }
+      },
+      {
+        "label": "clean|amb30|dyn40",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        }
+      },
+      {
+        "label": "clean|amb40|dyn40",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        }
+      },
+      {
+        "label": "moderate|amb20|dyn40",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 20.0
+        }
+      },
+      {
+        "label": "moderate|amb30|dyn40",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        }
+      },
+      {
+        "label": "moderate|amb40|dyn40",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        }
+      },
+      {
+        "label": "severe|amb20|dyn40",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 20.0
+        }
+      },
+      {
+        "label": "severe|amb30|dyn40",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        }
+      },
+      {
+        "label": "severe|amb40|dyn40",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        }
+      },
+      {
+        "label": "clean|amb20|dyn150",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 20.0
+        }
+      },
+      {
+        "label": "clean|amb30|dyn150",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        }
+      },
+      {
+        "label": "clean|amb40|dyn150",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        }
+      },
+      {
+        "label": "moderate|amb20|dyn150",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 20.0
+        }
+      },
+      {
+        "label": "moderate|amb30|dyn150",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        }
+      },
+      {
+        "label": "moderate|amb40|dyn150",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        }
+      },
+      {
+        "label": "severe|amb20|dyn150",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 20.0
+        }
+      },
+      {
+        "label": "severe|amb30|dyn150",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        }
+      },
+      {
+        "label": "severe|amb40|dyn150",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        }
+      }
+    ]
+  },
+  "data_collection": "Simulator outputs written to the append-only SQLite store; every metric labelled with provenance; per-run config SHA-256 and code SHA-256 recorded; time series for selected seeds.",
+  "statistics": "Paired by seed (identical workload realisation across levels). Per-seed relative difference d=(A-B)/B; mean with two-sided 95% Student-t CI.",
+  "practical_significance_threshold": 0.01
+}

@@ -338,5 +338,24 @@ class JointLagPolicy(JointPolicy):
         return a
 
 
+class JointFallbackPolicy(JointPolicy):
+    """Ablation control for E011B: steady-state joint control (no loop-lag model) with joint_lag's
+    overload fallback.
+
+    E011 found that most of joint_lag's energy advantage over joint came from what each does when
+    demand exceeds planned capacity, not from modelling the loop: joint then runs every clock at
+    maximum, joint_lag maximises throughput among safe actions and breaks ties on power, which keeps
+    clock-insensitive (memory-bound) work at a low clock. This policy checks feasibility at the
+    commanded setpoint, exactly like joint, and falls back like joint_lag."""
+    name = "joint_fb"
+
+    def _decide(self, obs):
+        cfg = self.cfg
+        Tg, Fg = t_grid(cfg), f_grid(cfg)
+        T_cmd = np.broadcast_to(Tg[:, None], (len(Tg), len(Fg))).astype(float)
+        s, t, f, note = optimise_joint(cfg, planned_demand(obs, cfg), obs.T_amb, T_seen=T_cmd)
+        return Action(s, t, f, note.replace("joint_lag", "joint_fb"))
+
+
 POLICIES = {p.name: p for p in (FixedPolicy, ComputeOnlyPolicy, CoolingOnlyPolicy, IndependentPolicy, JointPolicy,
-                                JointRobustPolicy, JointLagPolicy)}
+                                JointRobustPolicy, JointLagPolicy, JointFallbackPolicy)}
