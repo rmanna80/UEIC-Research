@@ -354,6 +354,39 @@ def fig_e011(R, out):
     plt.close(fig)
 
 
+def fig_e011b(R, out):
+    e = R["E011B"]
+    parts = [("fb_vs_joint", "Overload fallback (joint_fb vs joint)", POLICY_COLOR["joint"]),
+             ("lag_vs_fb", "Lag-awareness (joint_lag vs joint_fb)", SLOTS[2])]
+    plants = [("quasi", "Quasi-steady plant"), ("dyn40", "40 kg loop, 1 K/min ramp"), ("dyn150", "150 kg loop, 0.25 K/min ramp")]
+    fig, axes = plt.subplots(3, 1, figsize=(10, 8.4), dpi=150, sharey=True)
+    fig.patch.set_facecolor(SURF)
+    for ax, (pl, ttl) in zip(axes, plants):
+        _style(ax)
+        conds = [c for c in e["conditions"] if c["plant"] == pl]
+        for j, (k, name, col) in enumerate(parts):
+            xs = [i + (j - 0.5) * 0.36 for i in range(len(conds))]
+            ys = [100 * (c[k]["mean"] if c[k] else np.nan) for c in conds]
+            lo = [100 * (c[k]["mean"] - c[k]["lo"]) if c[k] and c[k]["lo"] is not None else 0 for c in conds]
+            hi = [100 * (c[k]["hi"] - c[k]["mean"]) if c[k] and c[k]["hi"] is not None else 0 for c in conds]
+            ax.bar(xs, ys, width=0.34, color=col, label=name if pl == "quasi" else None)
+            ax.errorbar(xs, ys, yerr=[lo, hi], fmt="none", ecolor=INK2, elinewidth=0.8, capsize=2)
+        for i, c in enumerate(conds):
+            over = (c["by_policy"].get("joint_fb", {}).get("chip_s_over_target") or 0)
+            if over > 0:
+                ax.text(i, 0.6, f"joint_fb\n{over:.0f} chip-s\n> 80 C", ha="center", va="bottom", fontsize=6.5, color=INK2)
+        ax.axhline(0, color=INK2, lw=0.6)
+        ax.set_xticks(range(len(conds)), [f"{c['degradation']}\n{c['t_amb']:.0f} C" for c in conds], fontsize=8)
+        ax.set_ylabel("energy per successful task, %", color=INK2, fontsize=9)
+        ax.set_title(ttl, fontsize=10, color=INK, loc="left")
+    axes[0].legend(frameon=False, fontsize=8, loc="lower left", labelcolor=INK, ncol=2)
+    fig.suptitle("E011B · Where E011's energy difference came from (paired, 95% CI over 5 seeds)",
+                 fontsize=10, color=INK, x=0.01, ha="left")
+    fig.tight_layout(rect=(0, 0, 1, 0.97))
+    fig.savefig(out / "e011b_fallback_ablation.png", facecolor=SURF)
+    plt.close(fig)
+
+
 def fig_e012(R, out):
     e = R["E012"]
     cell = {(c["scenario"], c["world"], c["floor"], c["plant"]): c["by_policy"].get("joint_lag", {}) for c in e["cells"]}
@@ -675,7 +708,8 @@ def md_results(R) -> str:
         L += ["## E011 · Lag-aware joint control", "",
               f"Experiment `{e11['id']}`: {e11['n_runs']} runs, {e11['n_failed']} failed. As E010 plus a 150 kg loop with a "
               "0.25 K/min ramp; `joint_lag` checks thermal safety at the supply temperature the chips will actually see "
-              "before the next decision. Thermal values are seed means over 5 seeds; energy is paired.", "",
+              "before the next decision. Thermal values are seed means over 5 seeds; energy is paired. **The energy "
+              "columns mix two changes** (lag-awareness and a different overload fallback); E011B separates them.", "",
               "![E011](../results/figures/e011_lag_aware.png)", "",
               "| Plant | Cold plate | Ambient | chip·s > 80 °C (I / J / JL) | throttled (I / J / JL) | late tasks (I / J / JL) | JL vs J | JL vs I |",
               "|---|---|---|---|---|---|---|---|"]
@@ -687,6 +721,24 @@ def md_results(R) -> str:
                      f"{t3('chip_s_throttled', 0)} | {t3('slo_violations', 1)} | "
                      + (f"{pct(lj['mean'], 2)} [{pct(lj['lo'], 2)}, {pct(lj['hi'], 2)}]" if lj else "n/a") + " | "
                      + (f"{pct(li['mean'], 2)} [{pct(li['lo'], 2)}, {pct(li['hi'], 2)}]" if li else "n/a") + " |")
+        L.append("")
+
+    e11b = R.get("E011B")
+    if e11b:
+        L += ["## E011B · Ablation: overload fallback vs lag-awareness", "",
+              f"Experiment `{e11b['id']}`: {e11b['n_runs']} runs, {e11b['n_failed']} failed. Registered after E011's "
+              "results were seen. `joint_fb` is steady-state joint control with `joint_lag`'s overload fallback, so "
+              "joint_fb vs joint isolates the fallback and joint_lag vs joint_fb isolates lag-awareness. Energy is "
+              "paired over 5 seeds; thermal values and late tasks are seed means.", "",
+              "![E011B](../results/figures/e011b_fallback_ablation.png)", "",
+              "| Plant | Cold plate | Ambient | Fallback: FB vs J | Lag-awareness: JL vs FB | Total: JL vs J | chip·s > 80 °C (J / FB / JL) | late tasks (J / FB / JL) |",
+              "|---|---|---|---|---|---|---|---|"]
+        ci2 = lambda r: f"{pct(r['mean'], 2)} [{pct(r['lo'], 2)}, {pct(r['hi'], 2)}]" if r else "n/a"
+        for c in e11b["conditions"]:
+            b = c["by_policy"]
+            t3 = lambda m, d: " / ".join(num(b.get(p_, {}).get(m), d) for p_ in ("joint", "joint_fb", "joint_lag"))
+            L.append(f"| {c['plant']} | {c['degradation']} | {c['t_amb']:.0f} °C | {ci2(c['fb_vs_joint'])} | {ci2(c['lag_vs_fb'])} | "
+                     f"{ci2(c['lag_vs_joint'])} | {t3('chip_s_over_target', 0)} | {t3('slo_violations', 1)} |")
         L.append("")
 
     e12 = R.get("E012")
@@ -753,6 +805,8 @@ def build_report(store, root: Path) -> str:
         fig_e010(R, figs)
     if R.get("E011"):
         fig_e011(R, figs)
+    if R.get("E011B"):
+        fig_e011b(R, figs)
     if R.get("E012"):
         fig_e012(R, figs)
     docs = root / "docs"

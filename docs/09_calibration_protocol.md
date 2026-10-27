@@ -141,3 +141,27 @@ A fitted number enters calibrated experiments only if it passes three rules. The
 | `beta_compute`, `beta_memory` | log(throughput) vs log(clock / f_ref) | Kernel-specific. Real LLM prefill and decode are not these kernels; L09 reports decode is far less clock-sensitive than this memory kernel may be |
 | `v_min_ratio` | P = A + P_d·s·v(s)² with v linear in s, using only clocks from 0.5 × f_ref to f_ref (at least 4) | Voltage is not observable through NVML. This fits the registry's functional form, not the true V–f table. f_ref is the highest clock you swept, so it describes the curve below that clock only. Sessions at different temperatures add leakage error |
 | `kappa_leak`, leakage fraction | P(T) = c + L·exp(κ(T − 60 °C)) at constant clock and load | Attributes *all* temperature-dependent board power to leakage. Voltage-regulator losses are not separated, so this is an upper bound on leakage sensitivity. On a laptop the fans are powered by the system, so fan power is not in the reading. On a desktop card the fans are powered by the board, so a fan ramp during the warm-up adds to the rise; the fit reports the fan-speed range and notes it |
+
+## 8. M003: leakage at fixed fan speeds (the next measurement)
+
+**Why.** The leakage slope is the weakest measured input. M002's 0.135 %/K comes from a 4 K window at 1 °C resolution, and E009 to E012 all lean on it. Holding clock and load fixed and stepping the fan speed moves the die temperature by about 20 K at constant work. That window is wide enough to pin the slope down and to check whether it bends.
+
+**What you do.** UEIC only records. You set the clock (`nvidia-smi`, as before) and the fan speed (your card maker's tool, e.g. MSI Afterburner: manual or fixed fan speed). The GPU's own thermal protection stays on throughout.
+
+```powershell
+python -m ueic calib plan-leak --clock 2017 --fans 100,85,70,55,40   # prints the procedure; read it first
+# ... run the printed commands: 8 min of load per fan speed, then 2.5 min idle per fan speed at default clocks ...
+python -m ueic calib leak data\calibration\* --out data\calibration\M003_leakage_sweep.json
+```
+
+* Start at the highest fan speed and step down. Don't go below your card's minimum fan speed. If the GPU passes 85 °C, stop and restore automatic fan control. Total time is about 55 minutes.
+* **Fan power.** On a desktop card the fans draw from the board power NVML reports. Faster fans make the chip cooler and also draw more power, so the uncorrected slope is biased low. The idle sessions at the same fan speeds measure that power, and `calib leak` subtracts it. The idle sessions run at default clocks, so the idle chip's own leakage barely changes between fan speeds.
+* **What counts as a point.** `calib leak` uses the last half of each load session, at one clock step and steady throughput. It leaves a point out, with the reason printed, if:
+  * the temperature still drifted more than 1 K across that window;
+  * a thermal limit acted more than 5 % of the time;
+  * the clock differs from the sweep's;
+  * the fan speed is unknown.
+* **Output.** `calib leak` reports the corrected and uncorrected slopes (W/K and % of power per K) with 95 % CIs, the temperature window, and every excluded session. It needs at least 3 fan speeds; 5 is better.
+* **What it cannot separate.** Voltage-regulator losses that grow with temperature are still counted as leakage, so the result is an upper bound on leakage sensitivity, as before.
+
+The clock fit (`calib fit`) ignores sessions labelled `fan=` and idle sessions, so the sweep can share the `data\calibration` folder.

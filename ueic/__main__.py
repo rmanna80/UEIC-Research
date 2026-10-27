@@ -19,6 +19,8 @@
   python -m ueic calib run --kind compute --seconds 60 --label clk=1200
   python -m ueic calib fit data/calibration/* --out data/calibration/calibration.json
   python -m ueic calib ingest data/calibration/calibration.json
+  python -m ueic calib plan-leak --clock 2017 --fans 100,85,70,55,40   # M003 fan-sweep procedure to review and run
+  python -m ueic calib leak data/calibration/* --out data/calibration/M003_leakage_sweep.json
   python -m ueic run experiments/E001_policy_benchmark.json --calibration data/calibration/calibration.json
 """
 from __future__ import annotations
@@ -78,7 +80,14 @@ def main(argv: list[str] | None = None) -> int:
     sh.add_argument("--root", default=str(ROOT / "data" / "calibration"))
     cp = csub.add_parser("plan"); cp.add_argument("--clocks", required=True, help="comma-separated MHz, e.g. 900,1200,1500")
     cp.add_argument("--gpu", type=int, default=0); cp.add_argument("--seconds", type=int, default=60)
-    cr = csub.add_parser("run"); cr.add_argument("--kind", choices=["compute", "memory", "warmup"], required=True)
+    cpl = csub.add_parser("plan-leak", help="M003: procedure for a leakage sweep at fixed fan speeds (you set clock and fans)")
+    cpl.add_argument("--clock", type=int, required=True, help="one clock to lock, MHz (e.g. the warm-up clock)")
+    cpl.add_argument("--fans", default="100,85,70,55,40", help="comma-separated fan speeds in %%, highest first")
+    cpl.add_argument("--gpu", type=int, default=0); cpl.add_argument("--seconds", type=int, default=480)
+    cl = csub.add_parser("leak", help="M003: fit the leakage slope from fan-sweep sessions (labels with fan=)")
+    cl.add_argument("sessions", nargs="+"); cl.add_argument("--out", required=True)
+    cl.add_argument("--device", default=None, help="part of the GPU name or UUID, when sessions from several GPUs are present")
+    cr = csub.add_parser("run"); cr.add_argument("--kind", choices=["compute", "memory", "warmup", "idle"], required=True)
     cr.add_argument("--seconds", type=float, default=60); cr.add_argument("--gpu", type=int, default=0)
     cr.add_argument("--label", default=""); cr.add_argument("--idle-before", type=float, default=0.0)
     cr.add_argument("--out", default=str(ROOT / "data" / "calibration"))
@@ -121,7 +130,7 @@ def main(argv: list[str] | None = None) -> int:
             meta = Logger(a.out, interval_s=a.interval, gpus=None if a.gpu is None else [a.gpu], label=a.label).run(a.seconds)
             print(f"{meta['n_samples']} samples -> {a.out} (sha256 {meta['csv_sha256'][:12]})")
         return 0
-    if a.cmd == "calib" and a.ccmd in ("check", "probe", "show", "plan", "run", "fit"):
+    if a.cmd == "calib" and a.ccmd in ("check", "probe", "show", "plan", "plan-leak", "leak", "run", "fit"):
         from . import calibrate as cal
         if a.ccmd == "check":
             res = cal.check(a.gpu)
@@ -133,6 +142,37 @@ def main(argv: list[str] | None = None) -> int:
             return 1 if bad else 0
         if a.ccmd == "plan":
             print(cal.plan_commands([int(x) for x in a.clocks.split(",")], a.gpu, a.seconds))
+            return 0
+        if a.ccmd == "plan-leak":
+            print(cal.plan_leakage_sweep(a.clock, [int(x) for x in a.fans.split(",")], a.gpu, a.seconds))
+            return 0
+        if a.ccmd == "leak":
+            import glob, json as _json
+            dirs = sorted({d for pat in a.sessions for d in glob.glob(pat) if Path(d, "session.json").exists()})
+            try:
+                out = cal.fit_leakage_sweep(dirs, device=a.device)
+            except ValueError as e:
+                print(f"error: {e}")
+                return 2
+            Path(a.out).write_text(_json.dumps(out, indent=1))
+            print(f"{len(out['points'])} load and {len(out['idle_points'])} idle points used -> {a.out}")
+            for x in out["excluded"]:
+                print(f"  left out {x['name']}: {x['reason']}")
+            for p_ in out["points"]:
+                print(f"  fan {p_['fan_pct']:.0f}%: {p_['T_C']:.1f} C, {p_['P_W']:.1f} W at {p_['clock_MHz']:.0f} MHz "
+                      f"(drift {p_['T_drift_K_per_min']:+.2f} K/min)")
+            if not out["ok"]:
+                print(f"  no fit: {out['reason']}")
+                return 1
+            for key, what in (("fit", out["fit_basis"]), ("fit_uncorrected", "uncorrected")):
+                f_ = out[key]
+                ci = f" (95% CI {f_['ci95'][0]:.3f} to {f_['ci95'][1]:.3f})" if "ci95" in f_ else ""
+                print(f"  {what}: dP/dT {f_['slope_W_per_K']:.3f} W/K{ci}, {100 * f_['rel_per_K']:.3f}% of power per K "
+                      f"over {f_['T_range_C'][0]:.0f}-{f_['T_range_C'][1]:.0f} C")
+                if key == "fit" and out["fit_basis"].startswith("uncorrected"):
+                    break
+            for n in out["notes"]:
+                print("  note:", n)
             return 0
         if a.ccmd == "show":
             d = Path(a.session) if a.session else cal.latest_session(a.root)

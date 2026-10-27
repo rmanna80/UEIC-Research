@@ -42,7 +42,7 @@ from .telemetry import Logger, Nvml, read_csv
 
 T_REF = 60.0
 S_MIN = 0.5   # registry s_min; the v(s) form is anchored here so the fit maps 1:1 onto v_min_ratio
-KINDS = ("compute", "memory", "warmup", "probe")
+KINDS = ("compute", "memory", "warmup", "probe", "idle")
 # nvml.h clock-event ("throttle") reasons that mean a limit held the clock down. Values checked
 # against nvidia-ml-py's nvmlClocksEventReason* / nvmlClocksThrottleReason* constants.
 LIMIT_REASONS = {
@@ -169,6 +169,14 @@ def torch_workload(kind: str, gpu: int = 0) -> Callable[[float], float]:
     return step
 
 
+def idle_workload() -> Callable[[float], float]:
+    """No GPU work: the idle sessions of the fan sweep measure board power at each fan setting."""
+    def step(budget):
+        time.sleep(budget)
+        return 0.0
+    return step
+
+
 def run_session(kind: str, seconds: float, out_root: str | Path, label: str = "", gpu: int = 0,
                 interval_s: float = 0.1, idle_before_s: float = 0.0, nvml=None,
                 workload: Callable[[float], float] | None = None) -> Path:
@@ -182,7 +190,7 @@ def run_session(kind: str, seconds: float, out_root: str | Path, label: str = ""
     d = Path(out_root) / f"{stamp}_{kind}{'_' + safe if safe else ''}"
     if d.exists():
         raise FileExistsError(d)
-    step = workload or torch_workload(kind, gpu)
+    step = workload or (idle_workload() if kind == "idle" else torch_workload(kind, gpu))
     try:
         log = Logger(d / "telemetry.csv", interval_s=interval_s, gpus=[gpu], nvml=nvml, label="idle")
     except Exception:
@@ -207,7 +215,7 @@ def run_session(kind: str, seconds: float, out_root: str | Path, label: str = ""
         f.write("t_unix,throughput\n")
         for t, v in rows:
             f.write(f"{t:.6f},{v:.6g}\n")
-    unit = "GB/s" if kind == "memory" else "TFLOP/s"
+    unit = {"memory": "GB/s", "idle": "-"}.get(kind, "TFLOP/s")
     (d / "session.json").write_text(json.dumps({
         "kind": kind, "label": label, "seconds": seconds, "gpu": gpu, "throughput_unit": unit,
         "idle_before_s": idle_before_s, "device": meta["devices"][0], "telemetry_sha256": meta["csv_sha256"],
@@ -472,6 +480,165 @@ def fit_leakage(sess: Session, clock_tol_MHz: float = 3.0, load_tol: float = 0.0
                       "the temperature-dependent part of board power is leakage (fan and VR losses not separated)"}
 
 
+# ------------------------------------------------------------------- M003: fan-sweep leakage
+THERMAL_BITS = LIMIT_REASONS["sw_thermal"][0] | LIMIT_REASONS["hw_thermal"][0] | LIMIT_REASONS["hw_slowdown"][0]
+_FAN_RE = re.compile(r"fan=(\d+)")
+
+
+def sweep_point(sess: Session, settle_frac: float = 0.5, clock_tol_MHz: float = 3.0,
+                load_tol: float = 0.02) -> dict[str, Any]:
+    """Steady state of one fan-sweep session: the last `settle_frac` of the run, at one clock step and
+    (for load sessions) steady throughput. Temperature drift over that window is reported; the fit
+    leaves a point out if the window was not settled (drift > 1 K across it) or a thermal limit acted."""
+    tel, work = steady(sess, skip_s=0.0)
+    lab_fan = _FAN_RE.search(sess.label or "")
+    base = {"name": sess.path.name, "kind": sess.kind, "label": sess.label,
+            "label_fan_pct": float(lab_fan.group(1)) if lab_fan else None}
+    if len(tel) < 30:
+        return {**base, "ok": False, "reason": "too few samples"}
+    t_all = np.array([r["t_unix"] for r in tel])
+    tc = t_all[0] + (1.0 - settle_frac) * (t_all[-1] - t_all[0])
+    tel = [r for r in tel if r["t_unix"] >= tc]
+    work = work[work[:, 0] >= tc] if len(work) else work
+    t = np.array([r["t_unix"] for r in tel])
+    clk = np.array([r["sm_clock_MHz"] for r in tel], dtype=float)
+    keep = np.ones(len(tel), dtype=bool)
+    if sess.kind != "idle":
+        vals, counts = np.unique(np.round(clk), return_counts=True)
+        keep &= np.abs(clk - float(vals[np.argmax(counts)])) <= clock_tol_MHz
+        if len(work) >= 3:
+            idx = np.clip(np.searchsorted(work[:, 0], t), 0, len(work) - 1)
+            keep &= np.abs(work[idx, 1] / np.median(work[:, 1]) - 1.0) <= load_tol
+    if keep.sum() < 20:
+        return {**base, "ok": False, "reason": f"only {int(keep.sum())} samples at one clock step and steady load"}
+    P = np.array([r["power_W"] for r in tel], dtype=float)[keep]
+    T = np.array([r["temp_C"] for r in tel], dtype=float)[keep]
+    F = np.array([np.nan if r.get("fan_pct") is None else r["fan_pct"] for r in tel], dtype=float)[keep]
+    reasons = [int(r["clock_event_reasons"]) for r, k in zip(tel, keep) if k and r.get("clock_event_reasons") is not None]
+    tk = t[keep]
+    drift = float(np.polyfit((tk - tk[0]) / 60.0, T, 1)[0]) if np.ptp(T) > 0 else 0.0   # K/min; flat at 1 C resolution
+    window_min = float((tk[-1] - tk[0]) / 60.0)
+    fan = float(np.nanmedian(F)) if np.isfinite(F).any() else base["label_fan_pct"]
+    return {**base, "ok": True, "n": int(keep.sum()), "clock_MHz": float(np.median(clk[keep])),
+            "fan_pct": fan, "fan_source": "telemetry" if np.isfinite(F).any() else ("label" if fan is not None else None),
+            "P_W": float(P.mean()), "P_se": float(P.std(ddof=1) / np.sqrt(len(P))),
+            "T_C": float(T.mean()), "T_drift_K_per_min": float(drift), "window_min": window_min,
+            "settled": bool(abs(drift) * window_min <= 1.0),
+            "thermal_flag_frac": float(np.mean([(x & THERMAL_BITS) != 0 for x in reasons])) if reasons else None}
+
+
+def _ols(x, y) -> dict[str, Any]:
+    from scipy import stats
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    n = len(x)
+    b, a = np.polyfit(x, y, 1)
+    out = {"slope_W_per_K": float(b), "intercept_W": float(a), "n": n, "T_range_C": [float(x.min()), float(x.max())],
+           "P_mean_W": float(y.mean()), "rel_per_K": float(b / y.mean())}
+    if n >= 3:
+        resid = y - (a + b * x)
+        se = float(np.sqrt(resid @ resid / (n - 2) / ((x - x.mean()) @ (x - x.mean()))))
+        tq = float(stats.t.ppf(0.975, n - 2))
+        out.update({"se": se, "ci95": [float(b - tq * se), float(b + tq * se)],
+                    "rel_ci95": [float((b - tq * se) / y.mean()), float((b + tq * se) / y.mean())]})
+    return out
+
+
+def fit_leakage_sweep(session_dirs: Iterable[str | Path], device: str | None = None) -> dict[str, Any]:
+    """Leakage slope dP/dT from steady states at several FIXED fan speeds, one locked clock, constant load
+    (M003). Changing the fan moves the die temperature by tens of kelvin at constant clock and work, a much
+    wider window than one warm-up (M002: 4 K). Board power includes the fans, and faster fans mean cooler
+    chips, so fan power biases the raw slope downward. Idle sessions at the same fan settings measure that
+    power: P_corr = P_load - (P_idle(fan) - P_idle(lowest load fan)). The idle sessions' own leakage change
+    with temperature is folded into the correction (a slight over-correction, reported as the idle
+    temperature range). Only sessions whose label contains "fan=" take part."""
+    sessions = [load_session(d) for d in session_dirs]
+    sessions = [x for x in sessions if _FAN_RE.search(x.label or "")]
+    sessions, notes = select_device(sessions, device)
+    loads = [sweep_point(x) for x in sessions if x.kind == "compute"]
+    idles = [sweep_point(x) for x in sessions if x.kind == "idle"]
+    excluded = [{"name": p["name"], "reason": p["reason"]} for p in loads + idles if not p["ok"]]
+    loads, idles = [p for p in loads if p["ok"]], [p for p in idles if p["ok"]]
+    if loads:
+        clocks = np.array([p["clock_MHz"] for p in loads])
+        vals, counts = np.unique(np.round(clocks), return_counts=True)
+        c0 = float(vals[np.argmax(counts)])
+        for p in loads:
+            if abs(p["clock_MHz"] - c0) > 3.0:
+                excluded.append({"name": p["name"], "reason": f"clock {p['clock_MHz']:.0f} MHz, not the sweep's {c0:.0f} MHz"})
+        loads = [p for p in loads if abs(p["clock_MHz"] - c0) <= 3.0]
+    for p in list(loads):
+        why = []
+        if not p["settled"]:
+            why.append(f"not settled ({p['T_drift_K_per_min']:+.2f} K/min over the last {p['window_min']:.1f} min)")
+        if (p["thermal_flag_frac"] or 0) > 0.05:
+            why.append(f"thermal limit active {100 * p['thermal_flag_frac']:.0f}% of the time")
+        if p["fan_pct"] is None:
+            why.append("fan speed unknown (not reported and not in the label)")
+        if why:
+            excluded.append({"name": p["name"], "reason": "; ".join(why)})
+            loads.remove(p)
+    out = {"kind": "ueic_leakage_sweep", "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+           "device": device_label(sessions[0].device) if sessions else None, "points": loads, "idle_points": idles,
+           "excluded": excluded, "notes": notes,
+           "method": "OLS of steady-state board power on die temperature across fixed fan speeds at one locked clock "
+                     "and constant compute load; fan power removed with idle sessions at the same fan speeds"}
+    if len(loads) < 3:
+        return {**out, "ok": False, "reason": f"{len(loads)} usable load points; need at least 3 fan speeds"}
+    T = np.array([p["T_C"] for p in loads])
+    P = np.array([p["P_W"] for p in loads])
+    fans = np.array([p["fan_pct"] for p in loads])
+    out["clock_MHz"] = float(np.median([p["clock_MHz"] for p in loads]))
+    out["fit_uncorrected"] = _ols(T, P)
+    if len(idles) >= 2:
+        idf = np.array([p["fan_pct"] for p in idles], dtype=float)
+        order = np.argsort(idf)
+        idf, idp = idf[order], np.array([p["P_W"] for p in idles])[order]
+        outside = [f for f in fans if f < idf[0] - 3 or f > idf[-1] + 3]
+        corr = np.interp(fans, idf, idp) - float(np.interp(fans.min(), idf, idp))
+        out["fan_power_W"] = {"at_fan_pct": [float(f) for f in fans], "correction_W": [float(c) for c in corr],
+                              "idle_T_range_C": _range_or_none([p["T_C"] for p in idles])}
+        if outside:
+            out["notes"].append(f"load fan speeds {sorted(set(outside))} lie outside the idle sessions' range; "
+                                "their fan-power correction is the nearest idle value")
+        out["fit"] = _ols(T, P - corr)
+        out["fit_basis"] = "fan-power corrected"
+    else:
+        out["fit"] = out["fit_uncorrected"]
+        out["fit_basis"] = "uncorrected (fewer than 2 idle sessions): a lower bound if fan power rises with fan speed"
+        out["notes"].append("no fan-power correction: record idle sessions at the same fan speeds")
+    if T.max() - T.min() < 8.0:
+        out["notes"].append(f"temperature window only {T.max() - T.min():.1f} K; aim for 15 K or more")
+    return {**out, "ok": True}
+
+
+def plan_leakage_sweep(clock_MHz: int, fans: list[int], gpu: int = 0, seconds: int = 480, idle_seconds: int = 150) -> str:
+    """Commands for the USER to review and run (M003). UEIC never changes clocks or fan speeds itself."""
+    fs = sorted(fans, reverse=True)
+    lines = ["# M003 leakage sweep: steady power at several FIXED fan speeds, one locked clock, constant load.",
+             "# Review before running. One Administrator PowerShell with the virtual environment active.",
+             "# UEIC only records. YOU set the clock (nvidia-smi) and the fan speed (your card maker's tool,",
+             "# e.g. MSI Afterburner: fixed fan curve / manual speed). The GPU's own thermal protection stays on.",
+             "# Safety: start at the highest fan speed and step down; do not go below your card's minimum; stop",
+             "# and restore automatic fan control if the GPU passes 85 C. Close other GPU and heavy CPU work.",
+             f"# If you stop partway: nvidia-smi -i {gpu} -rgc  and restore automatic fan control.",
+             f"python -m ueic calib check --gpu {gpu}",
+             f"nvidia-smi -i {gpu} -lgc {clock_MHz},{clock_MHz}", "",
+             f"# 1) Load at each fan speed ({seconds // 60} min each; only the last half is used, once settled)."]
+    for f in fs:
+        lines += [f"#    set the fan to {f}% and wait until the tool shows it",
+                  f"python -m ueic calib run --kind compute --seconds {seconds} --gpu {gpu} --label \"sweep fan={f} clk={clock_MHz}\""]
+    lines += ["", f"# 2) Idle at the same fan speeds ({idle_seconds // 60} min each), to measure the fans' own power.",
+              "#    Clocks back to default first, so the idle chip sits at its lowest clock and voltage and its",
+              "#    own leakage barely changes between fan speeds.",
+              f"nvidia-smi -i {gpu} -rgc    # reset clocks"]
+    for f in fs:
+        lines += [f"#    set the fan to {f}%",
+                  f"python -m ueic calib run --kind idle --seconds {idle_seconds} --gpu {gpu} --label \"sweep fan={f}\""]
+    lines += ["", "# restore automatic fan control in your fan tool", "",
+              "python -m ueic calib leak data\\calibration\\* --out data\\calibration\\M003_leakage_sweep.json"]
+    return "\n".join(lines)
+
+
 def select_device(sessions: list[Session], device: str | None = None) -> tuple[list[Session], list[str]]:
     """A calibration describes one GPU. Refuse to mix measurement sessions from different GPUs;
     `device` (part of the name or UUID) chooses one when several are present. Probe sessions never
@@ -517,7 +684,12 @@ def _range_or_none(v: list) -> list[float] | None:
 def calibrate(session_dirs: Iterable[str | Path], cfg=None, device: str | None = None) -> dict[str, Any]:
     from .params import make_config
     cfg = cfg or make_config()
-    sessions, device_notes = select_device([load_session(d) for d in session_dirs], device)
+    loaded = [load_session(d) for d in session_dirs]
+    sweep = [s for s in loaded if s.kind == "idle" or _FAN_RE.search(s.label or "")]
+    sessions, device_notes = select_device([s for s in loaded if s not in sweep], device)
+    if sweep:
+        device_notes.append(f"left out {len(sweep)} fan-sweep session(s) (labels with fan=, or idle); "
+                            "`calib leak` fits those")
     summ = [summarize(s) for s in sessions]
     by = lambda k: [x for x in summ if x["kind"] == k]
     out: dict[str, Any] = {

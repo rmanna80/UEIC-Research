@@ -491,3 +491,97 @@ def test_ingest_records_leakage_slopes(tmp_path):
     run = st.runs(cal.ingest(st, out, "abc", key="M002"))[0]
     assert run["metrics"]["leak_dPdT_W_per_K"] > 0 and "leak_dPdT_rel_per_K" in run["metrics"]
     st.close()
+
+
+# ------------------------------------------------------------- M003: fan-sweep leakage
+def _fan_power(f):
+    return 8.0 * (f / 100.0) ** 3
+
+
+def _write_sweep(root, kind, fan, rng, clk=2017, slope=0.25, seconds=480.0, ramp=False, reasons=0, label=None,
+                 report_fan=True):
+    d = Path(root) / f"sweep_{kind}_{fan}_{clk}"
+    d.mkdir()
+    t = np.arange(0, seconds, 0.5)
+    if kind == "idle":
+        T = np.full_like(t, 35.0 + 0.1 * (100 - fan))
+        P = 20.0 + _fan_power(fan) + rng.normal(0, 0.3, t.size)
+        clks = np.full(t.size, 210.0)
+    else:
+        T_ss = 50.0 + 0.4 * (100 - fan)                       # 100% fan -> 50 C, 40% -> 74 C
+        T = T_ss - (12.0 * (1 - t / seconds) if ramp else 15.0 * np.exp(-t / 40.0))
+        P = 180.0 + slope * (T - 60.0) + _fan_power(fan) + rng.normal(0, 0.8, t.size)
+        clks = np.full(t.size, float(clk))
+    T = np.round(T)                                           # NVML reports whole degrees
+    with open(d / "telemetry.csv", "w") as f:
+        f.write(",".join(telemetry.FIELDS) + "\n")
+        for ti, Ti, Pi, ci in zip(t, T, P, clks):
+            f.write(f"{1000 + ti},0,{Pi},,{Ti},{ci:g},9000,99,50,0,{reasons},{fan if report_fan else ''},{kind},250\n")
+    thr = np.zeros(t.size) if kind == "idle" else 100.0 * (1 + rng.normal(0, 0.003, t.size))
+    np.savetxt(d / "workload.csv", np.column_stack([1000 + t, thr]), delimiter=",", header="t_unix,throughput", comments="")
+    lab = label or (f"sweep fan={fan}" + ("" if kind == "idle" else f" clk={clk}"))
+    (d / "session.json").write_text(json.dumps({"kind": kind, "label": lab, "device": {
+        "index": 0, "name": "Synthetic", "uuid": None, "max_sm_clock_MHz": 3000, "power_limit_W": 250}}))
+    return d
+
+
+def test_fan_sweep_recovers_the_leakage_slope_and_removes_fan_power(tmp_path):
+    rng = np.random.default_rng(3)
+    fans = (100, 85, 70, 55, 40)
+    ds = [_write_sweep(tmp_path, k, f, rng) for f in fans for k in ("compute", "idle")]
+    ds.append(_write_session(tmp_path, "compute", 1500, rng))           # not part of the sweep: no fan= label
+    r = cal.fit_leakage_sweep(ds)
+    assert r["ok"] and len(r["points"]) == 5 and len(r["idle_points"]) == 5
+    assert r["fit_basis"] == "fan-power corrected"
+    assert r["fit"]["slope_W_per_K"] == pytest.approx(0.25, abs=0.03)
+    assert r["fit"]["ci95"][0] < 0.25 < r["fit"]["ci95"][1]
+    # faster fans are cooler AND draw more power, so the raw slope is biased low
+    assert r["fit_uncorrected"]["slope_W_per_K"] < r["fit"]["slope_W_per_K"] - 0.1
+    assert r["fit"]["T_range_C"][1] - r["fit"]["T_range_C"][0] >= 20
+
+
+def test_fan_sweep_leaves_out_unsettled_throttled_and_off_clock_points(tmp_path):
+    rng = np.random.default_rng(4)
+    ds = [_write_sweep(tmp_path, "compute", f, rng) for f in (100, 85, 70)]
+    ds.append(_write_sweep(tmp_path, "compute", 55, rng, ramp=True))                 # still warming in the last half
+    ds.append(_write_sweep(tmp_path, "compute", 40, rng, reasons=0x20))              # driver temperature target acting
+    ds.append(_write_sweep(tmp_path, "compute", 60, rng, clk=1700))                  # wrong clock
+    r = cal.fit_leakage_sweep(ds)
+    why = {x["name"]: x["reason"] for x in r["excluded"]}
+    assert "not settled" in why["sweep_compute_55_2017"]
+    assert "thermal limit" in why["sweep_compute_40_2017"]
+    assert "1700" in why["sweep_compute_60_1700"]
+    assert r["ok"] and len(r["points"]) == 3
+    assert r["fit_basis"].startswith("uncorrected") and any("idle sessions" in n for n in r["notes"])
+
+
+def test_fan_sweep_needs_three_fan_speeds_and_uses_the_label_when_fan_is_not_reported(tmp_path):
+    rng = np.random.default_rng(5)
+    ds = [_write_sweep(tmp_path, "compute", f, rng, report_fan=False) for f in (100, 70)]
+    r = cal.fit_leakage_sweep(ds)
+    assert not r["ok"] and "need at least 3" in r["reason"]
+    assert all(p["fan_source"] == "label" for p in r["points"])
+
+
+def test_leakage_sweep_plan_leaves_clocks_and_fans_to_the_user():
+    txt = cal.plan_leakage_sweep(2017, [40, 100, 70])
+    assert txt.index("fan=100") < txt.index("fan=70") < txt.index("fan=40")            # step down from the top
+    assert "-rgc" in txt and "85 C" in txt and "thermal protection stays on" in txt
+    assert txt.index("-rgc    # reset clocks") < txt.index("--kind idle")              # idle at default clocks
+    assert "calib leak" in txt
+
+
+def test_idle_session_needs_no_pytorch(tmp_path, monkeypatch):
+    monkeypatch.setattr(cal, "torch_workload", lambda *a, **k: (_ for _ in ()).throw(AssertionError("torch used")))
+    state = {"P": 25.0, "T": 40, "clk": 210}
+    d = cal.run_session("idle", 0.3, tmp_path, label="sweep fan=70", interval_s=0.02, nvml=fake_nvml(state))
+    meta = json.loads((d / "session.json").read_text())
+    assert meta["kind"] == "idle" and meta["throughput_unit"] == "-"
+
+
+def test_clock_fit_leaves_fan_sweep_sessions_to_calib_leak(sessions, tmp_path):
+    rng = np.random.default_rng(6)
+    extra = [_write_sweep(tmp_path, k, 70, rng) for k in ("compute", "idle")]
+    a, b = cal.calibrate(sessions), cal.calibrate(sessions + extra)
+    assert a["overrides"] == b["overrides"]
+    assert any("fan-sweep" in n for n in b["notes"])

@@ -233,7 +233,7 @@ def compute_all(store: Store, threshold: float = 0.01) -> dict[str, Any]:
         "E001": e001(store, threshold), "E002": e002(store, threshold), "E003": e003(store, threshold),
         "E004": e004(store), "E005": e005(store, threshold),
         "E006": e006(store, threshold), "E007": e007(store, threshold), "E008": e008(store, threshold),
-        "M001": m001(store), "E001C": e001c(store, threshold), "E009": e009(store, threshold), "E010": e010(store, threshold), "E011": e011(store, threshold), "E012": e012(store, threshold),
+        "M001": m001(store), "E001C": e001c(store, threshold), "E009": e009(store, threshold), "E010": e010(store, threshold), "E011": e011(store, threshold), "E011B": e011b(store, threshold), "E012": e012(store, threshold),
         "assumptions": assumptions_table(),
         "research_log": store.research_log(),
         "experiments": [{"id": x["id"], "key": x["key"], "status": x["status"], "title": x["spec"]["title"],
@@ -323,6 +323,7 @@ def verdicts(R: dict[str, Any]) -> list[dict[str, Any]]:
     out += verdicts_e009(R)
     out += verdicts_e010(R)
     out += verdicts_e011(R)
+    out += verdicts_e011b(R)
     out += verdicts_e012(R)
     return out
 
@@ -805,6 +806,109 @@ def verdicts_e011(R: dict[str, Any]) -> list[dict[str, Any]]:
         {"key": "E011 H5", "state": st(e["H5"]["supported"]),
          "text": f"joint_lag's late tasks more than 2 above the worse of joint and independent in "
                  f"{len(e['H5']['failures'])}/27 conditions{fmt_fail(e['H5']['failures'])}."},
+    ]
+
+
+E011B_OVERHEATED = ("moderate|amb40|dyn40", "severe|amb40|dyn40", "moderate|amb40|dyn150", "severe|amb40|dyn150")
+_WALL = ("sim_wall_s", "controller_wall_mean_ms")
+
+
+def e011b(store: Store, threshold: float) -> dict[str, Any] | None:
+    """E011B ablation: joint vs joint_fb (overload fallback) and joint_fb vs joint_lag (lag-awareness)."""
+    eid = store.latest_experiment("E011B")
+    if not eid:
+        return None
+    exp = store.experiment(eid)
+    runs = store.runs(eid)
+    labels = [v["label"] for v in exp["spec"]["design"]["variants"]]
+    means: dict = defaultdict(dict)
+    for m in E010_METRICS:
+        for r in A.summary(runs, m):
+            means[r["group"][1]].setdefault(r["policy"], {})[m] = _f(r["mean"])
+    energy = {}
+    for a, b in (("joint_fb", "joint"), ("joint_lag", "joint_fb"), ("joint_lag", "joint")):
+        for r in A.paired(runs, "E_per_success_kJ", a, b):
+            energy[(r["group"][1], a, b)] = _row(r)
+    conds = []
+    for lab in labels:
+        dg, amb, pl = lab.split("|")
+        conds.append({"label": lab, "degradation": dg, "t_amb": float(amb[3:]), "plant": pl, "by_policy": means.get(lab, {}),
+                      "fb_vs_joint": energy.get((lab, "joint_fb", "joint")),
+                      "lag_vs_fb": energy.get((lab, "joint_lag", "joint_fb")),
+                      "lag_vs_joint": energy.get((lab, "joint_lag", "joint"))})
+    g = lambda c, pol, m: (c["by_policy"].get(pol, {}).get(m) or 0.0)
+    benign = [c for c in conds if c["plant"] != "quasi" and c["label"] not in E011B_OVERHEATED]
+    hot = [c for c in conds if c["label"] in E011B_OVERHEATED]
+    h1 = [c["label"] for c in conds if not (c["fb_vs_joint"] and c["fb_vs_joint"]["hi"] is not None
+                                            and c["fb_vs_joint"]["hi"] < -0.02)]
+    h2 = [c["label"] for c in benign if not (c["lag_vs_fb"] and c["lag_vs_fb"]["lo"] is not None
+                                             and c["lag_vs_fb"]["lo"] > -0.005 and c["lag_vs_fb"]["hi"] < 0.005)]
+    h3a = [c["label"] for c in hot if not g(c, "joint_fb", "chip_s_over_target") > 0]
+    h3b = [c["label"] for c in conds if g(c, "joint_lag", "chip_s_over_target") > 0]
+    h4a = [c["label"] for c in conds if g(c, "joint_fb", "slo_violations") > g(c, "joint", "slo_violations") + 1]
+    h4b = [lab for lab in ("severe|amb40|dyn40", "severe|amb40|dyn150")
+           if not any(c["label"] == lab and g(c, "joint_lag", "slo_violations") > g(c, "joint_fb", "slo_violations")
+                      for c in conds)]
+    # H5: reproduce E011 run by run (same cell, seed and policy)
+    e011_id = store.latest_experiment("E011")
+    mism, compared = [], 0
+    if e011_id:
+        key = lambda r: (r["variant"], r["policy"], r["seed"])
+        old = {key(r): r["metrics"] for r in store.runs(e011_id) if r["status"] == "completed"}
+        for r in runs:
+            if r["status"] != "completed" or r["policy"] not in ("joint", "joint_lag") or key(r) not in old:
+                continue
+            o, n = old[key(r)], r["metrics"]
+            compared += 1
+            bad = [k for k in o if k in n and k not in _WALL and o[k] != n[k] and not (o[k] != o[k] and n[k] != n[k])]
+            if bad:
+                mism.append(f"{r['variant']}/{r['policy']}/seed{r['seed']}: {', '.join(bad[:3])}")
+    n_expected = 2 * len(labels) * len(exp["spec"]["design"]["seeds"])
+    return {"id": eid, "spec": exp["spec"], "conditions": conds, "n_runs": len(runs),
+            "n_failed": sum(r["status"] != "completed" for r in runs),
+            "H1": {"supported": not h1, "failures": h1},
+            "H2": {"supported": not h2, "failures": h2, "n": len(benign)},
+            "H3": {"supported": not h3a and not h3b, "fb_safe_where_joint_overheated": h3a, "lag_over_target": h3b},
+            "H4": {"supported": not h4a and not h4b, "fb_more_late": h4a, "lag_not_more_late": h4b},
+            "H5": {"supported": compared == n_expected and not mism, "compared": compared, "expected": n_expected,
+                   "mismatches": mism}}
+
+
+def verdicts_e011b(R: dict[str, Any]) -> list[dict[str, Any]]:
+    e = R.get("E011B")
+    if not e:
+        return []
+    st = lambda ok: "supported" if ok else "not supported"
+    g = lambda c, pol, m: (c["by_policy"].get(pol, {}).get(m) or 0.0)
+    fmt_fail = lambda xs: (": " + ", ".join(xs)) if xs else ""
+    rng = lambda k, cs: (min(100 * c[k]["mean"] for c in cs if c[k]), max(100 * c[k]["mean"] for c in cs if c[k]))
+    conds = e["conditions"]
+    benign = [c for c in conds if c["plant"] != "quasi" and c["label"] not in E011B_OVERHEATED]
+    hot = [c for c in conds if c["label"] in E011B_OVERHEATED]
+    f1, f2 = rng("fb_vs_joint", conds), rng("lag_vs_fb", benign)
+    h3, h4 = e["H3"], e["H4"]
+    return [
+        {"key": "E011B H1", "state": st(e["H1"]["supported"]),
+         "text": f"joint_fb vs joint energy per successful task {f1[0]:+.2f}% to {f1[1]:+.2f}% over 27 conditions; "
+                 f"CI upper bound not below -2% in {len(e['H1']['failures'])}{fmt_fail(e['H1']['failures'])}."},
+        {"key": "E011B H2", "state": st(e["H2"]["supported"]),
+         "text": f"joint_lag vs joint_fb in the {e['H2']['n']} benign dynamic conditions {f2[0]:+.2f}% to {f2[1]:+.2f}%; "
+                 f"CI outside +/-0.5% in {len(e['H2']['failures'])}{fmt_fail(e['H2']['failures'])}."},
+        {"key": "E011B H3", "state": st(h3["supported"]),
+         "text": "Chip-s above 80 C where joint overheated in E011 (joint / joint_fb / joint_lag): "
+                 + "; ".join(f"{c['label']} {g(c, 'joint', 'chip_s_over_target'):.0f} / {g(c, 'joint_fb', 'chip_s_over_target'):.0f}"
+                             f" / {g(c, 'joint_lag', 'chip_s_over_target'):.0f}" for c in hot)
+                 + (f". joint_fb safe in {', '.join(h3['fb_safe_where_joint_overheated'])}" if h3["fb_safe_where_joint_overheated"] else "")
+                 + (f". joint_lag above target in {', '.join(h3['lag_over_target'])}" if h3["lag_over_target"] else "") + "."},
+        {"key": "E011B H4", "state": st(h4["supported"]),
+         "text": "Late tasks per run in severe|amb40 (joint / joint_fb / joint_lag): "
+                 + "; ".join(f"{c['plant']} {g(c, 'joint', 'slo_violations'):.1f} / {g(c, 'joint_fb', 'slo_violations'):.1f} / "
+                             f"{g(c, 'joint_lag', 'slo_violations'):.1f}" for c in conds if c["label"].startswith("severe|amb40|dyn"))
+                 + (f". joint_fb more than 1 above joint in {', '.join(h4['fb_more_late'])}" if h4["fb_more_late"] else "")
+                 + (f". joint_lag not above joint_fb in {', '.join(h4['lag_not_more_late'])}" if h4["lag_not_more_late"] else "") + "."},
+        {"key": "E011B H5", "state": st(e["H5"]["supported"]),
+         "text": f"{e['H5']['compared']}/{e['H5']['expected']} joint and joint_lag runs compared with E011; "
+                 f"{len(e['H5']['mismatches'])} differ{fmt_fail(e['H5']['mismatches'][:3])}."},
     ]
 
 
