@@ -201,7 +201,7 @@ What E011 and E011B mean together:
   * On slow loops where the delay did not bind, joint_lag's decisions were identical to joint_fb's.
   * With an instant plant, joint_lag hands over to steady-state joint control by design, including joint's original fallback. There it carries joint's 4.7–5.0% fallback penalty relative to joint_fb.
   * With moderate fouling at 40 °C it cost 1.7% energy to avoid 1,200–1,400 chip·s above 80 °C.
-  * With severe fouling at 40 °C it used 3.5–4.3% *less* energy than the overheating alternative, and had about 5 more late tasks per run on seed means. That service cost is uncertain: the paired CIs include zero and one seed dominates. Slower clocks while the loop catches up are the likely mechanism, but this was not measured.
+  * With severe fouling at 40 °C it used 3.5–4.3% *less* energy than the overheating alternative, and had about 5 more late tasks per run on seed means. That service cost is uncertain: the paired CIs include zero and one seed dominates.
 * **The overload fallback** is a separate 4.5–4.7% saving, given clock-insensitive memory-bound work (beta_memory = 0 from a streaming kernel). It is not new: it is the phase-aware DVFS insight (L09–L11) applied when capacity runs short.
   * Earlier experiments gave independent and joint control the same all-clocks-to-maximum fallback, so their comparisons stay like-for-like.
   * Absolute clock-control savings were probably understated wherever overload occurred. This is inferred; the earlier experiments were not re-run.
@@ -214,7 +214,7 @@ All of this is simulation, and the controller knows the loop's mass and ramp exa
 |---|---|---|
 | H1: no margin overheats somewhere | **supported** | 4 of 12 conditions, 12,868 chip·s summed |
 | H2: a 3 K margin is not enough | **supported** | summed chip·s above 80 °C by margin: 0 K 12,868, 3 K 8,394, 6 K 10,348, 9 K 7,232. No margin was safe everywhere, and the 9 K margin created small excursions (3 and 36 chip·s) at 30 °C with severe fouling |
-| H3: joint_lag is cheaper than the safest margin (9 K) in ≥ 9 of 12 | **supported** | cheaper in 10 of 12 (−0.8% to −7.3%); equal in the 2 clean, 30 °C conditions |
+| H3: joint_lag is cheaper than the smallest margin that makes joint_fb safe (9 K if none does) in ≥ 9 of 12 | **supported** by the protocol | no margin made joint_fb safe, so the comparison is against the 9 K margin, which still overheated in 6 of 12. joint_lag was cheaper in 10 of 12 (−0.8% to −7.3%) and equal in the 2 clean, 30 °C conditions. Against no margin it cost +1.7% with moderate fouling at 40 °C |
 | H4: joint_lag's late tasks within 1 of the margin's | **not supported** | severe fouling at 40 °C: 7.6 vs 2.0 |
 | H5: joint_lag never exceeds 80 °C | **supported** | 0 in 12 |
 
@@ -223,16 +223,25 @@ All of this is simulation, and the controller knows the loop's mass and ramp exa
 | Hypothesis | Verdict | Result |
 |---|---|---|
 | H1: exact-model joint_lag never exceeds 80 °C | **supported** | 0 in 6 |
-| H2: robust to each wrong model | **supported** | 0 chip·s above 80 °C for all four |
+| H2: robust to each wrong model | **supported**, but the test had no power | 0 chip·s above 80 °C for all four. joint_lag never changed its supply setpoint in these runs (see below), so the loop model could not enter a decision |
 | H3: joint_meas at most 10 chip·s above 80 °C, never throttles | **supported** | 0 and 0 |
 | H4: joint_meas energy within ±1% and late tasks within 1 | **supported** | identical: 0.00% |
 | H5: wrong models cost within ±1% | **supported** | identical: 0.00% (the controllers' configurations were confirmed different) |
 
-What E013 and E014 mean together:
-* **A margin cannot buy time from a rate-limited plant.** The plant moves its setpoint at its ramp rate whatever the target. A lower target makes the controller command colder water, but the chips see the same water during the ramp. This is the explanation the plant model implies; it was not separately instrumented. Only the fast actuator, the clocks, can close the gap, and that is what the lag-aware check uses.
-* **The loop model was never what made joint_lag safe.** In every condition tested, its decisions were identical to those of a one-line rule: never judge thermal safety at a colder setpoint that has not arrived; use the warmer of measured supply and setpoint. Getting the loop's mass or ramp wrong by 4× changed nothing.
-* **The candidate contribution therefore shrinks to a design rule** for steady-state joint optimisers on slow liquid loops. It is simple and cheap, and in simulation it removed every overheating event at no cost where the delay did not bind. Feedback on a measured state is ordinary control practice, so this is a corrected design, not a discovery. Its practical value depends on how often deployed optimisers judge safety at the commanded setpoint, which this review did not establish. E010 showed what goes wrong when they do.
-* **Still untested:** loop-model structure error (stratification, transport delay) and a real loop.
+What E011–E014 mean together (revised after a second independent audit):
+* **joint_lag never moved the coolant on a slow loop.** In every joint_lag run on a dynamic plant in E011, E011B, E013 and E014 (and every joint_meas run), the supply setpoint changed 0 times. It stayed at the free-cooling temperature (25, 35 or 45 °C at 20, 30 or 40 °C ambient), and the chiller never ran. Heat was handled with flow (26–87 changes per run) and clocks.
+  * The reason is in its check. Commanding colder water does not change the supply the chips see before the next decision, so the controller never credits the chiller, and the chiller only adds cost.
+  * Steady-state joint control, where it overheated, did the opposite. With severe fouling at 40 °C it commanded 36–44 °C water through the chiller (running 42% of the time in seed 0) and chose clocks for water that took minutes to arrive.
+  * So the safety in E011 came from **not counting on slow cooling**. A loop model that predicts *when* the cooling arrives was not what did it.
+* **E014 could not test the loop model.** With the setpoint fixed, joint_lag's predicted supply equals the measured one for every candidate. A wrong loop mass or ramp, or no model at all (joint_meas), therefore gives identical decisions *in these conditions*.
+  * The second audit ran exploratory checks (not pre-registered): a heavier load (S6 mean 0.8 instead of 0.65) and constructed states where the tank is below the preferred setpoint.
+  * There, joint_lag and joint_meas made different decisions (69 of 240 constructed states), and wrong loop models changed joint_lag's setpoint behaviour.
+  * In one severe-fouling seed, joint_lag had 595 late tasks against 4 for joint_meas. Both stayed below 80 °C.
+* **A margin did not fix the steady-state controller (E013).** joint_fb with margins kept commanding chiller-cooled water (up to 93 setpoint changes per run) and still overheated. A lower target makes it command colder water, which a ramp-limited plant still delivers at its own rate. This is the explanation the plant model implies; it was not separately instrumented.
+* **What survives is a safe but myopic rule.** Do not judge thermal safety at a colder setpoint that has not arrived; use the warmer of measured supply and setpoint. In the tested conditions this kept every chip below 80 °C (joint_lag in E011 and E013; joint_meas in E014's 6 conditions).
+  * Its cost is that it never deliberately cools the loop to win back capacity. That plausibly explains the extra late tasks with severe fouling at 40 °C, and possibly the much larger service loss in the audit's heavier-load exploratory runs.
+  * A controller that credits cooling *when it will arrive*, a multi-step MPC with the loop model and this rule as a safety constraint, is where a loop model could earn its keep. It is untested.
+* Using the measured state in a safety constraint is ordinary control practice. This is a corrected design with a clear simulated failure mode behind it, not a discovery.
 
 **E012: warm water on real-silicon parameters (pre-registered, 360 runs, 0 failed).** The idea under test was that a nearly flat energy-per-work curve and a small leakage slope would let energy-optimal control run the coolant warm enough to make the waste heat reusable. Two parameter worlds were compared:
 * the registry placeholders;
@@ -298,7 +307,7 @@ What it means:
 
 1. **M003, leakage at fixed fan speeds (you run it; about 55 minutes).** Every remaining real-silicon effect scales with the leakage slope: joint control's energy advantage (E009) and the chip-side cost of heat reuse (E012). Today it rests on a 4 K window. `python -m ueic calib plan-leak --clock 2347 --fans 100,80,60,45,30` prints the procedure; use 30% only if your fan tool allows it (`09` §8).
 2. **Approach-dependent dry-cooler model.** The plant's fan power is proportional to heat rejected, which guaranteed E012's warm-water result. Model fan power against approach temperature (fan affinity laws, class F placeholders swept in E002 style), then re-ask E012's question.
-3. **Adopt the design rule in the default joint controller.** Judge safety at the warmer of measured supply and setpoint, and use the throughput-first, power-second overload fallback. Then re-run E001C, E009 and E010 with it and the voltage-floor V–f form, so the headline numbers use the best available physics.
+3. **A controller that credits cooling when it arrives.** A multi-step MPC over the loop model, keeping "judge safety at the warmer of measured supply and setpoint" as a hard constraint. Pre-register it against joint_lag and joint_meas in conditions where the setpoint *has* to move: heavier load, rising ambient, cold start. That is where the loop model can matter and where the myopic rule loses capacity (the second audit's exploratory runs). Use the throughput-first overload fallback everywhere. Then re-run E001C, E009 and E010 with the best controller and the voltage-floor V–f form.
 4. **Loop-model structure error and unnoticed degradation:** a stratified or delayed loop the controller models as one tank, and fouling the twin does not know about (E005/E008).
 5. **Remaining Phase 3 items:** routing decided jointly with clocks and cooling; a facility power-cap scenario; synchronised training load steps (L46); multi-node placement with migration cost.
 6. **Operation-level energy model** (FLOPs and bytes per prefill and decode phase) for gate 1 of the hardware feasibility assessment.

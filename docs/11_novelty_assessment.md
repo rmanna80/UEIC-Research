@@ -14,7 +14,7 @@ An independent audit recomputed every E011, E011B and E012 hypothesis from the r
 
 **Bottom line.** Nothing here is a discovery. The most useful outputs are:
 1. a measured leakage slope for a current GPU (a data point);
-2. a simple, simulation-backed design rule for joint DVFS/cooling optimisers on slow liquid loops;
+2. a simulated failure mode of steady-state joint DVFS/cooling optimisers on slow liquid loops, and a safe but myopic rule that removes it;
 3. a quantified, model-dependent estimate of the chip-side cost of warm-water heat reuse.
 
 ## Candidate 1 · A measured leakage–temperature slope for a current GPU
@@ -35,23 +35,27 @@ Each window is about 4 K, at 1 °C sensor resolution. Voltage-regulator losses a
 ## Candidate 2 · Joint DVFS and cooling control on a slow liquid loop
 
 **What UEIC has (class C, simulation).**
-* **E010:** steady-state joint control overheated under a ramp-limited coolant plant.
+* **E010:** steady-state joint control overheated under a ramp-limited coolant plant. It commanded chiller-cooled water and chose clocks for water that took minutes to arrive.
 * **E011:** `joint_lag` checks safety at the supply the chips will actually see. It removed all overheating: 0 chip-seconds above 80 °C, against 17,218 for steady-state joint control summed over 18 slow-loop conditions.
 * **E011B:** that safety does not come from its different overload fallback.
-* **E013:** a fixed margin on the thermal target does not substitute, even at 9 K: 7,232 chip-seconds above 80 °C, and the effect is non-monotonic in the margin.
-* **E014:** the loop model was never what mattered. With its loop mass or ramp wrong by 4×, or with no loop model at all, the outcome was identical. The model-free variant (`joint_meas`) only refuses to judge safety at a colder setpoint that has not arrived.
+* **E013:** a fixed margin on the thermal target did not fix the steady-state controller, even at 9 K: 7,232 chip-seconds above 80 °C.
+* **Second audit.** On slow loops joint_lag never changed its supply setpoint and never ran the chiller (420 of 420 runs). It stayed at the free-cooling temperature and handled heat with flow and clocks. Its check never credits cooling that has not arrived, so the slow actuator only ever adds cost.
+* **E014's robustness test therefore had no power.** With a wrong loop model, or with no loop model (`joint_meas`), the outcome was identical *because the setpoint never moved*.
+* **The audit's exploratory runs differ.** At heavier load and in constructed states (not pre-registered), the two policies diverge and wrong models do change joint_lag's behaviour.
 
 **Prior work found.**
 * **Abera & Chen (L49, 2026; workshop version NeurIPS 2025).** The closest on control structure. It co-optimises tensor parallelism, per-job DVFS and cooling for LLM serving. A 60 s cooling MPC acts on supply-air temperature and airflow over state-space rack thermal dynamics, with a temperature constraint. It is air-cooled. The text read mentions no actuator ramp limits, but its MPC section was truncated, so that is unconfirmed.
-* **HeatCache (L44, 2026).** The closest liquid-cooled work. It treats a chassis-level loop's thermal mass as a heat budget, with a one-step RC admission check and DVFS plus micro-batching, on four water-cooled RTX 4090s. It excludes facility direct-to-chip/CDU loops and does not set the coolant.
+* **HeatCache (L44, 2026).** The closest liquid-cooled work. It treats a chassis-level loop's thermal mass as a heat budget, with a one-step RC admission check and DVFS plus micro-batching, on four water-cooled RTX 4090s. It excludes facility direct-to-chip/CDU loops. Like UEIC's joint_lag in practice, it manages heat through compute rather than by moving the coolant.
 * **EPFL chip-scale MPC (L50; authors and year not verified; abstract only).** Sets DVFS and microchannel coolant flow together, minimising chip-plus-cooling energy under a temperature limit.
-* **EPFL two-layer MPC (L45, 2026).** Dispatches a liquid-cooled data centre with heat recovery, but states that coolant transients are outside its MPC.
+* **EPFL two-layer MPC (L45, 2026).** Dispatches a data centre with hybrid cold-plate and air cooling and heat recovery, but states that coolant transients are outside its MPC.
 * **IBM patent US 8,909,383 (L47, 2014).** The claim summary read describes forecasting chip power from upcoming workload, compute-side measures (activating spare cores) and informing cooling ahead of the temperature change. DVFS coordination and loop dynamics do not appear in that summary.
 * **Lazic et al. (L23, 2018).** MPC on a real cooling plant, with server power as an exogenous disturbance.
 
-**Assessment.** Joint DVFS-and-cooling optimisation is established: at chip scale (L50, if its metadata checks out) and for air-cooled LLM serving with thermal dynamics (L49). E014 shows that the part UEIC added reduces, in every tested condition, to a one-line rule: *judge thermal safety at the warmer of the measured supply and the setpoint, and use clocks to bridge the gap while the plant ramps.* Using the measured state in a safety constraint is ordinary feedback practice. E013 adds why the obvious alternative, a margin, fails: a rate-limited plant delivers water at its own pace whatever the target. So this is a **corrected design with a clear simulated failure mode behind it, not a novel controller.**
+**Assessment.** Joint DVFS-and-cooling optimisation is established: at chip scale (L50, if its metadata checks out) and for air-cooled LLM serving with thermal dynamics (L49). What UEIC's slow-loop work actually showed, in simulation, is narrower:
+1. A steady-state optimiser that counts on chiller cooling it has commanded but not yet received overheats chips under a ramp-limited plant. A margin on the target does not fix this.
+2. The rule "judge safety at the warmer of measured supply and setpoint" removes the overheating. In the tested conditions it did so by never using the slow actuator, at a cost in capacity in the most severe case.
 
-It would matter in practice if deployed setpoint optimisers judge safety at the commanded setpoint. This review did not establish whether they do. Untested: loop-model structure error (stratification, transport delay) and any real loop.
+Using the measured state in a safety constraint is ordinary control practice. So this is a **corrected design with a clear simulated failure mode behind it, not a novel controller**. The interesting open question is a controller that credits cooling *when it will arrive*, a multi-step MPC with the loop model and this rule as a constraint, tested where the setpoint must move. Its value in practice would depend on whether deployed setpoint optimisers judge safety at the commanded setpoint, which this review did not establish. Untested: loop-model structure error and any real loop.
 
 ## Candidate 3 · The overload fallback
 
@@ -72,6 +76,6 @@ A rough estimate (class F, computed here, not simulated) assumes fan power ∝ (
 | Candidate | Evidence | Novelty | What would strengthen it |
 |---|---|---|---|
 | Leakage slope of a current GPU | B on one card, 4 K window | data point | M003 (20 K window), a second card |
-| Slow-loop design rule for joint control | C (simulation); E010–E014 | low (feedback on a measured state); value depends on deployed practice | loop-structure error, a hardware-in-the-loop or real loop, evidence on how deployed optimisers judge safety |
+| Slow-loop safety rule for joint control | C (simulation); E010–E014; in tested conditions it never moved the coolant | low (feedback on a measured state); value depends on deployed practice | a pre-registered test where the setpoint must move; a multi-step MPC that credits arriving cooling; loop-structure error; a real loop |
 | Overload fallback | C, resting on a streaming-kernel bound | not new (L09–L11) | measured decode clock sensitivity |
 | Chip-side cost of warm-water heat reuse | C/E, set by the leakage slope | low; quantification only | M003; approach-dependent dry-cooler model; a heat-value model |

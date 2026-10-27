@@ -1,6 +1,6 @@
 # UEIC · Simulation results (generated)
 
-Generated 2026-10-27T03:56:01+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `c6a14ddc7f133e00…`. Hash-chain check: **OK** (5443 finalised runs verified).
+Generated 2026-10-27T04:14:02+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `c2182f4aeb4c1582…`. Hash-chain check: **OK** (5443 finalised runs verified).
 
 > **Every number on this page is a simulator output** (provenance `simulator_output`) and is conditional on the parameter registry (`04_assumptions_register.md`), most of which is class E/F. E001C uses two parameters measured on a real GPU (M001); every other parameter is still a placeholder. The measurements themselves are reported in `10_calibration_results.md`. Energy boundary: grid → conversion → accelerators + pump + fans + chiller (see `00_problem_statement.md`).
 
