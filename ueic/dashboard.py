@@ -117,6 +117,12 @@ def _slim(R: dict) -> dict:
     e10 = R.get("E010")
     D["E010"] = ({k: e10[k] for k in ("id", "conditions", "n_runs", "n_failed", "H1", "H2", "H3", "H4", "H5")}
                  | {"disclosure": e10["spec"].get("disclosure", "")}) if e10 else None
+    e11 = R.get("E011")
+    D["E011"] = ({k: e11[k] for k in ("id", "conditions", "n_runs", "n_failed", "H1", "H2", "H3", "H4", "H5")}
+                 | {"disclosure": e11["spec"].get("disclosure", "")}) if e11 else None
+    e12 = R.get("E012")
+    D["E012"] = ({k: e12[k] for k in ("id", "cells", "floor_penalty", "n_runs", "n_failed", "H1", "H2", "H3", "H4", "H5")}
+                 | {"disclosure": e12["spec"].get("disclosure", "")}) if e12 else None
     D["verdicts"] = sorted(verdicts(R), key=lambda v: v["key"])
     D["policy_order"] = POLICY_ORDER
     D["explorer"] = explorer_grid()
@@ -259,8 +265,8 @@ svg .ax{stroke:var(--axis)} svg .gr{stroke:var(--rule)}
 const D = JSON.parse(document.getElementById('data').textContent);
 const NS = 'http://www.w3.org/2000/svg';
 const $ = (s, el = document) => el.querySelector(s);
-const LABEL = {fixed:'Fixed baseline', compute_only:'Compute-only', cooling_only:'Cooling-only', independent:'Independent', joint:'Joint', joint_robust:'Joint, self-correcting'};
-const PCOL = {fixed:'var(--s1)', compute_only:'var(--s2)', cooling_only:'var(--s3)', independent:'var(--s4)', joint:'var(--s5)', joint_robust:'var(--s3)'};
+const LABEL = {fixed:'Fixed baseline', compute_only:'Compute-only', cooling_only:'Cooling-only', independent:'Independent', joint:'Joint', joint_robust:'Joint, self-correcting', joint_lag:'Joint, lag-aware'};
+const PCOL = {fixed:'var(--s1)', compute_only:'var(--s2)', cooling_only:'var(--s3)', independent:'var(--s4)', joint:'var(--s5)', joint_robust:'var(--s3)', joint_lag:'var(--s3)'};
 const fin = v => v !== null && v !== undefined && isFinite(v);
 const fmt = (v, d = 1) => fin(v) ? Number(v).toFixed(d) : '–';
 const pct = (v, d = 1) => fin(v) ? (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v * 100).toFixed(d) + '%' : '–';
@@ -596,7 +602,35 @@ renderers.hardware = sec => { sec.innerHTML = ''; const M = D.M001, C = D.E001C;
     requestAnimationFrame(() => Object.entries(hosts).forEach(([pl, h]) => { const cs = E10.conditions.filter(c => c.plant === pl);
       groupedBars(h, {groups: cs.map(cl), series: pols, get: (g, k) => { const c = cs.find(x => cl(x) === g); return c ? {mean: (c.by_policy[k] || {}).chip_s_over_target || 0, lo: null, hi: null} : null; },
         yLabel: 'chip·s above 80 °C', groupLabel: g => g, minW: 760, h: 230,
-        extra: (g, k, v) => { const c = cs.find(x => cl(x) === g); const b = c.by_policy[k] || {}; return [['above target', fmt(v.mean, 0) + ' chip·s'], ['throttled', fmt(b.chip_s_throttled, 0) + ' chip·s'], ['peak', fmt(b.peak_T_j_C, 1) + ' °C']]; }}); })); } };
+        extra: (g, k, v) => { const c = cs.find(x => cl(x) === g); const b = c.by_policy[k] || {}; return [['above target', fmt(v.mean, 0) + ' chip·s'], ['throttled', fmt(b.chip_s_throttled, 0) + ' chip·s'], ['peak', fmt(b.peak_T_j_C, 1) + ' °C']]; }}); }));
+  }
+  const E11 = D.E011;
+  if (E11) { const pols = ['independent', 'joint', 'joint_lag'];
+    const p = el('div', {class: 'panel'}); p.appendChild(el('h3', {}, 'E011 · Lag-aware joint control: planning with the coolant loop’s delay'));
+    p.appendChild(el('p', {class: 'note'}, 'The steady-state joint controller picks clocks that are safe at the supply temperature it commands, while the chips still see warmer water in the loop. The lag-aware version predicts the supply the chips will actually see before its next decision and keeps clocks and flow safe at that temperature. Time above 80 °C per condition, seed means over 5 seeds.'));
+    p.appendChild(legend(pols.map(k => ({label: LABEL[k], color: PCOL[k]}))));
+    const hosts = {}; [['quasi', 'Quasi-steady plant'], ['dyn40', '40 kg loop, 1 K/min'], ['dyn150', '150 kg loop, 0.25 K/min']].forEach(([pl, t]) => { p.appendChild(el('h3', {}, t)); hosts[pl] = el('div', {class: 'scroll'}); p.appendChild(hosts[pl]); });
+    p.appendChild(el('p', {class: 'note'}, 'Pre-registered. Disclosure: ' + E11.disclosure.replace(/</g, '&lt;')));
+    sec.appendChild(p);
+    const cl = c => `${c.degradation} · ${c.t_amb} °C`;
+    requestAnimationFrame(() => Object.entries(hosts).forEach(([pl, h]) => { const cs = E11.conditions.filter(c => c.plant === pl);
+      groupedBars(h, {groups: cs.map(cl), series: pols, get: (g, k) => { const c = cs.find(x => cl(x) === g); return c ? {mean: (c.by_policy[k] || {}).chip_s_over_target || 0, lo: null, hi: null} : null; },
+        yLabel: 'chip·s above 80 °C', groupLabel: g => g, minW: 760, h: 220,
+        extra: (g, k, v) => { const c = cs.find(x => cl(x) === g); const b = c.by_policy[k] || {}; const lj = c.lag_vs_joint; return [['above target', fmt(v.mean, 0) + ' chip·s'], ['throttled', fmt(b.chip_s_throttled, 0) + ' chip·s'], ['late tasks', fmt(b.slo_violations, 1)]].concat(k === 'joint_lag' && lj ? [['energy vs joint', pct(lj.mean, 2)]] : []); }}); }));
+  }
+  const E12 = D.E012;
+  if (E12) { const p = el('div', {class: 'panel'}); p.appendChild(el('h3', {}, 'E012 · Warm water on real silicon: does the cheapest operating point make the heat reusable?'));
+    p.appendChild(el('p', {class: 'note'}, 'Lag-aware joint control in two parameter worlds: the simulator’s placeholders, and values derived from the RTX 5070 (clock sensitivity, leakage slope, voltage-floor V-f shape). Heat counts as reusable when the water leaving the loop is at least 45 °C.'));
+    const cell = {}; E12.cells.forEach(c => { cell[[c.scenario, c.world, c.floor, c.plant].join('|')] = c.by_policy.joint_lag || {}; });
+    const pen = {}; E12.floor_penalty.forEach(r => { pen[r.scenario + '|' + r.plant] = r; });
+    const scen = [...new Set(E12.cells.map(c => c.scenario))];
+    const rows = scen.flatMap(sc => ['quasi', 'dyn150'].map(pl => { const r = w => cell[[sc, w, 'nofloor', pl].join('|')] || {}; const pr = pen[sc + '|' + pl] || {};
+      const pc = x => x && fin(x.mean) ? `${pct(x.mean, 2)} <span class="note">[${pct(x.lo, 2)}, ${pct(x.hi, 2)}]</span>` : '–';
+      return `<tr><td>${scName(sc)}</td><td class="mono">${pl === 'quasi' ? 'instant' : '150 kg loop'}</td><td class="n">${fmt(r('registry').T_sup_mean_C, 1)} / ${fmt(r('measured').T_sup_mean_C, 1)} °C</td><td class="n">${fmt(100 * (r('registry').reuse_frac || 0), 0)}% / ${fmt(100 * (r('measured').reuse_frac || 0), 0)}%</td><td class="n">${pc(pr.registry)}</td><td class="n">${pc(pr.measured)}</td></tr>`; }));
+    p.appendChild(el('div', {class: 'scroll'}, `<table><thead><tr><th>Scenario</th><th>Plant</th><th class="n">Mean supply, registry / measured</th><th class="n">Reusable heat, registry / measured</th><th class="n">40 °C floor cost, registry</th><th class="n">40 °C floor cost, measured</th></tr></thead><tbody>${rows.join('')}</tbody></table>`));
+    p.appendChild(el('p', {class: 'note'}, 'Pre-registered. Disclosure: ' + E12.disclosure.replace(/</g, '&lt;')));
+    sec.appendChild(p);
+  } };
 
 /* Explorer */
 const X = D.explorer; const xs = {s: X.s.indexOf(1) >= 0 ? X.s.indexOf(1) : X.s.length - 1, a: X.t_amb.indexOf(20), t: null, f: null};

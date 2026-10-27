@@ -233,7 +233,7 @@ def compute_all(store: Store, threshold: float = 0.01) -> dict[str, Any]:
         "E001": e001(store, threshold), "E002": e002(store, threshold), "E003": e003(store, threshold),
         "E004": e004(store), "E005": e005(store, threshold),
         "E006": e006(store, threshold), "E007": e007(store, threshold), "E008": e008(store, threshold),
-        "M001": m001(store), "E001C": e001c(store, threshold), "E009": e009(store, threshold), "E010": e010(store, threshold), "E011": e011(store, threshold),
+        "M001": m001(store), "E001C": e001c(store, threshold), "E009": e009(store, threshold), "E010": e010(store, threshold), "E011": e011(store, threshold), "E012": e012(store, threshold),
         "assumptions": assumptions_table(),
         "research_log": store.research_log(),
         "experiments": [{"id": x["id"], "key": x["key"], "status": x["status"], "title": x["spec"]["title"],
@@ -323,6 +323,7 @@ def verdicts(R: dict[str, Any]) -> list[dict[str, Any]]:
     out += verdicts_e009(R)
     out += verdicts_e010(R)
     out += verdicts_e011(R)
+    out += verdicts_e012(R)
     return out
 
 
@@ -795,4 +796,102 @@ def verdicts_e011(R: dict[str, Any]) -> list[dict[str, Any]]:
         {"key": "E011 H5", "state": st(e["H5"]["supported"]),
          "text": f"joint_lag's late tasks more than 2 above the worse of joint and independent in "
                  f"{len(e['H5']['failures'])}/27 conditions{fmt_fail(e['H5']['failures'])}."},
+    ]
+
+
+E012_POLICIES = ("independent", "joint", "joint_lag")
+
+
+def e012(store: Store, threshold: float) -> dict[str, Any] | None:
+    eid = store.latest_experiment("E012")
+    if not eid:
+        return None
+    exp = store.experiment(eid)
+    runs = store.runs(eid)
+    idx = A.index_runs(runs)
+    scen = exp["spec"]["design"]["scenarios"]
+    labels = [v["label"] for v in exp["spec"]["design"]["variants"]]
+    cells = []
+    for sc in scen:
+        for lab in labels:
+            w, fl, pl = lab.split("|")
+            byp = {}
+            for pol in E012_POLICIES:
+                d = idx.get((sc, lab), {}).get(pol, {})
+                if not d:
+                    continue
+                arr = lambda k: np.array([m.get(k, np.nan) for m in d.values()], dtype=float)
+                reuse = arr("Q_reusable_kWh") / np.where(arr("Q_rejected_kWh") > 0, arr("Q_rejected_kWh"), np.nan)
+                byp[pol] = {k: _f(float(np.nanmean(arr(k)))) for k in
+                            ("T_sup_mean_C", "E_per_success_kJ", "chip_s_over_target", "chip_s_throttled", "slo_violations",
+                             "Ex_rejected_kWh", "E_cooling_kWh", "E_it_kWh")}
+                byp[pol]["reuse_frac"] = _f(float(np.nanmean(reuse)))
+            cells.append({"scenario": sc, "world": w, "floor": fl, "plant": pl, "by_policy": byp})
+
+    def per_seed(sc, w, fl, pl, pol="joint_lag", k="E_per_success_kJ"):
+        return idx.get((sc, f"{w}|{fl}|{pl}"), {}).get(pol, {})
+
+    penalty = []
+    for sc in scen:
+        for pl in ("quasi", "dyn150"):
+            pens = {}
+            for w in ("registry", "measured"):
+                a, b = per_seed(sc, w, "floor40", pl), per_seed(sc, w, "nofloor", pl)
+                seeds = sorted(set(a) & set(b))
+                pens[w] = (seeds, np.array([a[s_]["E_per_success_kJ"] / b[s_]["E_per_success_kJ"] - 1 for s_ in seeds]))
+            row = {"scenario": sc, "plant": pl}
+            for w, (seeds, v) in pens.items():
+                m, lo, hi = A.t_ci(v)
+                row[w] = {"mean": _f(m), "lo": _f(lo), "hi": _f(hi), "n": len(seeds)}
+            common = sorted(set(pens["registry"][0]) & set(pens["measured"][0]))
+            if common:
+                dr = dict(zip(pens["registry"][0], pens["registry"][1]))
+                dm = dict(zip(pens["measured"][0], pens["measured"][1]))
+                m, lo, hi = A.t_ci(np.array([dr[s_] - dm[s_] for s_ in common]))
+                row["registry_minus_measured"] = {"mean": _f(m), "lo": _f(lo), "hi": _f(hi)}
+            penalty.append(row)
+    cell = {(c["scenario"], c["world"], c["floor"], c["plant"]): c["by_policy"] for c in cells}
+    g = lambda sc, w, fl, pl, pol, k: (cell.get((sc, w, fl, pl), {}).get(pol, {}).get(k))
+    h1 = [(sc, pl, (g(sc, "measured", "nofloor", pl, "joint_lag", "T_sup_mean_C") or 0)
+           - (g(sc, "registry", "nofloor", pl, "joint_lag", "T_sup_mean_C") or 0)) for sc in scen for pl in ("quasi", "dyn150")]
+    h2 = [(sc, g(sc, "measured", "nofloor", "quasi", "joint_lag", "reuse_frac"), g(sc, "registry", "nofloor", "quasi", "joint_lag", "reuse_frac"))
+          for sc in ("S1_moderate", "S4_cool") if sc in scen]
+    h3a = [r for r in penalty if not (r["measured"]["hi"] is not None and r["measured"]["hi"] < 0.005)]
+    h3b = [r for r in penalty if not (r.get("registry_minus_measured", {}).get("lo") is not None and r["registry_minus_measured"]["lo"] > 0)]
+    h4 = [c for c in cells if (c["by_policy"].get("joint_lag", {}).get("chip_s_over_target") or 0) > 0]
+    h5 = [c for c in cells if c["plant"] == "dyn150" and (c["by_policy"].get("joint", {}).get("chip_s_over_target") or 0) > 0]
+    lab_c = lambda c: f"{c['scenario']}/{c['world']}/{c['floor']}/{c['plant']}"
+    return {"id": eid, "spec": exp["spec"], "cells": cells, "floor_penalty": penalty, "n_runs": len(runs),
+            "n_failed": sum(r["status"] != "completed" for r in runs),
+            "H1": {"supported": all(d >= 10 for *_, d in h1), "diffs": h1},
+            "H2": {"supported": all(m is not None and r is not None and m >= 0.5 and r < 0.2 for _, m, r in h2), "values": h2},
+            "H3": {"supported": not h3a and not h3b, "measured_failures": [f"{r['scenario']}/{r['plant']}" for r in h3a],
+                   "comparison_failures": [f"{r['scenario']}/{r['plant']}" for r in h3b]},
+            "H4": {"supported": not h4, "failures": [lab_c(c) for c in h4]},
+            "H5": {"supported": bool(h5), "conditions": [lab_c(c) for c in h5]}}
+
+
+def verdicts_e012(R: dict[str, Any]) -> list[dict[str, Any]]:
+    e = R.get("E012")
+    if not e:
+        return []
+    st = lambda ok: "supported" if ok else "not supported"
+    short = lambda sc: sc.split("_", 1)[1]
+    pen = e["floor_penalty"]
+    pm = lambda w: ", ".join(f"{short(r['scenario'])}/{r['plant']} {100 * r[w]['mean']:+.2f}%" for r in pen)
+    return [
+        {"key": "E012 H1", "state": st(e["H1"]["supported"]),
+         "text": "joint_lag mean supply temperature, measured minus registry world, no floor: "
+                 + ", ".join(f"{short(sc)}/{pl} {d:+.1f} K" for sc, pl, d in e["H1"]["diffs"]) + " (needed >= +10 K)."},
+        {"key": "E012 H2", "state": st(e["H2"]["supported"]),
+         "text": "Reusable share of rejected heat, joint_lag, no floor, quasi-steady (measured / registry): "
+                 + ", ".join(f"{short(sc)} {100 * (m or 0):.0f}% / {100 * (r or 0):.0f}%" for sc, m, r in e["H2"]["values"]) + "."},
+        {"key": "E012 H3", "state": st(e["H3"]["supported"]),
+         "text": f"Energy cost of the 40 C floor for joint_lag. Measured world: {pm('measured')}. Registry world: {pm('registry')}."
+                 + (f" Not below +0.5% (measured): {', '.join(e['H3']['measured_failures'])}." if e["H3"]["measured_failures"] else "")
+                 + (f" Registry not costlier: {', '.join(e['H3']['comparison_failures'])}." if e["H3"]["comparison_failures"] else "")},
+        {"key": "E012 H4", "state": st(e["H4"]["supported"]),
+         "text": "joint_lag above 80 C in " + (", ".join(e["H4"]["failures"]) if e["H4"]["failures"] else "no condition") + "."},
+        {"key": "E012 H5", "state": st(e["H5"]["supported"]),
+         "text": "Steady-state joint above 80 C with the 150 kg loop in " + (", ".join(e["H5"]["conditions"]) if e["H5"]["conditions"] else "no condition") + "."},
     ]

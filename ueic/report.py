@@ -354,6 +354,47 @@ def fig_e011(R, out):
     plt.close(fig)
 
 
+def fig_e012(R, out):
+    e = R["E012"]
+    cell = {(c["scenario"], c["world"], c["floor"], c["plant"]): c["by_policy"].get("joint_lag", {}) for c in e["cells"]}
+    scen = list(dict.fromkeys(c["scenario"] for c in e["cells"]))
+    groups = [(sc, pl) for sc in scen for pl in ("quasi", "dyn150")]
+    glab = [f"{sc.split('_', 1)[1]}\n{'instant' if pl == 'quasi' else '150 kg loop'}" for sc, pl in groups]
+    worlds = [("registry", "Registry placeholders", SLOTS[1]), ("measured", "RTX 5070-derived", SLOTS[0])]
+    fig, axes = plt.subplots(1, 3, figsize=(12, 4.0), dpi=150)
+    fig.patch.set_facecolor(SURF)
+    for ax, key, ylab, ttl in ((axes[0], "T_sup_mean_C", "°C", "Mean supply temperature (no floor)"),
+                               (axes[1], "reuse_frac", "%", "Rejected heat reusable, return >= 45 °C (no floor)")):
+        _style(ax)
+        for j, (w, name, col) in enumerate(worlds):
+            ys = [(cell.get((sc, w, "nofloor", pl), {}).get(key) or 0) * (100 if key == "reuse_frac" else 1) for sc, pl in groups]
+            ax.bar([i + (j - 0.5) * 0.38 for i in range(len(groups))], ys, width=0.36, color=col, label=name)
+        ax.set_xticks(range(len(groups)), glab, fontsize=7.5)
+        ax.set_ylabel(ylab, color=INK2, fontsize=9)
+        ax.set_title(ttl, fontsize=9.5, color=INK, loc="left")
+    axes[0].legend(frameon=False, fontsize=8, loc="lower left", labelcolor=INK)
+    ax = axes[2]
+    _style(ax)
+    pen = {(r["scenario"], r["plant"]): r for r in e["floor_penalty"]}
+    for j, (w, name, col) in enumerate(worlds):
+        for i, g in enumerate(groups):
+            r = pen.get(g, {}).get(w)
+            if not r or r["mean"] is None:
+                continue
+            x = i + (j - 0.5) * 0.3
+            ax.plot([x, x], [100 * r["lo"], 100 * r["hi"]], color=col, lw=2)
+            ax.scatter([x], [100 * r["mean"]], color=col, s=30, zorder=3, edgecolor=SURF, linewidth=1.2)
+    ax.axhline(0, color=AXIS, lw=1)
+    ax.set_xticks(range(len(groups)), glab, fontsize=7.5)
+    ax.set_ylabel("% energy per successful task", color=INK2, fontsize=9)
+    ax.set_title("Cost of a 40 °C supply floor (lag-aware joint)", fontsize=9.5, color=INK, loc="left")
+    fig.suptitle("E012 · Warm water on real silicon (lag-aware joint control; seed means, 5 seeds; floor cost with 95% CI)",
+                 fontsize=10, color=INK, x=0.01, ha="left")
+    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    fig.savefig(out / "e012_warm_water.png", facecolor=SURF)
+    plt.close(fig)
+
+
 # ------------------------------------------------------------------------ markdown
 def md_assumptions(R) -> str:
     L = ["# 04 · Assumptions register", "",
@@ -648,6 +689,29 @@ def md_results(R) -> str:
                      + (f"{pct(li['mean'], 2)} [{pct(li['lo'], 2)}, {pct(li['hi'], 2)}]" if li else "n/a") + " |")
         L.append("")
 
+    e12 = R.get("E012")
+    if e12:
+        L += ["## E012 · Warm water on real silicon", "",
+              f"Experiment `{e12['id']}`: {e12['n_runs']} runs, {e12['n_failed']} failed. Registry placeholders vs "
+              "RTX 5070-derived parameters (clock sensitivity, leakage matched to the measured slope, voltage-floor V-f "
+              "form); supply floor none or 40 °C; instant plant or 150 kg loop. Heat is counted as reusable when the "
+              "water leaving the loop is at least 45 °C. Seed means over 5 seeds.", "",
+              "![E012](../results/figures/e012_warm_water.png)", "",
+              "| Scenario | Plant | World | Floor | Mean supply °C (I / J / JL) | Reusable heat (I / J / JL) | chip·s > 80 °C (I / J / JL) | late tasks (I / J / JL) |",
+              "|---|---|---|---|---|---|---|---|"]
+        for c in e12["cells"]:
+            b = c["by_policy"]
+            t3 = lambda k, f: " / ".join(f(b.get(p_, {}).get(k)) for p_ in ("independent", "joint", "joint_lag"))
+            L.append(f"| {c['scenario']} | {c['plant']} | {c['world']} | {c['floor']} | {t3('T_sup_mean_C', lambda v: num(v, 1))} | "
+                     f"{t3('reuse_frac', lambda v: 'n/a' if v is None else f'{100 * v:.0f}%')} | "
+                     f"{t3('chip_s_over_target', lambda v: num(v, 0))} | {t3('slo_violations', lambda v: num(v, 1))} |")
+        L += ["", "### Cost of the 40 °C floor for lag-aware joint control (energy per successful task, paired)", "",
+              "| Scenario | Plant | Registry world | Measured world | Registry minus measured |", "|---|---|---|---|---|"]
+        ci_ = lambda r: f"{pct(r['mean'], 2)} [{pct(r['lo'], 2)}, {pct(r['hi'], 2)}]" if r and r.get("mean") is not None else "n/a"
+        for r in e12["floor_penalty"]:
+            L.append(f"| {r['scenario']} | {r['plant']} | {ci_(r['registry'])} | {ci_(r['measured'])} | {ci_(r.get('registry_minus_measured'))} |")
+        L.append("")
+
     L += ["## Experiment register (including superseded and failed)", "",
           "| Id | Status | Runs | Title |", "|---|---|---|---|"]
     for x in R["experiments"]:
@@ -689,6 +753,8 @@ def build_report(store, root: Path) -> str:
         fig_e010(R, figs)
     if R.get("E011"):
         fig_e011(R, figs)
+    if R.get("E012"):
+        fig_e012(R, figs)
     docs = root / "docs"
     (docs / "RESULTS.md").write_text(md_results(R))
     (docs / "04_assumptions_register.md").write_text(md_assumptions(R))
