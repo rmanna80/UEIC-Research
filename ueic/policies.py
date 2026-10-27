@@ -92,7 +92,14 @@ def optimise_cooling(cfg, p_peak, q_chips, T_amb):
     return float(T[i]), float(F[i]), "cooling:opt"
 
 
-def optimise_joint(cfg, D, T_amb):
+def optimise_joint(cfg, D, T_amb, T_seen=None):
+    """Grid search over (s_compute, s_memory, supply setpoint, flow) on the steady-state twin.
+
+    T_seen (optional, shape (n_tsup, n_flow)): the hottest supply temperature the chips will
+    actually see before the next decision if that setpoint and flow are commanded (lag-aware
+    control). Thermal feasibility is then checked at T_seen instead of at the setpoint, while the
+    energy objective stays the steady-state cost of the commanded action. If nothing is feasible,
+    safety comes before capacity: the highest clocks that are thermally safe at T_seen."""
     S, Tg, Fg = s_grid(cfg), t_grid(cfg), f_grid(cfg)
     sc = S[:, None, None, None]
     sm = S[None, :, None, None]
@@ -100,6 +107,21 @@ def optimise_joint(cfg, D, T_amb):
     F = Fg[None, None, None, :]
     r = twin.evaluate(cfg, D, sc, sm, T, F, T_amb)
     shape = np.broadcast_shapes(sc.shape, sm.shape, T.shape, F.shape)
+    if T_seen is not None:
+        rs = twin.evaluate(cfg, D, sc, sm, np.asarray(T_seen, float)[None, None, :, :], F, T_amb)
+        safe = np.broadcast_to(rs["temp_ok"], shape)
+        feasible = np.broadcast_to(r["u"] <= cfg.u_max, shape) & safe
+        obj = np.where(feasible, np.broadcast_to(r["P_grid"], shape), np.inf)
+        if np.isfinite(obj).any():
+            i = np.unravel_index(np.argmin(obj), shape)
+            return (float(S[i[0]]), float(S[i[1]])), float(Tg[i[2]]), float(Fg[i[3]]), "joint_lag:opt"
+        if safe.any():
+            # capacity short: maximise throughput among safe actions (lowest utilisation), then cheapest
+            u = np.broadcast_to(r["u"], shape)
+            key = np.where(safe, u + 1e-9 * np.broadcast_to(r["P_grid"], shape), np.inf)
+            i = np.unravel_index(np.argmin(key), shape)
+            return (float(S[i[0]]), float(S[i[1]])), float(Tg[i[2]]), float(Fg[i[3]]), "joint_lag:safety-first"
+        return (float(S[0]), float(S[0])), float(Tg[0]), float(Fg[-1]), "joint_lag:infeasible->min clock, max cooling"
     obj = np.broadcast_to(np.where(r["feasible"], r["P_grid"], np.inf), shape)
     if np.isfinite(obj).any():
         i = np.unravel_index(np.argmin(obj), shape)
@@ -246,5 +268,75 @@ class JointRobustPolicy(JointPolicy):
         return a
 
 
+def supply_peak(cfg, T0, sp0, q_in, horizon_s, n_sub=6):
+    """Hottest supply temperature the chips see over the next `horizon_s` seconds, for every
+    (setpoint, flow) on the controller's grid, given the measured supply (tank) temperature T0,
+    the plant's current (ramp-limited) setpoint sp0 and the heat entering the loop q_in.
+
+    Same plant model as the simulator: the setpoint moves toward the command at the ramp limit;
+    the tank approaches a lower setpoint with time constant M*cp/Cdot(flow) and, when the setpoint
+    is above it, warms only from the heat entering the loop (the plant cannot heat water)."""
+    Tg, Fg = t_grid(cfg), f_grid(cfg)
+    T_cmd = np.broadcast_to(Tg[:, None], (len(Tg), len(Fg))).astype(float)
+    Cdot = cfg.n_accel * ph.mass_flow_per_accel(Fg, cfg) * cfg.water_cp
+    M_cp = float(cfg.loop_mass_kg) * cfg.water_cp
+    ramp = float(cfg.tsup_ramp_K_per_min) / 60.0
+    if M_cp <= 0 and ramp <= 0:
+        return T_cmd.copy()                       # quasi-steady plant: the command applies at once
+    dt = horizon_s / n_sub
+    sp = np.full_like(T_cmd, float(sp0))
+    T = np.full_like(T_cmd, float(T0))
+    peak = T.copy() if M_cp > 0 or ramp > 0 else np.full_like(T_cmd, -np.inf)
+    for _ in range(n_sub):
+        sp = T_cmd if ramp <= 0 else sp + np.clip(T_cmd - sp, -ramp * dt, ramp * dt)
+        if M_cp <= 0:
+            T = sp.copy()
+        else:
+            tau = M_cp / Cdot[None, :]
+            cool = sp < T
+            T = np.where(cool, sp + (T - sp) * np.exp(-dt / tau), np.minimum(sp, T + q_in * dt / M_cp))
+        peak = np.maximum(peak, T)
+    return peak
+
+
+class JointLagPolicy(JointPolicy):
+    """Lag-aware joint controller (Phase 3, E011).
+
+    E006 and E010 showed the steady-state joint controller overheating chips under a slow coolant
+    loop: it picks clocks that are safe at the commanded supply temperature while the chips still
+    see warmer water in the tank. This controller keeps track of the plant's ramp-limited setpoint
+    from its own commands, predicts the supply temperature the chips will actually see until the
+    next decision (`supply_peak`), and requires the clocks and flow to be safe at that temperature.
+    Clocks and flow act immediately; the supply setpoint is the slow actuator. With a quasi-steady
+    plant it makes exactly the same decisions as `joint`."""
+    name = "joint_lag"
+
+    def __init__(self, model_cfg):
+        super().__init__(model_cfg)
+        self.sp_est: float | None = None
+        self.last_cmd: float | None = None
+
+    def _decide(self, obs):
+        cfg = self.cfg
+        ci = float(cfg.control_interval)
+        ramp = float(cfg.tsup_ramp_K_per_min) / 60.0
+        dynamic = float(cfg.loop_mass_kg) > 0 or ramp > 0
+        if not dynamic or not np.isfinite(obs.T_sup_actual):
+            a = self._plan(obs, cfg)
+        else:
+            if self.sp_est is None or self.last_cmd is None:
+                self.sp_est = float(obs.T_sup_actual)
+            else:   # where the plant setpoint got to during the last interval
+                step = ramp * ci if ramp > 0 else np.inf
+                self.sp_est = float(self.sp_est + np.clip(self.last_cmd - self.sp_est, -step, step))
+            D = planned_demand(obs, cfg)
+            q_in = float(obs.q_chips) + float(ph.pump_power(1.0, cfg))
+            T_seen = supply_peak(cfg, float(obs.T_sup_actual), self.sp_est, q_in, ci + 3.0 * cfg.c_th * cfg.r_cond)
+            s, t, f, note = optimise_joint(cfg, D, obs.T_amb, T_seen=T_seen)
+            a = Action(s, t, f, note)
+        self.last_cmd = float(np.clip(a.t_sup, cfg.t_sup_min, cfg.t_sup_max))
+        return a
+
+
 POLICIES = {p.name: p for p in (FixedPolicy, ComputeOnlyPolicy, CoolingOnlyPolicy, IndependentPolicy, JointPolicy,
-                                JointRobustPolicy)}
+                                JointRobustPolicy, JointLagPolicy)}

@@ -154,3 +154,53 @@ def test_warm_start_removes_initial_condition_artifact_in_dynamic_loop():
     for name in ("joint", "independent", "fixed"):
         r = rw if name == "joint" else simulate(warm, sc, POLICIES[name](warm), seed=0, record_timeseries=False)
         assert abs(r.m("E_loop_storage_kWh")) < 0.005 * r.m("E_grid_kWh"), name
+
+
+# ------------------------------------------------------------------ lag-aware joint control (E011)
+def _e010_cfg(dyn: bool):
+    import json
+    spec = json.loads((Path(__file__).resolve().parents[1] / "experiments" / "E010_thermal_safety.json").read_text())
+    over = {**SCENARIOS["S6_degraded_cooling"].param_overrides, **spec["design"]["param_overrides"],
+            "r_cond": 0.045, "r_conv_ref": 0.030, "warm_start": 1.0}
+    if dyn:
+        over.update({"loop_mass_kg": 40.0, "tsup_ramp_K_per_min": 1.0})
+    return make_config(over)
+
+
+def test_joint_lag_equals_joint_on_quasi_steady_plant():
+    """With an instant plant the supply the chips see is the command, so the decisions are identical."""
+    cfg = make_config()
+    a = simulate(cfg, SHORT, POLICIES["joint"](cfg), seed=6, record_timeseries=False)
+    b = simulate(cfg, SHORT, POLICIES["joint_lag"](cfg), seed=6, record_timeseries=False)
+    for m, v in a.metrics.items():
+        if m not in MEASURED:
+            assert b.metrics[m][0] == v[0] or (v[0] != v[0] and b.metrics[m][0] != b.metrics[m][0]), m
+
+
+def test_supply_peak_matches_the_simulated_loop():
+    """The controller's prediction uses the simulator's plant equations; check it against a
+    fine-step integration of a cooling step (setpoint command 10 K below the tank)."""
+    from ueic.policies import supply_peak, t_grid, f_grid
+    cfg = make_config({"loop_mass_kg": 40.0, "tsup_ramp_K_per_min": 1.0})
+    T0, sp0, q = 40.0, 40.0, 3000.0
+    peak = supply_peak(cfg, T0, sp0, q, 300.0, n_sub=300)
+    i, j = int(np.argmin(np.abs(t_grid(cfg) - 30.0))), int(np.argmin(np.abs(f_grid(cfg) - 1.0)))
+    assert peak[i, j] == pytest.approx(T0)                          # cooling: the worst moment is now
+    warm = supply_peak(cfg, 30.0, 30.0, q, 300.0, n_sub=300)          # warming toward 40 C from heat input only
+    k = int(np.argmin(np.abs(t_grid(cfg) - 40.0)))
+    M_cp = 40.0 * cfg.water_cp
+    assert warm[k, j] == pytest.approx(min(30.0 + 300.0 / 60.0, 30.0 + q * 300.0 / M_cp), abs=0.05)
+    assert np.all(supply_peak(make_config(), 50.0, 50.0, q, 60.0) == np.broadcast_to(t_grid(cfg)[:, None], peak.shape))
+
+
+def test_joint_lag_removes_overheating_under_loop_lag():
+    """Regression for the E010 failure (severe fouling, 40 C ambient, 40 kg loop, 1 K/min ramp):
+    the steady-state joint controller overheats; the lag-aware one does not, at no energy cost.
+    This 1 h, seed-0 case is the single exploratory run disclosed in E011's spec."""
+    cfg = _e010_cfg(dyn=True)
+    sc = replace(SCENARIOS["S6_degraded_cooling"], t_amb=40.0, duration_s=3600.0, load_period_s=3600.0)
+    plain = simulate(cfg, sc, POLICIES["joint"](cfg), seed=0, record_timeseries=False)
+    lag = simulate(cfg, sc, POLICIES["joint_lag"](cfg), seed=0, record_timeseries=False)
+    assert plain.m("chip_s_over_target") > 100 and lag.m("chip_s_over_target") == 0
+    assert lag.m("E_per_success_kJ") <= plain.m("E_per_success_kJ")
+    assert lag.m("energy_balance_rel_residual") < 1e-9
