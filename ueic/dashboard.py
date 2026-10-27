@@ -127,6 +127,9 @@ def _slim(R: dict) -> dict:
     D["E013"] = ({k: e13[k] for k in ("id", "conditions", "margins", "m_star", "all_safe_margins", "n_runs", "n_failed",
                                       "H1", "H2", "H3", "H4", "H5")}
                  | {"disclosure": e13["spec"].get("disclosure", "")}) if e13 else None
+    e14 = R.get("E014")
+    D["E014"] = ({k: e14[k] for k in ("id", "conditions", "errors", "n_runs", "n_failed", "H1", "H2", "H3", "H4", "H5")}
+                 | {"disclosure": e14["spec"].get("disclosure", "")}) if e14 else None
     e12 = R.get("E012")
     D["E012"] = ({k: e12[k] for k in ("id", "cells", "floor_penalty", "n_runs", "n_failed", "H1", "H2", "H3", "H4", "H5")}
                  | {"disclosure": e12["spec"].get("disclosure", "")}) if e12 else None
@@ -636,9 +639,9 @@ renderers.hardware = sec => { sec.innerHTML = ''; const M = D.M001, C = D.E001C;
     const pc = x => x && fin(x.mean) ? `${pct(x.mean, 2)} <span class="note">[${pct(x.lo, 2)}, ${pct(x.hi, 2)}]</span>` : '–';
     const t3 = (c, m, d) => ['joint', 'joint_fb', 'joint_lag'].map(k => fmt((c.by_policy[k] || {})[m], d)).join(' / ');
     const plantName = {quasi: 'instant', dyn40: '40 kg loop', dyn150: '150 kg loop'};
-    const rows = E11B.conditions.map(c => `<tr><td class="mono">${plantName[c.plant] || c.plant}</td><td>${c.degradation}</td><td class="n">${c.t_amb} °C</td><td class="n">${pc(c.fb_vs_joint)}</td><td class="n">${pc(c.lag_vs_fb)}</td><td class="n">${t3(c, 'chip_s_over_target', 0)}</td><td class="n">${t3(c, 'slo_violations', 1)}</td></tr>`);
+    const rows = E11B.conditions.map(c => `<tr><td class="mono">${plantName[c.plant] || c.plant}</td><td>${c.degradation}</td><td class="n">${c.t_amb} °C</td><td class="n">${pc(c.fb_vs_joint)}</td><td class="n">${c.plant === 'quasi' ? '<span class="note">n/a¹</span>' : pc(c.lag_vs_fb)}</td><td class="n">${t3(c, 'chip_s_over_target', 0)}</td><td class="n">${t3(c, 'slo_violations', 1)}</td></tr>`);
     p.appendChild(el('div', {class: 'scroll'}, `<table><thead><tr><th>Plant</th><th>Cold plate</th><th class="n">Ambient</th><th class="n">Fallback (joint_fb vs joint)</th><th class="n">Lag-awareness (joint_lag vs joint_fb)</th><th class="n">chip·s > 80 °C (J / FB / JL)</th><th class="n">late tasks (J / FB / JL)</th></tr></thead><tbody>${rows.join('')}</tbody></table>`));
-    p.appendChild(el('p', {class: 'note'}, 'Registered after E011’s results were seen. Disclosure: ' + E11B.disclosure.replace(/</g, '&lt;')));
+    p.appendChild(el('p', {class: 'note'}, '¹ With an instant plant joint_lag hands over to steady-state joint control by design (nothing lags), including joint’s original fallback, so joint_lag vs joint_fb there only measures the fallback again (+4.7 to +5.0%). Registered after E011’s results were seen. Disclosure: ' + E11B.disclosure.replace(/</g, '&lt;')));
     sec.appendChild(p);
   }
   const E13 = D.E013;
@@ -650,6 +653,17 @@ renderers.hardware = sec => { sec.innerHTML = ''; const M = D.M001, C = D.E001C;
     const rows = E13.conditions.map(c => `<tr><td class="mono">${plantName[c.plant] || c.plant}</td><td>${c.degradation}</td><td class="n">${c.t_amb} °C</td>${E13.margins.map(m => `<td class="n">${fmt(c.joint_fb[m].chip_s_over_target, 0)} <span class="note">${pc(c.fb_vs_lag[m])}</span></td>`).join('')}<td class="n">${fmt(c.joint_lag.chip_s_over_target, 0)}</td></tr>`);
     p.appendChild(el('div', {class: 'scroll'}, `<table><thead><tr><th>Loop</th><th>Cold plate</th><th class="n">Ambient</th>${head}<th class="n">joint_lag</th></tr></thead><tbody>${rows.join('')}</tbody></table>`));
     p.appendChild(el('p', {class: 'note'}, 'Cells: chip·s above 80 °C (seed mean), then energy per successful task relative to joint_lag. Pre-registered. Disclosure: ' + E13.disclosure.replace(/</g, '&lt;')));
+    sec.appendChild(p);
+  }
+  const E14 = D.E014;
+  if (E14) { const p = el('div', {class: 'panel'}); p.appendChild(el('h3', {}, 'E014 · Does lag-aware control need an accurate loop model, or any at all?'));
+    p.appendChild(el('p', {class: 'note'}, 'joint_lag with its model of the loop’s mass and the plant’s ramp wrong by 4× either way, and joint_meas, which only refuses to assume that a colder setpoint has already arrived (safety checked at the warmer of measured supply and setpoint; no loop model). 40 °C ambient, both slow loops. Cells: chip·s above 80 °C (seed mean).'));
+    const plantName = {dyn40: '40 kg loop', dyn150: '150 kg loop'};
+    const head = E14.errors.map(e => `<th class="n">joint_lag, ${e.replace('_', ' ')}</th>`).join('');
+    const pc = x => x && fin(x.mean) ? `${pct(x.mean, 2)} <span class="note">[${pct(x.lo, 2)}, ${pct(x.hi, 2)}]</span>` : '–';
+    const rows = E14.conditions.map(c => `<tr><td class="mono">${plantName[c.plant] || c.plant}</td><td>${c.degradation}</td>${E14.errors.map(e => `<td class="n">${fmt(c.joint_lag[e].chip_s_over_target, 0)}</td>`).join('')}<td class="n">${fmt(c.joint_meas.chip_s_over_target, 0)}</td><td class="n">${pc(c.meas_vs_lag)}</td></tr>`);
+    p.appendChild(el('div', {class: 'scroll'}, `<table><thead><tr><th>Loop</th><th>Cold plate</th>${head}<th class="n">joint_meas</th><th class="n">joint_meas energy vs joint_lag</th></tr></thead><tbody>${rows.join('')}</tbody></table>`));
+    p.appendChild(el('p', {class: 'note'}, 'Pre-registered. Disclosure: ' + E14.disclosure.replace(/</g, '&lt;')));
     sec.appendChild(p);
   }
   const E12 = D.E012;

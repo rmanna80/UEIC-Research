@@ -365,24 +365,30 @@ def fig_e011b(R, out):
         _style(ax)
         conds = [c for c in e["conditions"] if c["plant"] == pl]
         for j, (k, name, col) in enumerate(parts):
+            if pl == "quasi" and k == "lag_vs_fb":       # joint_lag = joint on an instant plant (old fallback): not an effect
+                ax.text(len(conds) - 0.6, 1.2, "instant plant: joint_lag hands over to joint by design, so no lag-awareness effect is shown",
+                        ha="right", va="bottom", fontsize=7, color=INK2)
+                continue
             xs = [i + (j - 0.5) * 0.36 for i in range(len(conds))]
             ys = [100 * (c[k]["mean"] if c[k] else np.nan) for c in conds]
             lo = [100 * (c[k]["mean"] - c[k]["lo"]) if c[k] and c[k]["lo"] is not None else 0 for c in conds]
             hi = [100 * (c[k]["hi"] - c[k]["mean"]) if c[k] and c[k]["hi"] is not None else 0 for c in conds]
-            ax.bar(xs, ys, width=0.34, color=col, label=name if pl == "quasi" else None)
+            ax.bar(xs, ys, width=0.34, color=col, label=name if pl == "dyn40" else None)
             ax.errorbar(xs, ys, yerr=[lo, hi], fmt="none", ecolor=INK2, elinewidth=0.8, capsize=2)
         for i, c in enumerate(conds):
             over = (c["by_policy"].get("joint_fb", {}).get("chip_s_over_target") or 0)
             if over > 0:
-                ax.text(i, 0.6, f"joint_fb\n{over:.0f} chip-s\n> 80 C", ha="center", va="bottom", fontsize=6.5, color=INK2)
+                ax.text(i + 0.18, 2.3, f"joint_fb: {over:.0f}\nchip-s > 80 C", ha="center", va="bottom", fontsize=6.5, color=INK2)
         ax.axhline(0, color=INK2, lw=0.6)
+        ax.set_ylim(-6.8, 4.6)
         ax.set_xticks(range(len(conds)), [f"{c['degradation']}\n{c['t_amb']:.0f} C" for c in conds], fontsize=8)
         ax.set_ylabel("energy per successful task, %", color=INK2, fontsize=9)
         ax.set_title(ttl, fontsize=10, color=INK, loc="left")
-    axes[0].legend(frameon=False, fontsize=8, loc="lower left", labelcolor=INK, ncol=2)
+    h, lab = axes[1].get_legend_handles_labels()
+    fig.legend(h, lab, frameon=False, fontsize=8, loc="upper left", bbox_to_anchor=(0.005, 0.968), labelcolor=INK, ncol=2)
     fig.suptitle("E011B · Where E011's energy difference came from (paired, 95% CI over 5 seeds)",
                  fontsize=10, color=INK, x=0.01, ha="left")
-    fig.tight_layout(rect=(0, 0, 1, 0.97))
+    fig.tight_layout(rect=(0, 0, 1, 0.945))
     fig.savefig(out / "e011b_fallback_ablation.png", facecolor=SURF)
     plt.close(fig)
 
@@ -770,9 +776,11 @@ def md_results(R) -> str:
         for c in e11b["conditions"]:
             b = c["by_policy"]
             t3 = lambda m, d: " / ".join(num(b.get(p_, {}).get(m), d) for p_ in ("joint", "joint_fb", "joint_lag"))
-            L.append(f"| {c['plant']} | {c['degradation']} | {c['t_amb']:.0f} °C | {ci2(c['fb_vs_joint'])} | {ci2(c['lag_vs_fb'])} | "
+            lag_cell = "n/a¹" if c["plant"] == "quasi" else ci2(c["lag_vs_fb"])
+            L.append(f"| {c['plant']} | {c['degradation']} | {c['t_amb']:.0f} °C | {ci2(c['fb_vs_joint'])} | {lag_cell} | "
                      f"{ci2(c['lag_vs_joint'])} | {t3('chip_s_over_target', 0)} | {t3('slo_violations', 1)} |")
-        L.append("")
+        L += ["", "¹ With an instant plant `joint_lag` hands over to steady-state joint control by design, including joint's "
+              "original fallback, so joint_lag vs joint_fb there only measures the fallback again.", ""]
 
     e12 = R.get("E012")
     if e12:
@@ -813,6 +821,24 @@ def md_results(R) -> str:
             en = " / ".join(pct(c["fb_vs_lag"][m]["mean"], 2) if c["fb_vs_lag"].get(m) else "n/a" for m in e13["margins"])
             L.append(f"| {c['plant']} | {c['degradation']} | {c['t_amb']:.0f} °C | {ov} | {num(c['joint_lag']['chip_s_over_target'], 0)} | "
                      f"{en} | {num(c['joint_fb'][e13['m_star']]['slo_violations'], 1)} / {num(c['joint_lag']['slo_violations'], 1)} |")
+        L.append("")
+
+    e14 = R.get("E014")
+    if e14:
+        L += ["## E014 · Loop-model error and a model-free ablation", "",
+              f"Experiment `{e14['id']}`: {e14['n_runs']} runs, {e14['n_failed']} failed. `joint_lag` with its loop mass "
+              "and ramp wrong by 4× either way; `joint_meas` checks safety at max(measured supply, setpoint) with no loop "
+              "model. 40 °C ambient, both slow loops. Energy paired against exact-model `joint_lag`.", "",
+              "| Loop | Cold plate | chip·s > 80 °C, joint_lag: " + " / ".join(e14["errors"]) + " | joint_meas | "
+              "late tasks joint_lag (exact) / joint_meas | joint_meas vs joint_lag | wrong-model energy range |", "|---|---|---|---|---|---|---|"]
+        for c in e14["conditions"]:
+            ov = " / ".join(num(c["joint_lag"][err]["chip_s_over_target"], 0) for err in e14["errors"])
+            mv = c["meas_vs_lag"]
+            ev = [r["mean"] for r in c["lag_err_vs_exact"].values() if r]
+            L.append(f"| {c['plant']} | {c['degradation']} | {ov} | {num(c['joint_meas']['chip_s_over_target'], 0)} | "
+                     f"{num(c['joint_lag']['exact']['slo_violations'], 1)} / {num(c['joint_meas']['slo_violations'], 1)} | "
+                     + (f"{pct(mv['mean'], 2)} [{pct(mv['lo'], 2)}, {pct(mv['hi'], 2)}]" if mv else "n/a") + " | "
+                     + (f"{pct(min(ev), 2)} to {pct(max(ev), 2)}" if ev else "n/a") + " |")
         L.append("")
 
     L += ["## Experiment register (including superseded and failed)", "",

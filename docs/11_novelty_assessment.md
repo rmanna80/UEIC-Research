@@ -29,8 +29,10 @@ Sources read are L44–L48 in `literature_matrix.csv`, each with how it was veri
 * **EPFL two-layer MPC (L45, 2026).** Dispatches a liquid-cooled data centre with heat recovery, but states that coolant and thermal transients are outside its MPC.
 * **IBM patent US 8,909,383 (L47, 2014).** Forecasts chip power from upcoming workload and informs cooling ahead of the temperature change (feedforward). It claims no DVFS coordination and no loop-dynamics model.
 * **Lazic et al. (L23, 2018).** MPC on a real cooling plant, with server power as an exogenous disturbance.
+* **Abera & Chen (L49, 2026; workshop version NeurIPS 2025).** Co-optimise tensor parallelism, per-job DVFS and cooling for LLM serving. A 60 s cooling MPC acts on supply-air temperature and airflow over state-space rack thermal dynamics, with a temperature constraint for safety. It is air-cooled, and the text read mentions no actuator ramp limits.
+* **EPFL chip-scale MPC (L50; authors and year not verified).** Sets DVFS and microchannel coolant flow together by model predictive control, minimising chip-plus-cooling energy under a temperature limit.
 
-**Assessment.** No source found combines a facility coolant loop with a ramp-limited plant, coolant setpoint and flow as decision variables, DVFS as the fast safety actuator, and an IT-plus-cooling energy objective. That combination **may** be new, but the bar for claiming it is high:
+**Assessment.** Joint MPC over DVFS and coolant flow with a total-energy objective is long-standing at chip scale (L50). Joint DVFS-plus-cooling MPC with thermal dynamics now exists for air-cooled LLM serving (L49). What no source found combines is the facility case: a liquid loop whose plant ramps slowly, so the setpoint the controller commands is not the temperature the chips get for minutes. That narrower combination **may** be new, but the bar for claiming it is high:
 1. A simpler baseline has not been tested: steady-state joint control with a fixed safety margin on the thermal target. If a margin achieves the same safety at similar cost, the loop model adds little.
 2. The controller knows the loop exactly. Robustness to a wrong loop mass or ramp is untested.
 3. Everything is simulated, with a single well-mixed tank.

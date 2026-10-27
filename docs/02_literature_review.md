@@ -4,9 +4,9 @@
 
 * **Scope:** the twelve areas in charter §11. Priority went to peer-reviewed work, official documentation and reputable institutions, with foundational papers kept.
 * **Verification rule:** a source enters the matrix only if it was confirmed on a page fetched during the review. Every row records its URL and how it was verified. Fields that could not be confirmed say *not verified* and were not filled from memory.
-* **Extraction:** the matrix (`literature_matrix.csv`, 48 sources) records citation, year, venue, URL, evidence class, research question, method, hardware/workload, baseline, reported results (paraphrased), limitations, reproducibility, relevance, potential implementation, and how each was verified.
+* **Extraction:** the matrix (`literature_matrix.csv`, 50 sources) records citation, year, venue, URL, evidence class, research question, method, hardware/workload, baseline, reported results (paraphrased), limitations, reproducibility, relevance, potential implementation, and how each was verified.
 * **Companion files:** `reference_values.md` (published numbers usable as sanity checks, each with URL and class) and `eda_tools_status.md` (Verilator, Yosys and OpenROAD as of 2026-10-26).
-* **Known gaps:** L27 (the most relevant IBM study) has unverified authors and venue. The Horowitz per-operation table (L14) was illegible, so its 45 nm figures come from the reproduction in L15. No reputable range for chiller second-law efficiency was found. The review is 43 sources, not a systematic review, so absence of prior art here is **not** evidence of novelty.
+* **Known gaps:** L27 (the most relevant IBM study) has unverified authors and venue. The Horowitz per-operation table (L14) was illegible, so its 45 nm figures come from the reproduction in L15. No reputable range for chiller second-law efficiency was found. The review is 50 sources, not a systematic review, so absence of prior art here is **not** evidence of novelty.
 * **Corrections to the starting list:** Perseus is the system in *Reducing Energy Bloat in Large Model Training* (SOSP '24). The ASPLOS '24 power paper is titled *Characterizing Power Management Opportunities for LLMs in the Cloud*. Switch Transformer appeared in JMLR in 2022 and FrugalGPT in TMLR in 2024.
 
 ## Synthesis (charter §11 matrix questions)
