@@ -14,6 +14,7 @@ and Linux.
 """
 from __future__ import annotations
 
+import collections
 import csv
 import hashlib
 import json
@@ -137,6 +138,7 @@ class Logger:
         self._thread: threading.Thread | None = None
         self.n_samples = 0
         self.started_utc = None
+        self.recent: collections.deque = collections.deque(maxlen=100)   # latest samples, for in-run checks
 
     def set_label(self, label: str) -> None:
         self.label = label
@@ -149,7 +151,9 @@ class Logger:
             next_t = t0
             while not self._stop.is_set():
                 for d in self.devs:
-                    w.writerow(self.nv.sample(d, self.label))
+                    row = self.nv.sample(d, self.label)
+                    w.writerow(row)
+                    self.recent.append(row)
                     self.n_samples += 1
                 f.flush()
                 next_t += self.interval

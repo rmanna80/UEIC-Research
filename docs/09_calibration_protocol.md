@@ -133,6 +133,9 @@ A fitted number enters calibrated experiments only if it passes three rules. The
 | `need compute sessions at >= 4 different clocks between 0.5 x and 1 x` | Too few sweep clocks in the modelled range | Use the clocks `calib probe` suggests |
 | Empty folders in `data\calibration` from earlier failed starts | Older versions created the folder before checking PyTorch | Delete them. `fit` skips them either way |
 | GPU stays at a fixed clock after you stop | Clock locks persist | `nvidia-smi -i 0 -rgc` |
+| `ERROR: stopped this run ... the clock lock is not active` | `nvidia-smi -lgc` was not run, failed (not Administrator), or was reset | Run `nvidia-smi -i 0 -lgc <clock>,<clock>` in the Administrator window, then repeat the step |
+| `ERROR: ... the fan speed was not applied` | The fan tool is still on automatic, or the speed had not settled | Set a fixed speed (e.g. MSI Afterburner: disable auto, enter the %), wait until it shows, repeat the step |
+| `calib leak`: `power at the GPU's limit` | The point ran at the board power limit | Lock a lower clock |
 
 ## 7. What the fits can and cannot tell you
 
@@ -154,6 +157,8 @@ python -m ueic calib plan-leak --clock 2017 --fans 100,85,70,55,40   # prints th
 python -m ueic calib leak data\calibration\* --out data\calibration\M003_leakage_sweep.json
 ```
 
+* **Lock the clock first, in the Administrator window**, and check that `nvidia-smi` prints "GPU clocks set to ...". Attempt 1 (2026-10-27) ran without an active lock: the GPU boosted to 2670–2692 MHz and sat at its 250 W power limit. At the limit power cannot rise with temperature, so no leakage slope can be measured. Every run now checks itself after about 30 s and stops with an ERROR if the clock or the fan speed differs from its label, or if a sweep point is at the power limit. A stopped run is kept, marked incomplete, and left out of the fits.
+* The printed procedure pauses (`Read-Host`) before every fan change, so pasting it as one block is safe. In attempt 1 the pasted block ran all five load steps back to back with no time to change the fan; the GPU reported 47% throughout.
 * Start at the highest fan speed and step down. Don't go below your card's minimum fan speed. If the GPU passes 85 °C, stop and restore automatic fan control. Total time is about 55 minutes.
 * **Fan power.** On a desktop card the fans draw from the board power NVML reports. Faster fans make the chip cooler and also draw more power, so the uncorrected slope is biased low. The idle sessions at the same fan speeds measure that power, and `calib leak` subtracts it. The idle sessions run at default clocks, so the idle chip's own leakage barely changes between fan speeds.
 * **What counts as a point.** `calib leak` uses the last half of each load session, at one clock step and steady throughput. It leaves a point out, with the reason printed, if:

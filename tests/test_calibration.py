@@ -585,3 +585,59 @@ def test_clock_fit_leaves_fan_sweep_sessions_to_calib_leak(sessions, tmp_path):
     a, b = cal.calibrate(sessions), cal.calibrate(sessions + extra)
     assert a["overrides"] == b["overrides"]
     assert any("fan-sweep" in n for n in b["notes"])
+
+
+# ------------------------------------------------------------- M003 attempt 1 lessons: in-run guard
+def test_run_stops_early_when_the_clock_lock_is_not_active(tmp_path):
+    """M003 attempt 1 (2026-10-27): the sweep ran at the GPU's default boost (2670-2692 MHz, 250 W at the
+    power limit) although labelled clk=2347. The run must notice within seconds, not after 8 minutes."""
+    state = {"P": 250.0, "T": 73, "clk": 2685}
+    t0 = time.time()
+    with pytest.raises(cal.GuardError) as ei:
+        cal.run_session("compute", 30.0, tmp_path, label="sweep fan=60 clk=2347", interval_s=0.02,
+                        nvml=fake_nvml(state), workload=lambda budget: (time.sleep(budget), 42.0)[1], guard_after_s=0.4)
+    assert time.time() - t0 < 5.0
+    msg = " ".join(ei.value.reasons)
+    assert "clock lock is not active" in msg and "-lgc 2347,2347" in msg
+    meta = json.loads((ei.value.path / "session.json").read_text())
+    assert meta["guard_failed"] and cal.load_session(ei.value.path).guard_failed
+
+
+def test_guard_flags_a_fan_speed_that_was_not_applied_and_power_at_the_limit():
+    rows = [{"power_W": 250.0, "sm_clock_MHz": 2340.0, "fan_pct": 47.0, "power_limit_W": 250.0} for _ in range(20)]
+    probs = cal.guard_problems(rows, "sweep fan=30 clk=2347", "compute")
+    assert any("fan speed was not applied" in p for p in probs) and any("power is at the GPU's limit" in p for p in probs)
+    ok = [{"power_W": 168.0, "sm_clock_MHz": 2340.0, "fan_pct": 31.0, "power_limit_W": 250.0} for _ in range(20)]
+    assert cal.guard_problems(ok, "sweep fan=30 clk=2347", "compute") == []
+    assert cal.guard_problems(ok, "clk=2347", "compute") == []                 # ordinary clock sweep: clock only
+
+
+def test_run_with_a_held_lock_is_not_stopped(tmp_path):
+    state = {"P": 168.0, "T": 60, "clk": 2340}
+    d = cal.run_session("compute", 0.6, tmp_path, label="sweep fan=60 clk=2347", interval_s=0.02,
+                        nvml=fake_nvml(state), workload=lambda budget: 42.0, guard_after_s=0.2)
+    assert "guard_failed" not in json.loads((d / "session.json").read_text())
+
+
+def test_sweep_fit_leaves_out_power_limited_points_and_unapplied_fan_speeds(tmp_path):
+    rng = np.random.default_rng(7)
+    ds = [_write_sweep(tmp_path, "compute", f, rng) for f in (100, 85, 70)]
+    d = _write_sweep(tmp_path, "compute", 55, rng)
+    tel = (d / "telemetry.csv").read_text().splitlines()
+    hdr, body = tel[0], [r.rsplit(",", 1)[0] + ",180" for r in tel[1:]]                      # limit 180 W: at the limit
+    (d / "telemetry.csv").write_text("\n".join([hdr] + body) + "\n")
+    ds.append(d)
+    ds.append(_write_sweep(tmp_path, "compute", 40, rng, label="sweep fan=60 clk=2017"))      # reports 40%, labelled 60%
+    r = cal.fit_leakage_sweep(ds)
+    why = {x["name"]: x["reason"] for x in r["excluded"]}
+    assert "power at the GPU's limit" in why["sweep_compute_55_2017"]
+    assert "fan setting was not applied" in why["sweep_compute_40_2017"]
+    assert r["ok"] and len(r["points"]) == 3
+
+
+def test_leakage_sweep_plan_pauses_before_every_fan_change():
+    txt = cal.plan_leakage_sweep(2347, [100, 60, 30])
+    lines = txt.splitlines()
+    runs = [i for i, l in enumerate(lines) if l.startswith("python -m ueic calib run")]
+    assert len(runs) == 6 and all(lines[i - 1].startswith("Read-Host") for i in runs)
+    assert "-lgc 2347,2347" in txt and "Administrator" in txt

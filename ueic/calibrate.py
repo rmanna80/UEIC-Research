@@ -177,12 +177,59 @@ def idle_workload() -> Callable[[float], float]:
     return step
 
 
+class GuardError(RuntimeError):
+    """A run stopped itself early because the GPU was not in the state its label promises."""
+
+    def __init__(self, path: Path, reasons: list[str]):
+        self.path, self.reasons = path, reasons
+        super().__init__("; ".join(reasons))
+
+
+FAN_TOL_PCT = 8.0
+
+
+def guard_problems(rows: list[dict], label: str, kind: str) -> list[str]:
+    """Compare recent telemetry with what the session label promises (read-only check).
+
+    clk=N  -> the SM clock must be within CLOCK_HELD_TOL of N (is the lock active?)
+    fan=N  -> the reported fan speed must be within FAN_TOL_PCT of N (did the fan tool apply it?);
+              for load sessions of a fan sweep, power must also stay below the GPU's limit, since
+              at the limit power is held constant and cannot rise with temperature."""
+    probs: list[str] = []
+    m_clk, m_fan = re.search(r"clk=(\d+)", label or ""), _FAN_RE.search(label or "")
+    rows = [r for r in rows if r.get("power_W") is not None]
+    if not rows:
+        return probs
+    med = lambda k: (float(np.median(v)) if (v := [r[k] for r in rows if r.get(k) is not None]) else None)
+    clk, fan, pw, lim = med("sm_clock_MHz"), med("fan_pct"), med("power_W"), med("power_limit_W")
+    if m_clk and kind != "idle" and clk is not None:
+        want = float(m_clk.group(1))
+        if abs(clk - want) / want > CLOCK_HELD_TOL:
+            probs.append(f"the label says clk={want:.0f} but the GPU is running at {clk:.0f} MHz: the clock lock is "
+                         f"not active. In an Administrator PowerShell run: nvidia-smi -i 0 -lgc {want:.0f},{want:.0f}")
+    if m_fan and fan is not None:
+        want = float(m_fan.group(1))
+        if abs(fan - want) > FAN_TOL_PCT:
+            probs.append(f"the label says fan={want:.0f} but the GPU reports {fan:.0f}%: the fan speed was not applied "
+                         "(set a fixed speed in your fan tool and wait until it shows it)")
+    if m_fan and kind != "idle" and pw is not None and lim and pw >= 0.98 * lim:
+        probs.append(f"power is at the GPU's limit ({pw:.0f} of {lim:.0f} W): at the limit power cannot rise with "
+                     "temperature, so this point cannot measure leakage. Lock a lower clock")
+    return probs
+
+
 def run_session(kind: str, seconds: float, out_root: str | Path, label: str = "", gpu: int = 0,
                 interval_s: float = 0.1, idle_before_s: float = 0.0, nvml=None,
-                workload: Callable[[float], float] | None = None) -> Path:
+                workload: Callable[[float], float] | None = None, guard: bool = True,
+                guard_after_s: float = 30.0) -> Path:
     """Record one calibration session. `nvml` and `workload` can be injected for tests.
     Everything that can fail before measuring (PyTorch, NVML) is checked before the session
-    folder exists, so a failed start leaves nothing behind."""
+    folder exists, so a failed start leaves nothing behind.
+
+    Guard (on by default): `guard_after_s` into the run, recent telemetry is compared with the label
+    (clk=, fan=; see guard_problems). If the GPU is not in the promised state the run stops at once,
+    the session is kept and marked incomplete (session.json "guard_failed"), and GuardError is raised,
+    so a mistake costs half a minute instead of the whole procedure. Read-only: nothing is changed."""
     if kind not in KINDS:
         raise ValueError(f"kind must be one of {', '.join(KINDS)}")
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
@@ -197,16 +244,25 @@ def run_session(kind: str, seconds: float, out_root: str | Path, label: str = ""
         if d.exists() and not any(d.iterdir()):
             d.rmdir()
         raise
+    problems: list[str] = []
     log.start()
     try:
         if idle_before_s > 0:
             time.sleep(idle_before_s)
         log.set_label(kind)
         rows = []
-        t_end = time.time() + seconds
+        t0 = time.time()
+        t_end = t0 + seconds
+        checked = not guard
         while time.time() < t_end:
             thr = step(min(0.5, max(0.05, t_end - time.time())))
             rows.append((time.time(), thr))
+            if not checked and time.time() - t0 >= min(guard_after_s, 0.5 * seconds):
+                checked = True
+                recent = [r for r in list(log.recent) if r.get("label") == kind][-50:]
+                problems = guard_problems(recent, label, kind)
+                if problems:
+                    break
         log.set_label("done")
         time.sleep(min(1.0, interval_s * 5))
     finally:
@@ -216,10 +272,13 @@ def run_session(kind: str, seconds: float, out_root: str | Path, label: str = ""
         for t, v in rows:
             f.write(f"{t:.6f},{v:.6g}\n")
     unit = {"memory": "GB/s", "idle": "-"}.get(kind, "TFLOP/s")
+    failed = problems or None
     (d / "session.json").write_text(json.dumps({
         "kind": kind, "label": label, "seconds": seconds, "gpu": gpu, "throughput_unit": unit,
         "idle_before_s": idle_before_s, "device": meta["devices"][0], "telemetry_sha256": meta["csv_sha256"],
-        "provenance": "physical_measurement"}, indent=1))
+        "provenance": "physical_measurement", **({"guard_failed": failed} if failed else {})}, indent=1))
+    if failed:
+        raise GuardError(d, failed)
     return d
 
 
@@ -234,6 +293,7 @@ class Session:
     work: np.ndarray            # (n, 2) t_unix, throughput
     power_limit_W: float | None = None   # enforced limit when the session started
     device: dict[str, Any] | None = None  # NVML identity recorded in session.json
+    guard_failed: list[str] | None = None  # set when the run stopped itself early (incomplete session)
 
 
 def device_key(dev: dict[str, Any] | None) -> str:
@@ -253,7 +313,8 @@ def load_session(d: str | Path) -> Session:
     meta = json.loads((d / "session.json").read_text())
     work = np.loadtxt(d / "workload.csv", delimiter=",", skiprows=1, ndmin=2)
     return Session(d, meta["kind"], meta.get("label", ""), float(meta["device"]["max_sm_clock_MHz"] or np.nan),
-                   read_csv(d / "telemetry.csv"), work, meta["device"].get("power_limit_W"), meta["device"])
+                   read_csv(d / "telemetry.csv"), work, meta["device"].get("power_limit_W"), meta["device"],
+                   meta.get("guard_failed"))
 
 
 def steady(sess: Session, skip_s: float = 10.0) -> tuple[list[dict], np.ndarray]:
@@ -519,7 +580,12 @@ def sweep_point(sess: Session, settle_frac: float = 0.5, clock_tol_MHz: float = 
     drift = float(np.polyfit((tk - tk[0]) / 60.0, T, 1)[0]) if np.ptp(T) > 0 else 0.0   # K/min; flat at 1 C resolution
     window_min = float((tk[-1] - tk[0]) / 60.0)
     fan = float(np.nanmedian(F)) if np.isfinite(F).any() else base["label_fan_pct"]
+    lim = [r.get("power_limit_W") for r in tel if r.get("power_limit_W") is not None] or \
+        ([sess.power_limit_W] if sess.power_limit_W else [])
+    lim_W = float(np.median(lim)) if lim else None
     return {**base, "ok": True, "n": int(keep.sum()), "clock_MHz": float(np.median(clk[keep])),
+            "power_limit_W": lim_W, "at_power_limit": bool(lim_W and float(np.median(P)) >= 0.98 * lim_W),
+            "guard_failed": sess.guard_failed,
             "fan_pct": fan, "fan_source": "telemetry" if np.isfinite(F).any() else ("label" if fan is not None else None),
             "P_W": float(P.mean()), "P_se": float(P.std(ddof=1) / np.sqrt(len(P))),
             "T_C": float(T.mean()), "T_drift_K_per_min": float(drift), "window_min": window_min,
@@ -558,6 +624,18 @@ def fit_leakage_sweep(session_dirs: Iterable[str | Path], device: str | None = N
     idles = [sweep_point(x) for x in sessions if x.kind == "idle"]
     excluded = [{"name": p["name"], "reason": p["reason"]} for p in loads + idles if not p["ok"]]
     loads, idles = [p for p in loads if p["ok"]], [p for p in idles if p["ok"]]
+    for p in list(loads) + list(idles):          # problems that make a point meaningless, whatever the clock
+        why = []
+        if p.get("guard_failed"):
+            why.append("stopped early: " + p["guard_failed"][0])
+        if p["fan_source"] == "telemetry" and p["label_fan_pct"] is not None and abs(p["fan_pct"] - p["label_fan_pct"]) > FAN_TOL_PCT:
+            why.append(f"fan reported {p['fan_pct']:.0f}% but labelled {p['label_fan_pct']:.0f}%: the fan setting was not applied")
+        if p["kind"] != "idle" and p.get("at_power_limit"):
+            why.append(f"power at the GPU's limit ({p['P_W']:.0f} W): the clock lock was not holding power below the limit, "
+                       "so power cannot rise with temperature")
+        if why:
+            excluded.append({"name": p["name"], "reason": "; ".join(why)})
+            (loads if p in loads else idles).remove(p)
     if loads:
         clocks = np.array([p["clock_MHz"] for p in loads])
         vals, counts = np.unique(np.round(clocks), return_counts=True)
@@ -622,17 +700,20 @@ def plan_leakage_sweep(clock_MHz: int, fans: list[int], gpu: int = 0, seconds: i
              "# and restore automatic fan control if the GPU passes 85 C. Close other GPU and heavy CPU work.",
              f"# If you stop partway: nvidia-smi -i {gpu} -rgc  and restore automatic fan control.",
              f"python -m ueic calib check --gpu {gpu}",
-             f"nvidia-smi -i {gpu} -lgc {clock_MHz},{clock_MHz}", "",
+             f"nvidia-smi -i {gpu} -lgc {clock_MHz},{clock_MHz}    # must print 'GPU clocks set to ...'; needs Administrator", "",
              f"# 1) Load at each fan speed ({seconds // 60} min each; only the last half is used, once settled)."]
+    lines += ["#    Each step below pauses (Read-Host) until you press Enter, so pasting the whole block is safe.",
+              "#    Each run checks itself after 30 s and stops with an ERROR if the clock lock or fan speed is",
+              "#    not what its label says. If that happens, fix it and run that step again."]
     for f in fs:
-        lines += [f"#    set the fan to {f}% and wait until the tool shows it",
+        lines += [f"Read-Host \"Set the fan to {f}% in your fan tool, wait until it shows {f}%, then press Enter\"",
                   f"python -m ueic calib run --kind compute --seconds {seconds} --gpu {gpu} --label \"sweep fan={f} clk={clock_MHz}\""]
     lines += ["", f"# 2) Idle at the same fan speeds ({idle_seconds // 60} min each), to measure the fans' own power.",
               "#    Clocks back to default first, so the idle chip sits at its lowest clock and voltage and its",
               "#    own leakage barely changes between fan speeds.",
               f"nvidia-smi -i {gpu} -rgc    # reset clocks"]
     for f in fs:
-        lines += [f"#    set the fan to {f}%",
+        lines += [f"Read-Host \"Set the fan to {f}%, wait until it shows {f}%, then press Enter\"",
                   f"python -m ueic calib run --kind idle --seconds {idle_seconds} --gpu {gpu} --label \"sweep fan={f}\""]
     lines += ["", "# restore automatic fan control in your fan tool", "",
               "python -m ueic calib leak data\\calibration\\* --out data\\calibration\\M003_leakage_sweep.json"]
@@ -685,11 +766,15 @@ def calibrate(session_dirs: Iterable[str | Path], cfg=None, device: str | None =
     from .params import make_config
     cfg = cfg or make_config()
     loaded = [load_session(d) for d in session_dirs]
-    sweep = [s for s in loaded if s.kind == "idle" or _FAN_RE.search(s.label or "")]
-    sessions, device_notes = select_device([s for s in loaded if s not in sweep], device)
+    stopped = [s for s in loaded if s.guard_failed]
+    sweep = [s for s in loaded if (s.kind == "idle" or _FAN_RE.search(s.label or "")) and s not in stopped]
+    sessions, device_notes = select_device([s for s in loaded if s not in sweep and s not in stopped], device)
     if sweep:
         device_notes.append(f"left out {len(sweep)} fan-sweep session(s) (labels with fan=, or idle); "
                             "`calib leak` fits those")
+    if stopped:
+        device_notes.append(f"left out {len(stopped)} session(s) that stopped themselves early: "
+                            + "; ".join(f"{s.path.name}: {s.guard_failed[0]}" for s in stopped))
     summ = [summarize(s) for s in sessions]
     by = lambda k: [x for x in summ if x["kind"] == k]
     out: dict[str, Any] = {

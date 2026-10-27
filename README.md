@@ -27,7 +27,7 @@ py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
-python -m pytest                                   # 118 tests, a few minutes
+python -m pytest                                   # 123 tests, a few minutes
 python -m ueic verify                              # check the results database has not been altered
 python -m ueic params                              # print the assumptions register
 ```

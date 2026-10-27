@@ -91,6 +91,7 @@ def main(argv: list[str] | None = None) -> int:
     cr.add_argument("--seconds", type=float, default=60); cr.add_argument("--gpu", type=int, default=0)
     cr.add_argument("--label", default=""); cr.add_argument("--idle-before", type=float, default=0.0)
     cr.add_argument("--out", default=str(ROOT / "data" / "calibration"))
+    cr.add_argument("--no-guard", action="store_true", help="do not stop early when clock or fan differ from the label")
     cf = csub.add_parser("fit"); cf.add_argument("sessions", nargs="+"); cf.add_argument("--out", required=True)
     cf.add_argument("--device", default=None, help="part of the GPU name or UUID, when sessions from several GPUs are present")
     ci = csub.add_parser("ingest"); ci.add_argument("calibration"); ci.add_argument("--key", default="M001")
@@ -213,8 +214,15 @@ def main(argv: list[str] | None = None) -> int:
                           "the fit will record that its top clock was set by a limit.")
                 return 0
             if a.ccmd == "run":
-                print(cal.run_session(a.kind, a.seconds, a.out, a.label, a.gpu, idle_before_s=a.idle_before))
+                print(cal.run_session(a.kind, a.seconds, a.out, a.label, a.gpu, idle_before_s=a.idle_before,
+                                      guard=not a.no_guard))
                 return 0
+        except cal.GuardError as e:
+            print(f"ERROR: stopped this run after about 30 s. Kept as an incomplete session (fits leave it out): {e.path}")
+            for r in e.reasons:
+                print("  - " + r)
+            print("Fix that, then run this same step again.")
+            return 3
         except RuntimeError as e:
             print(f"error: {e}\n(nothing was recorded; `python -m ueic calib check` diagnoses the environment)")
             return 2
