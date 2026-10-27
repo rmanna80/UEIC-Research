@@ -233,7 +233,7 @@ def compute_all(store: Store, threshold: float = 0.01) -> dict[str, Any]:
         "E001": e001(store, threshold), "E002": e002(store, threshold), "E003": e003(store, threshold),
         "E004": e004(store), "E005": e005(store, threshold),
         "E006": e006(store, threshold), "E007": e007(store, threshold), "E008": e008(store, threshold),
-        "M001": m001(store), "E001C": e001c(store, threshold), "E009": e009(store, threshold), "E010": e010(store, threshold), "E011": e011(store, threshold), "E011B": e011b(store, threshold), "E012": e012(store, threshold),
+        "M001": m001(store), "E001C": e001c(store, threshold), "E009": e009(store, threshold), "E010": e010(store, threshold), "E011": e011(store, threshold), "E011B": e011b(store, threshold), "E012": e012(store, threshold), "E013": e013(store, threshold),
         "assumptions": assumptions_table(),
         "research_log": store.research_log(),
         "experiments": [{"id": x["id"], "key": x["key"], "status": x["status"], "title": x["spec"]["title"],
@@ -325,6 +325,7 @@ def verdicts(R: dict[str, Any]) -> list[dict[str, Any]]:
     out += verdicts_e011(R)
     out += verdicts_e011b(R)
     out += verdicts_e012(R)
+    out += verdicts_e013(R)
     return out
 
 
@@ -909,6 +910,82 @@ def verdicts_e011b(R: dict[str, Any]) -> list[dict[str, Any]]:
         {"key": "E011B H5", "state": st(e["H5"]["supported"]),
          "text": f"{e['H5']['compared']}/{e['H5']['expected']} joint and joint_lag runs compared with E011; "
                  f"{len(e['H5']['mismatches'])} differ{fmt_fail(e['H5']['mismatches'][:3])}."},
+    ]
+
+
+E013_MARGINS = (0, 3, 6, 9)
+
+
+def e013(store: Store, threshold: float) -> dict[str, Any] | None:
+    """E013: joint_fb planning against 80 - m C vs joint_lag (no margin)."""
+    eid = store.latest_experiment("E013")
+    if not eid:
+        return None
+    exp = store.experiment(eid)
+    runs = store.runs(eid)
+    sc0 = exp["spec"]["design"]["scenarios"][0]
+    idx = A.index_runs(runs)
+    bases = list(dict.fromkeys(v["label"].rsplit("|", 1)[0] for v in exp["spec"]["design"]["variants"]))
+    get = lambda base, m, pol: idx.get((sc0, f"{base}|m{m}"), {}).get(pol, {})
+    mean = lambda d, k: _f(float(np.mean([x[k] for x in d.values()]))) if d else None
+
+    def rel(base, ma, pa, mb, pb, k="E_per_success_kJ"):
+        a, b = get(base, ma, pa), get(base, mb, pb)
+        seeds = sorted(set(a) & set(b))
+        if not seeds:
+            return None
+        m_, lo, hi = A.t_ci(np.array([a[x][k] / b[x][k] - 1.0 for x in seeds]))
+        return {"mean": _f(m_), "lo": _f(lo), "hi": _f(hi), "n": len(seeds)}
+    conds = []
+    for b in bases:
+        dg, amb, pl = b.split("|")
+        row = {"label": b, "degradation": dg, "t_amb": float(amb[3:]), "plant": pl,
+               "joint_lag": {k: mean(get(b, 0, "joint_lag"), k) for k in E010_METRICS},
+               "joint_fb": {m: {k: mean(get(b, m, "joint_fb"), k) for k in E010_METRICS} for m in E013_MARGINS},
+               "fb_vs_lag": {m: rel(b, m, "joint_fb", 0, "joint_lag") for m in E013_MARGINS}}
+        conds.append(row)
+    over = lambda c, m: c["joint_fb"][m]["chip_s_over_target"] or 0.0
+    safe = [m for m in E013_MARGINS[1:] if all(over(c, m) == 0 for c in conds)]
+    m_star = safe[0] if safe else E013_MARGINS[-1]
+    lag_vs_star = {c["label"]: rel(c["label"], 0, "joint_lag", m_star, "joint_fb") for c in conds}
+    h1 = [c["label"] for c in conds if over(c, 0) > 0]
+    h2 = [c["label"] for c in conds if over(c, 3) > 0]
+    h3_ok = [lab for lab, r in lag_vs_star.items() if r and r["hi"] is not None and r["hi"] < 0]
+    h4 = [c["label"] for c in conds if (c["joint_lag"]["slo_violations"] or 0) > (c["joint_fb"][m_star]["slo_violations"] or 0) + 1]
+    h5 = [c["label"] for c in conds if (c["joint_lag"]["chip_s_over_target"] or 0) > 0]
+    return {"id": eid, "spec": exp["spec"], "conditions": conds, "margins": list(E013_MARGINS), "m_star": m_star,
+            "all_safe_margins": safe, "lag_vs_m_star": lag_vs_star, "n_runs": len(runs),
+            "n_failed": sum(r["status"] != "completed" for r in runs),
+            "H1": {"supported": bool(h1), "conditions": h1}, "H2": {"supported": bool(h2), "conditions": h2},
+            "H3": {"supported": len(h3_ok) >= 9, "n_cheaper": len(h3_ok), "n": len(conds)},
+            "H4": {"supported": not h4, "failures": h4}, "H5": {"supported": not h5, "failures": h5}}
+
+
+def verdicts_e013(R: dict[str, Any]) -> list[dict[str, Any]]:
+    e = R.get("E013")
+    if not e:
+        return []
+    st = lambda ok: "supported" if ok else "not supported"
+    tot = lambda m: sum(c["joint_fb"][m]["chip_s_over_target"] or 0 for c in e["conditions"])
+    ms = e["m_star"]
+    lv = [r["mean"] for r in e["lag_vs_m_star"].values() if r]
+    return [
+        {"key": "E013 H1", "state": st(e["H1"]["supported"]),
+         "text": f"joint_fb without margin above 80 C in {len(e['H1']['conditions'])}/{len(e['conditions'])} conditions "
+                 f"(chip-s summed over conditions: {tot(0):.0f})."},
+        {"key": "E013 H2", "state": st(e["H2"]["supported"]),
+         "text": "Chip-s above 80 C summed over conditions by margin: "
+                 + ", ".join(f"{m} K {tot(m):.0f}" for m in e["margins"])
+                 + (f"; smallest margin safe everywhere {e['all_safe_margins'][0]} K." if e["all_safe_margins"]
+                    else "; no margin tested was safe everywhere.")},
+        {"key": "E013 H3", "state": st(e["H3"]["supported"]),
+         "text": f"joint_lag vs joint_fb with a {ms} K margin: energy {100 * min(lv):+.2f}% to {100 * max(lv):+.2f}%; "
+                 f"cheaper (CI below 0) in {e['H3']['n_cheaper']}/{e['H3']['n']} conditions (needed 9)."},
+        {"key": "E013 H4", "state": st(e["H4"]["supported"]),
+         "text": f"joint_lag more than 1 late task above joint_fb ({ms} K margin) in {len(e['H4']['failures'])} conditions"
+                 + (": " + ", ".join(e["H4"]["failures"]) if e["H4"]["failures"] else "") + "."},
+        {"key": "E013 H5", "state": st(e["H5"]["supported"]),
+         "text": f"joint_lag above 80 C in {len(e['H5']['failures'])}/{len(e['conditions'])} conditions."},
     ]
 
 

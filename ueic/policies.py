@@ -357,5 +357,25 @@ class JointFallbackPolicy(JointPolicy):
         return Action(s, t, f, note.replace("joint_lag", "joint_fb"))
 
 
+class JointMeasuredPolicy(JointPolicy):
+    """Ablation control for E014: lag-aware in the simplest way, with no loop model.
+
+    Thermal feasibility is checked at max(measured supply temperature, commanded setpoint), i.e. the
+    controller never assumes a colder setpoint has already arrived; it ignores the plant's ramp limit
+    and the tank's dynamics. Same overload fallback as joint_lag and joint_fb. Where it differs from
+    joint_lag shows what joint_lag's loop model adds."""
+    name = "joint_meas"
+
+    def _decide(self, obs):
+        cfg = self.cfg
+        Tg, Fg = t_grid(cfg), f_grid(cfg)
+        T_cmd = np.broadcast_to(Tg[:, None], (len(Tg), len(Fg))).astype(float)
+        dynamic = float(cfg.loop_mass_kg) > 0 or float(cfg.tsup_ramp_K_per_min) > 0
+        # with a quasi-steady plant the command applies at once, so the last setpoint is irrelevant
+        T_seen = np.maximum(T_cmd, float(obs.T_sup_actual)) if dynamic and np.isfinite(obs.T_sup_actual) else T_cmd
+        s, t, f, note = optimise_joint(cfg, planned_demand(obs, cfg), obs.T_amb, T_seen=T_seen)
+        return Action(s, t, f, note.replace("joint_lag", "joint_meas"))
+
+
 POLICIES = {p.name: p for p in (FixedPolicy, ComputeOnlyPolicy, CoolingOnlyPolicy, IndependentPolicy, JointPolicy,
-                                JointRobustPolicy, JointLagPolicy, JointFallbackPolicy)}
+                                JointRobustPolicy, JointLagPolicy, JointFallbackPolicy, JointMeasuredPolicy)}

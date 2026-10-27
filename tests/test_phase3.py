@@ -240,3 +240,27 @@ def test_variants_may_run_a_subset_of_policies():
     assert got == sorted([("a", p, s) for p in ("joint", "joint_fb") for s in (0, 1)] + [("b", "joint_fb", s) for s in (0, 1)])
     with pytest.raises(KeyError):
         expand_cells({"design": {**spec["design"], "variants": [{"label": "c", "policies": ["nope"]}]}})
+
+
+def test_joint_meas_checks_safety_at_the_warmer_of_measured_and_commanded_supply():
+    """E014 ablation. Quasi-steady plant: identical to joint_fb (the command applies at once). Dynamic plant:
+    feasibility is judged at max(measured supply, setpoint), never at a colder setpoint that has not arrived."""
+    from ueic.policies import POLICIES, Observation, t_grid
+    cfg = make_config()
+    r = simulate(cfg, SHORT, POLICIES["joint_meas"](cfg), seed=6, record_timeseries=False)
+    b = simulate(cfg, SHORT, POLICIES["joint_fb"](cfg), seed=6, record_timeseries=False)
+    assert r.m("energy_balance_rel_residual") < 1e-9 and r.m("E_per_success_kJ") == b.m("E_per_success_kJ")
+    dcfg = make_config({"loop_mass_kg": 40.0, "tsup_ramp_K_per_min": 1.0})
+    pol = POLICIES["joint_meas"](dcfg)
+    seen = {}
+    import ueic.policies as P
+    orig = P.optimise_joint
+    try:
+        P.optimise_joint = lambda cfg_, D, T_amb, T_seen=None: (seen.setdefault("T", T_seen), orig(cfg_, D, T_amb, T_seen=T_seen))[1]
+        hot = Observation(t=0.0, D_est=np.array([1.0, 1.0]), backlog=np.zeros(2), T_amb=25.0, p_chip_peak=500.0,
+                          q_chips=4000.0, T_j_peak=60.0, T_sup_actual=41.0)
+        pol.decide(hot)
+    finally:
+        P.optimise_joint = orig
+    tg = t_grid(dcfg)
+    assert np.all(seen["T"][tg < 41.0] == 41.0) and np.all(seen["T"][tg >= 41.0] == np.broadcast_to(tg[tg >= 41.0][:, None], seen["T"][tg >= 41.0].shape))

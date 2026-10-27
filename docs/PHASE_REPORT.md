@@ -174,6 +174,39 @@ What this means for the main research question: **with a real chip's temperature
 
 What this means: **joint control's case on real silicon is thermal safety under stress, and it holds only if the controller can anticipate a slow coolant loop.** With an instant plant it kept every chip below 80 °C where independent control overheated in 6 of 9 conditions, and saved energy while doing it. With a 40 kg loop and a 1 K/min ramp, in the two hottest fouled conditions it planned for a steady state the loop could not reach in time and overheated, in the worst case more than independent control. This repeats E006's finding under harsher conditions and makes lag-aware planning the next step.
 
+**E011: lag-aware joint control (pre-registered, 405 runs, 0 failed).** `joint_lag` tracks the plant's ramp-limited setpoint and checks that clocks and flow are safe at the supply temperature the chips will see before the next decision. The design is E010's grid plus a 150 kg loop with a 0.25 K/min ramp.
+
+| Hypothesis | Verdict | Result |
+|---|---|---|
+| H1: joint_lag never throttles (27 conditions) | **supported** | 0 of 27 |
+| H2: joint_lag never exceeds 80 °C with a slow loop (18) | **supported** | 0 chip·s; steady-state joint 17,218 and independent 10,008, summed over the 18 |
+| H3: identical to joint with an instant plant (9) | **supported** | runs bitwise identical, seed by seed. The first version of the test compared seed means and failed on a 3.6e-15 kJ summation-order difference; corrected and disclosed |
+| H4: no more energy than joint; less than independent where independent overheated | **supported**, but see E011B | −8.8% to 0.0% vs joint |
+| H5: at most 2 more late tasks per run than the worse of joint and independent | **not supported** | severe fouling at 40 °C on both slow loops: 7.6 vs 2.0 per run (of about 3,600 tasks) |
+
+**The energy result was confounded.** joint_lag was about 4.6% cheaper than joint even where lag-awareness should change nothing. A diagnostic of one cell (clean plates, 20 °C, 40 kg loop, seed 0) traced the gap to the 24 of 240 intervals where demand exceeded planned capacity. There joint runs every clock at maximum, while joint_lag's fallback kept memory-bound work at the lowest clock, which costs no throughput because M001 measured memory-bound throughput as independent of SM clock.
+
+**E011B: ablation (registered after E011's results, 405 runs, 0 failed).** `joint_fb` is steady-state joint control with joint_lag's fallback.
+
+| Hypothesis | Verdict | Result |
+|---|---|---|
+| H1: the fallback saves > 2% in all 27 conditions | **supported** | joint_fb vs joint −4.50% to −4.74%, every CI upper bound below −3.3% |
+| H2: lag-awareness costs nothing where it is not needed (14 benign slow-loop conditions, ±0.5%) | **supported** | exactly 0.00%: identical decisions |
+| H3: lag-awareness, not the fallback, gives the safety | **supported** | where joint overheated, joint_fb still did (1,188–6,155 chip·s); joint_lag 0 |
+| H4: the late tasks are the price of lag-awareness | **supported** | severe/40 °C: joint 2.0, joint_fb 2.2–2.6, joint_lag 7.6 per run |
+| H5: joint and joint_lag reproduce E011 run by run | **supported** | 270 of 270 identical |
+
+What E011 and E011B mean together:
+* **Lag-awareness alone** removed all overheating under slow loops.
+  * Where it was not needed it changed nothing.
+  * With moderate fouling at 40 °C it cost 1.7% energy to avoid 1,200–1,400 chip·s above 80 °C.
+  * With severe fouling at 40 °C it used 3.5–4.3% *less* energy than the overheating alternative, but about 5 more late tasks per run, because it slowed clocks while the loop caught up.
+* **The overload fallback** is a separate 4.5–4.7% saving. It is not new: it is the phase-aware DVFS insight (L09–L11) applied when capacity runs short.
+  * Earlier experiments gave independent and joint control the same all-clocks-to-maximum fallback, so their comparisons stay like-for-like.
+  * Absolute clock-control savings were understated wherever overload occurred.
+
+All of this is simulation, and the controller knows the loop's mass and ramp exactly. Whether a fixed safety margin does as well is tested in E013.
+
 **Failures and corrections during this measurement:**
 * The first desktop fit reported two failed fits (`v_min_ratio` = 0.3 and `kappa_leak` = 0.2, both exactly at their bounds) as class-B measurements. Acceptance rules R1–R3 now stop that. They were set after seeing that fit summary and before examining the raw data, and this is disclosed.
 * The tool reported "clock held down by a power cap" at 35% of the power limit. On this GPU the driver sets that flag whenever clocks are locked. A flag now counts as a limit only if the clock was not held or power was near the limit.

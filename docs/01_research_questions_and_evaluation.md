@@ -52,5 +52,10 @@
 | M002 | Leakage warm-up, attempt 2 (RTX 5070, 2347 MHz) | 1 session; leakage slope measured, coefficient not identified (`10`) |
 | E009 | Joint vs independent with leakage matched to the measured temperature slope | 6 leakage variants × 2 policies × 6 scenarios × 5 seeds |
 | E010 | Thermal safety under cooling degradation and heat (measured leakage) | 3 cold-plate states × 3 ambients × 2 plants × 3 policies × 5 seeds |
+| E011 | Lag-aware joint control under cooling degradation, heat and slow coolant loops | 3 cold-plate states × 3 ambients × 3 plants × 3 policies × 5 seeds |
+| E011B | Ablation of E011: overload fallback vs lag-awareness (registered after E011's results) | E011's 27 conditions × 3 policies (joint, joint_fb, joint_lag) × 5 seeds |
+| E012 | Warm water on real-silicon parameters: supply temperature, reusable heat, cost of a 40 °C floor | 2 parameter worlds × 2 floors × 2 plants × 3 scenarios × 3 policies × 5 seeds |
+| E013 | Fixed thermal margin vs lag-aware planning | 12 slow-loop conditions × (joint_fb at 4 margins + joint_lag) × 5 seeds |
+| M003 | Leakage slope at fixed fan speeds (tooling ready; to be run by the user) | 5 load + 5 idle sessions on one GPU (`09` §8) |
 
 Full pre-registered specs, including hypotheses, variables, controls and limitations, are in `experiments/*.json`. They are frozen in the database at registration.

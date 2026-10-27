@@ -123,6 +123,10 @@ def _slim(R: dict) -> dict:
     e11b = R.get("E011B")
     D["E011B"] = ({k: e11b[k] for k in ("id", "conditions", "n_runs", "n_failed", "H1", "H2", "H3", "H4", "H5")}
                   | {"disclosure": e11b["spec"].get("disclosure", "")}) if e11b else None
+    e13 = R.get("E013")
+    D["E013"] = ({k: e13[k] for k in ("id", "conditions", "margins", "m_star", "all_safe_margins", "n_runs", "n_failed",
+                                      "H1", "H2", "H3", "H4", "H5")}
+                 | {"disclosure": e13["spec"].get("disclosure", "")}) if e13 else None
     e12 = R.get("E012")
     D["E012"] = ({k: e12[k] for k in ("id", "cells", "floor_penalty", "n_runs", "n_failed", "H1", "H2", "H3", "H4", "H5")}
                  | {"disclosure": e12["spec"].get("disclosure", "")}) if e12 else None
@@ -388,6 +392,11 @@ renderers.overview = sec => { sec.innerHTML = '';
        const v = (c, p, m) => ((c.by_policy[p] || {})[m] || 0); const io = q.filter(c => v(c, 'independent', 'chip_s_over_target') > 0).length, it = q.filter(c => v(c, 'independent', 'chip_s_throttled') > 0).length;
        const jo = q.filter(c => v(c, 'joint', 'chip_s_over_target') > 0).length, jd = dy.filter(c => v(c, 'joint', 'chip_s_over_target') > 0);
        return `Thermal safety is where coordination earns its keep (E010). Across clean and fouled cold plates and 20–40 °C ambient, independent control went above 80 °C in ${io} of 9 conditions and throttled in ${it}; joint control in ${jo}, at no energy cost. But with a slow coolant loop joint control overheated with ${jd.map(c => c.degradation + ' plates at ' + c.t_amb + ' °C').join(' and ') || 'no condition'}, in the worst case more than independent control: it plans for a steady state the loop cannot reach in time.`; })()] : [])
+     .concat(D.E011B ? [(() => { const cs = D.E011B.conditions, v = (c, p, m) => ((c.by_policy[p] || {})[m] || 0);
+       const fb = range(cs.map(c => c.fb_vs_joint && c.fb_vs_joint.mean).filter(fin));
+       const hot = cs.filter(c => v(c, 'joint_fb', 'chip_s_over_target') > 0), lagOver = cs.filter(c => v(c, 'joint_lag', 'chip_s_over_target') > 0).length;
+       const sev = cs.filter(c => c.label.startsWith('severe|amb40|dyn'));
+       return `Planning with the coolant loop’s delay fixes that (E011, E011B). The lag-aware controller never exceeded 80 °C in 27 conditions, where steady-state joint control overheated in ${hot.length} slow-loop conditions; where the delay did not matter it made identical decisions. Its price was service in the worst case: about ${fmt(Math.min(...sev.map(c => v(c, 'joint_lag', 'slo_violations') - v(c, 'joint_fb', 'slo_violations'))), 0)} more late tasks per run with severe fouling at 40 °C. A separate ${mag(fb[1], 1)}–${mag(fb[0], 1)} saving first credited to it came from a different overload fallback: keeping memory-bound work at a low clock when capacity runs short.`; })()] : [])
      .forEach(t => ul.appendChild(el('li', {}, t)));
     sec.appendChild(el('h2', {}, 'What the simulation shows')); sec.appendChild(ul);
     const p = el('div', {class: 'panel'}); p.appendChild(el('h3', {}, 'Energy per successful task, all scenarios (kJ, mean and 95% CI over 10 paired seeds)'));
@@ -395,9 +404,9 @@ renderers.overview = sec => { sec.innerHTML = '';
     groupedBars(host, {groups: SC, series: P, get: (s, k) => E1.table[s][k].E_per_success_kJ, yLabel: 'kJ per successful task', groupLabel: scName,
       extra: (s, k, v) => { const c = cmp(k, 'fixed', s); return [['mean', fmt(v.mean, 2) + ' kJ'], ['95% CI', `${fmt(v.lo, 2)} – ${fmt(v.hi, 2)}`]].concat(c ? [['vs fixed', pct(c.mean, 1)]] : []); }}); }
   const oq = el('ul', {class: 'findings'});
-  ['How temperature-sensitive is real leakage? The first warm-up on a real GPU could not separate leakage from its temperature coefficient. The slope it did measure suggests the registry overstates temperature sensitivity 2.5–4× (Hardware tab). If so, the benefit of colder coolant is overstated. A better warm-up is the next measurement.',
+  ['How temperature-sensitive is real leakage? Two warm-ups on an RTX 5070 measured board power rising about 0.13% per K, about a third of the registry’s value and close to what a 2012 Kepler GPU showed. But the window was only 4 K. A sweep at fixed fan speeds (M003, tooling ready) would widen it to about 20 K.',
    'The simulator’s straight-line voltage–frequency model gets the shape of the measured power curve wrong: small clock cuts from the top save more than modelled, deep cuts less. DVFS magnitudes need a measured voltage–frequency form before they can be trusted.',
-   'Under a slow coolant loop the joint controller loses thermal margin (E006), and in the hottest fouled conditions it overheated more than independent control (E010). Planning over a short horizon with the loop model is the next controller change.',
+   'Lag-aware planning removed the slow-loop overheating in simulation (E011), with a controller that knows the loop exactly. Two questions remain: whether a plain safety margin does as well (E013), and how it copes when its loop model is wrong.',
    'Is there any workload where a custom accelerator would beat software and existing parts? Current evidence does not justify one; see docs/08_hardware_feasibility.md.'].forEach(t => oq.appendChild(el('li', {}, t)));
   sec.appendChild(el('h2', {}, 'Open questions')); sec.appendChild(oq); };
 
@@ -630,6 +639,17 @@ renderers.hardware = sec => { sec.innerHTML = ''; const M = D.M001, C = D.E001C;
     const rows = E11B.conditions.map(c => `<tr><td class="mono">${plantName[c.plant] || c.plant}</td><td>${c.degradation}</td><td class="n">${c.t_amb} °C</td><td class="n">${pc(c.fb_vs_joint)}</td><td class="n">${pc(c.lag_vs_fb)}</td><td class="n">${t3(c, 'chip_s_over_target', 0)}</td><td class="n">${t3(c, 'slo_violations', 1)}</td></tr>`);
     p.appendChild(el('div', {class: 'scroll'}, `<table><thead><tr><th>Plant</th><th>Cold plate</th><th class="n">Ambient</th><th class="n">Fallback (joint_fb vs joint)</th><th class="n">Lag-awareness (joint_lag vs joint_fb)</th><th class="n">chip·s > 80 °C (J / FB / JL)</th><th class="n">late tasks (J / FB / JL)</th></tr></thead><tbody>${rows.join('')}</tbody></table>`));
     p.appendChild(el('p', {class: 'note'}, 'Registered after E011’s results were seen. Disclosure: ' + E11B.disclosure.replace(/</g, '&lt;')));
+    sec.appendChild(p);
+  }
+  const E13 = D.E013;
+  if (E13) { const p = el('div', {class: 'panel'}); p.appendChild(el('h3', {}, 'E013 · Would a fixed safety margin do the same job?'));
+    p.appendChild(el('p', {class: 'note'}, 'Steady-state joint control (with the same overload fallback as the lag-aware controller) plans against 80 − m °C. The lag-aware controller plans against 80 °C. Time above target is always measured against 80 °C. Energy is joint_fb relative to joint_lag, paired over 5 seeds. ' + (E13.all_safe_margins.length ? `Smallest margin safe in every condition: ${E13.all_safe_margins[0]} K.` : 'No margin tested was safe in every condition.')));
+    const plantName = {dyn40: '40 kg loop', dyn150: '150 kg loop'};
+    const pc = x => x && fin(x.mean) ? pct(x.mean, 2) : '–';
+    const head = E13.margins.map(m => `<th class="n">m = ${m} K</th>`).join('');
+    const rows = E13.conditions.map(c => `<tr><td class="mono">${plantName[c.plant] || c.plant}</td><td>${c.degradation}</td><td class="n">${c.t_amb} °C</td>${E13.margins.map(m => `<td class="n">${fmt(c.joint_fb[m].chip_s_over_target, 0)} <span class="note">${pc(c.fb_vs_lag[m])}</span></td>`).join('')}<td class="n">${fmt(c.joint_lag.chip_s_over_target, 0)}</td></tr>`);
+    p.appendChild(el('div', {class: 'scroll'}, `<table><thead><tr><th>Loop</th><th>Cold plate</th><th class="n">Ambient</th>${head}<th class="n">joint_lag</th></tr></thead><tbody>${rows.join('')}</tbody></table>`));
+    p.appendChild(el('p', {class: 'note'}, 'Cells: chip·s above 80 °C (seed mean), then energy per successful task relative to joint_lag. Pre-registered. Disclosure: ' + E13.disclosure.replace(/</g, '&lt;')));
     sec.appendChild(p);
   }
   const E12 = D.E012;

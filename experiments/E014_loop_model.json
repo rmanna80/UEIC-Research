@@ -1,0 +1,652 @@
+{
+  "key": "E014",
+  "title": "Robustness of lag-aware control to loop-model error, and a model-free ablation",
+  "research_question": "Does lag-aware joint control stay safe when its model of the coolant loop's mass and the plant's ramp limit is wrong by 4x, and does it need a loop model at all?",
+  "hypothesis": "Conditions: the 6 slow-loop conditions of E011 at 40 C ambient (3 cold-plate states x 2 loops), S6 profile, measured leakage slope and clock sensitivity. H1 (replication): joint_lag with the exact loop model records zero chip-seconds above 80 C in all 6. H2 (robust to model error): joint_lag records zero chip-seconds above 80 C in all 6 conditions with each of the four wrong models (loop mass x0.25 and x4, ramp x0.25 and x4). H3 (no model needed for safety): joint_meas records at most 10 chip-seconds above 80 C (seed mean) in each of the 6 conditions and never throttles. H4 (no model needed for cost): joint_meas's energy per successful task is within +/-1% of joint_lag's (95% CI of joint_meas / joint_lag - 1 inside +/-1%) and its late tasks within 1 per run, in all 6. H5 (model error costs little): for each wrong model, joint_lag's energy per successful task is within +/-1% of the exact-model joint_lag's (95% CI) in all 6 conditions.",
+  "null_hypothesis": "Lag-aware control's safety depends on an accurate loop model.",
+  "independent_variables": [
+    "cold-plate state (3)",
+    "loop (2)",
+    "loop-model error (5, joint_lag)",
+    "policy (joint_lag, joint_meas)"
+  ],
+  "dependent_variables": [
+    "chip_s_over_target",
+    "chip_s_throttled",
+    "peak_T_j_C",
+    "slo_violations",
+    "success_rate",
+    "E_per_success_kJ"
+  ],
+  "controlled_variables": [
+    "S6 load profile",
+    "seeds 0-4",
+    "warm start",
+    "leakage matched to the measured slope (kappa 0.02)",
+    "clock sensitivity from M001",
+    "twin knows the true cold-plate state and the loop's mass and ramp limit"
+  ],
+  "baseline": "joint_lag with the exact loop model within each condition",
+  "configuration": "As E011 at 40 C ambient on both slow loops. True loops {'dyn40': (40.0, 1.0), 'dyn150': (150.0, 0.25)} (mass kg, ramp K/min); model errors {'exact': (1.0, 1.0), 'mass_x0.25': (0.25, 1.0), 'mass_x4': (4.0, 1.0), 'ramp_x0.25': (1.0, 0.25), 'ramp_x4': (1.0, 4.0)} (factors on mass, ramp) applied to the controller's model only.",
+  "evaluation_criteria": "Thermal outcomes and late tasks as seed means over 5 seeds; energy as paired relative differences with 95% t-CI (joint_meas and wrong-model joint_lag paired seed by seed with exact-model joint_lag in the same condition).",
+  "known_limitations": "Everything in E011's limitations, including the single well-mixed tank in both simulator and controller: a model-structure error (stratification, transport delay) is not tested. Model errors are applied one at a time. 40 C ambient only.",
+  "disclosure": "Known when written: E011 and E011B results; E012 and E013 were running or queued and none of their results had been looked at. joint_meas was exercised only by unit tests (one 30-minute run of the default configuration and one decision on a constructed observation). No E014 cell was run before registration.",
+  "design": {
+    "scenarios": [
+      "S6_degraded_cooling"
+    ],
+    "policies": [
+      "joint_lag",
+      "joint_meas"
+    ],
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "timeseries_seeds": [
+      0
+    ],
+    "param_overrides": {
+      "beta_compute": 0.983,
+      "beta_memory": 0.0,
+      "kappa_leak": 0.02,
+      "p_leak_ref": 28.962
+    },
+    "variants": [
+      {
+        "label": "clean|amb40|dyn40|exact",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {},
+        "policies": [
+          "joint_lag",
+          "joint_meas"
+        ]
+      },
+      {
+        "label": "clean|amb40|dyn40|mass_x0.25",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 10.0,
+          "tsup_ramp_K_per_min": 1.0
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "clean|amb40|dyn40|mass_x4",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 160.0,
+          "tsup_ramp_K_per_min": 1.0
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "clean|amb40|dyn40|ramp_x0.25",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 0.25
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "clean|amb40|dyn40|ramp_x4",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 4.0
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "moderate|amb40|dyn40|exact",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {},
+        "policies": [
+          "joint_lag",
+          "joint_meas"
+        ]
+      },
+      {
+        "label": "moderate|amb40|dyn40|mass_x0.25",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 10.0,
+          "tsup_ramp_K_per_min": 1.0
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "moderate|amb40|dyn40|mass_x4",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 160.0,
+          "tsup_ramp_K_per_min": 1.0
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "moderate|amb40|dyn40|ramp_x0.25",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 0.25
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "moderate|amb40|dyn40|ramp_x4",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 4.0
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "severe|amb40|dyn40|exact",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {},
+        "policies": [
+          "joint_lag",
+          "joint_meas"
+        ]
+      },
+      {
+        "label": "severe|amb40|dyn40|mass_x0.25",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 10.0,
+          "tsup_ramp_K_per_min": 1.0
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "severe|amb40|dyn40|mass_x4",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 160.0,
+          "tsup_ramp_K_per_min": 1.0
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "severe|amb40|dyn40|ramp_x0.25",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 0.25
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "severe|amb40|dyn40|ramp_x4",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 4.0
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "clean|amb40|dyn150|exact",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {},
+        "policies": [
+          "joint_lag",
+          "joint_meas"
+        ]
+      },
+      {
+        "label": "clean|amb40|dyn150|mass_x0.25",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 37.5,
+          "tsup_ramp_K_per_min": 0.25
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "clean|amb40|dyn150|mass_x4",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 600.0,
+          "tsup_ramp_K_per_min": 0.25
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "clean|amb40|dyn150|ramp_x0.25",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.0625
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "clean|amb40|dyn150|ramp_x4",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 1.0
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "moderate|amb40|dyn150|exact",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {},
+        "policies": [
+          "joint_lag",
+          "joint_meas"
+        ]
+      },
+      {
+        "label": "moderate|amb40|dyn150|mass_x0.25",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 37.5,
+          "tsup_ramp_K_per_min": 0.25
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "moderate|amb40|dyn150|mass_x4",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 600.0,
+          "tsup_ramp_K_per_min": 0.25
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "moderate|amb40|dyn150|ramp_x0.25",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.0625
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "moderate|amb40|dyn150|ramp_x4",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 1.0
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "severe|amb40|dyn150|exact",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {},
+        "policies": [
+          "joint_lag",
+          "joint_meas"
+        ]
+      },
+      {
+        "label": "severe|amb40|dyn150|mass_x0.25",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 37.5,
+          "tsup_ramp_K_per_min": 0.25
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "severe|amb40|dyn150|mass_x4",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 600.0,
+          "tsup_ramp_K_per_min": 0.25
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "severe|amb40|dyn150|ramp_x0.25",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.0625
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "severe|amb40|dyn150|ramp_x4",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 1.0
+        },
+        "policies": [
+          "joint_lag"
+        ]
+      }
+    ]
+  },
+  "data_collection": "Simulator outputs written to the append-only SQLite store; every metric labelled with provenance; per-run config SHA-256 and code SHA-256 recorded; time series for selected seeds.",
+  "statistics": "Paired by seed (identical workload realisation across levels). Per-seed relative difference d=(A-B)/B; mean with two-sided 95% Student-t CI.",
+  "practical_significance_threshold": 0.01
+}

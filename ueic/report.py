@@ -387,6 +387,39 @@ def fig_e011b(R, out):
     plt.close(fig)
 
 
+def fig_e013(R, out):
+    e = R["E013"]
+    ms, conds = e["margins"], e["conditions"]
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(10, 4.2), dpi=150)
+    fig.patch.set_facecolor(SURF)
+    for ax in (a1, a2):
+        _style(ax)
+    tot = [sum(c["joint_fb"][m]["chip_s_over_target"] or 0 for c in conds) for m in ms]
+    a1.bar([str(m) for m in ms], tot, color=POLICY_COLOR["joint"], width=0.6, label="Joint, new fallback, target 80 - margin")
+    lag = sum(c["joint_lag"]["chip_s_over_target"] or 0 for c in conds)
+    a1.axhline(lag, color=SLOTS[2], lw=2, label=f"Joint, lag-aware, no margin ({lag:.0f})")
+    for i, v in enumerate(tot):
+        a1.text(i, v, f"{v:.0f}", ha="center", va="bottom", fontsize=8, color=INK2)
+    a1.set_xlabel("controller margin below 80 C (K)", color=INK2, fontsize=9)
+    a1.set_ylabel("chip-s above 80 C, summed over conditions", color=INK2, fontsize=9)
+    a1.legend(frameon=False, fontsize=7.5, labelcolor=INK, loc="upper right")
+    a1.set_title("Safety", fontsize=10, color=INK, loc="left")
+    for j, m in enumerate(ms):
+        ys = [100 * c["fb_vs_lag"][m]["mean"] for c in conds if c["fb_vs_lag"].get(m)]
+        xs = j + np.linspace(-0.18, 0.18, len(ys))
+        a2.scatter(xs, ys, s=14, color=POLICY_COLOR["joint"], zorder=3)
+    a2.axhline(0, color=SLOTS[2], lw=2)
+    a2.set_xticks(range(len(ms)), [str(m) for m in ms])
+    a2.set_xlabel("controller margin below 80 C (K)", color=INK2, fontsize=9)
+    a2.set_ylabel("energy per successful task vs lag-aware, %", color=INK2, fontsize=9)
+    a2.set_title("Energy (one dot per condition; line = lag-aware)", fontsize=10, color=INK, loc="left")
+    fig.suptitle("E013 · A fixed thermal margin vs lag-aware planning (slow coolant loops, 30 and 40 C ambient)",
+                 fontsize=10, color=INK, x=0.01, ha="left")
+    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    fig.savefig(out / "e013_margin_vs_lag.png", facecolor=SURF)
+    plt.close(fig)
+
+
 def fig_e012(R, out):
     e = R["E012"]
     cell = {(c["scenario"], c["world"], c["floor"], c["plant"]): c["by_policy"].get("joint_lag", {}) for c in e["cells"]}
@@ -764,6 +797,24 @@ def md_results(R) -> str:
             L.append(f"| {r['scenario']} | {r['plant']} | {ci_(r['registry'])} | {ci_(r['measured'])} | {ci_(r.get('registry_minus_measured'))} |")
         L.append("")
 
+    e13 = R.get("E013")
+    if e13:
+        L += ["## E013 · Fixed thermal margin vs lag-aware planning", "",
+              f"Experiment `{e13['id']}`: {e13['n_runs']} runs, {e13['n_failed']} failed. `joint_fb` plans against "
+              "80 − m °C; `joint_lag` plans against 80 °C. Time above target is always measured against 80 °C. "
+              f"Smallest margin with no time above 80 °C in every condition: "
+              + (f"{e13['all_safe_margins'][0]} K." if e13["all_safe_margins"] else "none of those tested.") + "", "",
+              "![E013](../results/figures/e013_margin_vs_lag.png)", "",
+              "| Loop | Cold plate | Ambient | chip·s > 80 °C, joint_fb at m = " + " / ".join(str(m) for m in e13["margins"])
+              + " | joint_lag | joint_fb energy vs joint_lag at m = " + " / ".join(str(m) for m in e13["margins"])
+              + " | late tasks joint_fb (m*) / joint_lag |", "|---|---|---|---|---|---|---|"]
+        for c in e13["conditions"]:
+            ov = " / ".join(num(c["joint_fb"][m]["chip_s_over_target"], 0) for m in e13["margins"])
+            en = " / ".join(pct(c["fb_vs_lag"][m]["mean"], 2) if c["fb_vs_lag"].get(m) else "n/a" for m in e13["margins"])
+            L.append(f"| {c['plant']} | {c['degradation']} | {c['t_amb']:.0f} °C | {ov} | {num(c['joint_lag']['chip_s_over_target'], 0)} | "
+                     f"{en} | {num(c['joint_fb'][e13['m_star']]['slo_violations'], 1)} / {num(c['joint_lag']['slo_violations'], 1)} |")
+        L.append("")
+
     L += ["## Experiment register (including superseded and failed)", "",
           "| Id | Status | Runs | Title |", "|---|---|---|---|"]
     for x in R["experiments"]:
@@ -809,6 +860,8 @@ def build_report(store, root: Path) -> str:
         fig_e011b(R, figs)
     if R.get("E012"):
         fig_e012(R, figs)
+    if R.get("E013"):
+        fig_e013(R, figs)
     docs = root / "docs"
     (docs / "RESULTS.md").write_text(md_results(R))
     (docs / "04_assumptions_register.md").write_text(md_assumptions(R))
