@@ -49,7 +49,13 @@ The facility-side case for warm water is established practice:
 * Aquasar (L30) and SuperMUC (L31);
 * Schneider's 2026 analysis (L48): 45 °C supply cuts water use by 66–82 % for under 1 % PUE gain.
 
-L48 does not report the chip-side cost: leakage, throttling, service. E012 estimates that cost with measured-slope leakage. Results below.
+L48 does not report the chip-side cost: leakage, throttling, service. E012 estimated that cost with measured-slope leakage. **The hypothesis that real silicon makes warm water the energy optimum failed.** With free cooling, energy-optimal control ran at the coldest available water in both parameter worlds.
+
+What E012 did find:
+* A 40 °C floor costs 2.7–4.5% energy per successful task with RTX 5070-derived parameters, against 7.7–12.9% with placeholders. That is about 0.16–0.18% per kelvin of supply raised, almost all of it IT energy.
+* A facility-to-IT energy ratio (PUE-style) did not move.
+
+The point that PUE hides IT-side changes is a known criticism and is not new. Quantifying the chip-side cost of heat-reuse temperatures with a measured leakage slope may be useful, but it rests on one card's 4 K window (class E transfer to a simulated accelerator) until M003 or other cards confirm it.
 
 ## Results that bear on these candidates
 

@@ -2,7 +2,7 @@
 
 A research platform for one question: **can an AI computing system lower the facility energy per successful task by coordinating what it computes (clock frequency, model routing) with how it is cooled (coolant temperature, flow, free cooling versus chilling), and how much of that needs joint rather than independent control?**
 
-This repository covers **Phase 0** (problem definition, evaluation criteria, architecture, assumptions, risks, literature matrix), **Phase 1** (a validated simulator, a pre-registered benchmark, sensitivity and robustness studies, a tamper-evident experiment store, report and dashboard), **Phase 2** (a local API and interactive 3-D lab), **Phase 3** (dynamic coolant loop, move suppression, a self-correcting joint controller; experiments E006–E008), and **Phase 4 tooling** (read-only GPU telemetry and calibration, ready to run on your hardware). Every result so far is simulation; no number is a hardware measurement yet.
+This repository covers **Phase 0** (problem definition, evaluation criteria, architecture, assumptions, risks, literature matrix), **Phase 1** (a validated simulator, a pre-registered benchmark, sensitivity and robustness studies, a tamper-evident experiment store, report and dashboard), **Phase 2** (a local API and interactive 3-D lab), **Phase 3** (dynamic coolant loop, move suppression, a self-correcting joint controller, lag-aware planning; experiments E006–E008 and E011–E014), and **Phase 4** (read-only GPU telemetry and calibration). Phase 4 includes the first hardware measurements on an RTX 5070: clock sensitivity, energy per unit of work and the leakage temperature slope (M001, M002). Experiments E001C and E009–E012 use them. Everything else is simulation, and every metric is labelled with its provenance. The current state is in `docs/PHASE_REPORT.md`, and the novelty check is in `docs/11_novelty_assessment.md`.
 
 ## Start here
 
@@ -27,7 +27,7 @@ py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
-python -m pytest                                   # 102 tests, ~30 s
+python -m pytest                                   # 118 tests, a few minutes
 python -m ueic verify                              # check the results database has not been altered
 python -m ueic params                              # print the assumptions register
 ```

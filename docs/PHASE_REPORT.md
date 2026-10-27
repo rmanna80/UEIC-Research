@@ -207,6 +207,27 @@ What E011 and E011B mean together:
 
 All of this is simulation, and the controller knows the loop's mass and ramp exactly. Whether a fixed safety margin does as well is tested in E013.
 
+**E012: warm water on real-silicon parameters (pre-registered, 360 runs, 0 failed).** The idea under test was that a nearly flat energy-per-work curve and a small leakage slope would let energy-optimal control run the coolant warm enough to make the waste heat reusable. Two parameter worlds were compared:
+* the registry placeholders;
+* RTX 5070-derived values: M001 clock sensitivity, leakage matched to the M002 slope, and the voltage-floor V–f form fitted to M001's power curve (rms shape error 0.016 vs 0.049 for the registry's form).
+
+Each world ran with no supply floor and with a 40 °C floor, on an instant plant and a 150 kg loop, in 20, 35 and 8 °C ambient.
+
+| Hypothesis | Verdict | Result |
+|---|---|---|
+| H1: measured world runs ≥ 10 K warmer without a floor | **not supported** | 0.0 K difference everywhere. Both worlds sit at the coldest supply free cooling allows: 25 °C at 20 °C ambient, 13 °C at 8 °C, 40 °C at 35 °C |
+| H2: measured world makes ≥ 50% of heat reusable at 20 and 8 °C ambient | **not supported** | 0% in both worlds: return water never reaches 45 °C without a floor |
+| H3: the 40 °C floor costs < 0.5%, and less than in the registry world | **not supported** (second half holds) | measured world +2.7% (20 °C ambient) and +4.4–4.5% (8 °C); registry world +7.7% and +12.9%; no cost at 35 °C, where free cooling already forces 40 °C |
+| H4: joint_lag never exceeds 80 °C | **supported** | 0 in all 24 cells |
+| H5: steady-state joint overheats somewhere with the 150 kg loop | **not supported** | these scenarios run at lower load than S6. Joint never exceeded 80 °C. Independent did, but only in the registry world whenever supply sat at 40 °C (368–400 chip·s), never in the measured world |
+
+What it means:
+* **The warm-water hypothesis failed.** With free cooling available, colder water costs almost nothing, so even a small leakage slope pulls the energy optimum to the coldest water the dry cooler can deliver. Real-silicon parameters did not change that.
+* **Heat reuse has a chip-side price, and real silicon makes it about a third of the placeholder estimate.** Holding supply at 40 °C costs about 0.16–0.18% energy per successful task per kelvin above the free-cooling temperature, against 0.48–0.51%/K in the registry world. These per-kelvin figures divide the floor cost by the supply rise; they are derived here, not separately measured. Nearly all of the cost is IT energy (+2.7% at 20 °C ambient), while cooling energy barely moves.
+* **PUE does not register this cost.** The ratio of facility to IT energy stayed at 1.089 with and without the floor, while energy per successful task rose 2.7–4.4%. That fits Schneider's facility-side finding (L48), under 1% PUE gain from 45 °C water: the chip-side cost of warm water sits inside the IT power that PUE divides by. The PUE value is this model's.
+* **One effect does favour real silicon.** At 35 °C ambient, where supply is ~40 °C anyway, the measured world makes 39–41% of rejected heat reusable against 25% in the registry world. With low leakage sensitivity the joint controller stops raising flow to cool chips, so the return water runs warmer.
+* **This cost scales with the leakage slope**, the weakest measured input: one card, a 4 K window. M003 (`09` §8) would narrow it.
+
 **Failures and corrections during this measurement:**
 * The first desktop fit reported two failed fits (`v_min_ratio` = 0.3 and `kappa_leak` = 0.2, both exactly at their bounds) as class-B measurements. Acceptance rules R1–R3 now stop that. They were set after seeing that fit summary and before examining the raw data, and this is disclosed.
 * The tool reported "clock held down by a power cap" at 35% of the power limit. On this GPU the driver sets that flag whenever clocks are locked. A flag now counts as a limit only if the clock was not held or power was near the limit.

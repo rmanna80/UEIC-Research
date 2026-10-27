@@ -444,7 +444,8 @@ def fig_e012(R, out):
         ax.set_xticks(range(len(groups)), glab, fontsize=7.5)
         ax.set_ylabel(ylab, color=INK2, fontsize=9)
         ax.set_title(ttl, fontsize=9.5, color=INK, loc="left")
-    axes[0].legend(frameon=False, fontsize=8, loc="lower left", labelcolor=INK)
+    h_, l_ = axes[0].get_legend_handles_labels()
+    fig.legend(h_, l_, frameon=False, fontsize=8, loc="upper left", bbox_to_anchor=(0.005, 0.93), labelcolor=INK, ncol=2)
     ax = axes[2]
     _style(ax)
     pen = {(r["scenario"], r["plant"]): r for r in e["floor_penalty"]}
@@ -462,7 +463,7 @@ def fig_e012(R, out):
     ax.set_title("Cost of a 40 °C supply floor (lag-aware joint)", fontsize=9.5, color=INK, loc="left")
     fig.suptitle("E012 · Warm water on real silicon (lag-aware joint control; seed means, 5 seeds; floor cost with 95% CI)",
                  fontsize=10, color=INK, x=0.01, ha="left")
-    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    fig.tight_layout(rect=(0, 0, 1, 0.88))
     fig.savefig(out / "e012_warm_water.png", facecolor=SURF)
     plt.close(fig)
 
