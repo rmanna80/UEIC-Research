@@ -46,13 +46,13 @@ def expand_cells(spec: dict[str, Any]) -> list[dict[str, Any]]:
     for name in d["scenarios"]:
         if name not in SCENARIOS:
             raise KeyError(f"Unknown scenario {name}")
-    for p in d["policies"]:
+    for p in {q for v in variants for q in v.get("policies", d["policies"])}:
         if p not in POLICIES:
             raise KeyError(f"Unknown policy {p}")
     cells = []
     for sc in d["scenarios"]:
         for v in variants:
-            for pol in d["policies"]:
+            for pol in v.get("policies", d["policies"]):     # a variant may run a subset of policies (E013)
                 for seed in d["seeds"]:
                     cells.append({
                         "scenario": sc, "variant": v.get("label", "default"), "policy": pol, "seed": int(seed),

@@ -1,0 +1,990 @@
+{
+  "key": "E013",
+  "title": "Fixed thermal margin vs lag-aware planning under slow coolant loops",
+  "research_question": "Can steady-state joint control match lag-aware joint control's safety under a slow coolant loop simply by planning against a lower temperature target, and at what energy and service cost compared with joint_lag?",
+  "hypothesis": "Conditions: the 12 dynamic-loop conditions of E011 at 30 and 40 C ambient (3 cold-plate states x 2 ambients x 2 loops), S6 profile, measured leakage slope and clock sensitivity. joint_fb plans against 80 - m C for m in {0, 3, 6, 9} K; joint_lag plans against 80 C. Time above target is measured against 80 C. H1: joint_fb without a margin exceeds 80 C (seed-mean chip-seconds above target > 0) in at least one condition. H2: a 3 K margin is not enough: joint_fb with m = 3 exceeds 80 C in at least one condition. H3: lag-awareness costs less energy than a margin that makes joint_fb safe. Let m* be the smallest margin in {3, 6, 9} with zero seed-mean chip-seconds above 80 C in all conditions (m* = 9 if none). joint_lag's energy per successful task is below joint_fb's at m* in at least 9 of the conditions (95% CI upper bound of joint_lag / joint_fb(m*) - 1 below 0). H4: lag-awareness costs no more service than that margin: joint_lag's late tasks (seed mean) exceed joint_fb's at m* by at most 1 in every condition. H5: joint_lag records zero chip-seconds above 80 C in every condition.",
+  "null_hypothesis": "A fixed margin on the thermal target gives the same safety at the same energy and service cost as lag-aware planning.",
+  "independent_variables": [
+    "cold-plate state (3)",
+    "ambient (2)",
+    "loop (2)",
+    "controller target margin (4, joint_fb)",
+    "policy (joint_fb, joint_lag)"
+  ],
+  "dependent_variables": [
+    "chip_s_over_target",
+    "chip_s_throttled",
+    "peak_T_j_C",
+    "slo_violations",
+    "success_rate",
+    "E_per_success_kJ"
+  ],
+  "controlled_variables": [
+    "S6 load profile",
+    "seeds 0-4",
+    "warm start",
+    "leakage matched to the measured slope (kappa 0.02)",
+    "clock sensitivity from M001",
+    "twin knows the true cold-plate state and the loop's mass and ramp limit",
+    "thermal outcomes always measured against 80 C"
+  ],
+  "baseline": "joint_fb at each margin within each condition",
+  "configuration": "As E011 (dynamic-loop conditions at 30 and 40 C). Margins [0, 3, 6, 9] K via the controller's t_target (model_param_overrides); the simulated hardware keeps t_target 80 C and t_throttle 85 C.",
+  "evaluation_criteria": "Thermal outcomes and late tasks as seed means over 5 seeds; energy as paired relative differences with 95% t-CI (joint_lag in the m0 variant paired seed by seed with joint_fb in the m* variant of the same condition).",
+  "known_limitations": "Everything in E011's limitations. Margins are fixed, not tuned per condition; a margin scheduled on ambient or loop state would be a different (lag-aware in effect) controller. The margin grid is coarse (3 K steps).",
+  "disclosure": "Known when written: E011's results (steady-state joint's peak junction temperature reached 81.5-81.8 C with moderate fouling and 85.1-85.2 C with severe fouling at 40 C ambient on both dynamic loops) and the E011 fallback diagnostic. E011B was running; none of its results had been looked at. No E013 cell was run before registration. The experiment runner gained per-variant policy lists for this spec; existing specs expand to the same cells as before.",
+  "design": {
+    "scenarios": [
+      "S6_degraded_cooling"
+    ],
+    "policies": [
+      "joint_fb",
+      "joint_lag"
+    ],
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "timeseries_seeds": [
+      0
+    ],
+    "param_overrides": {
+      "beta_compute": 0.983,
+      "beta_memory": 0.0,
+      "kappa_leak": 0.02,
+      "p_leak_ref": 28.962
+    },
+    "variants": [
+      {
+        "label": "clean|amb30|dyn40|m0",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 80.0
+        },
+        "policies": [
+          "joint_fb",
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "clean|amb30|dyn40|m3",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 77.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "clean|amb30|dyn40|m6",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 74.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "clean|amb30|dyn40|m9",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 71.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "clean|amb40|dyn40|m0",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 80.0
+        },
+        "policies": [
+          "joint_fb",
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "clean|amb40|dyn40|m3",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 77.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "clean|amb40|dyn40|m6",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 74.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "clean|amb40|dyn40|m9",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 71.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "moderate|amb30|dyn40|m0",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 80.0
+        },
+        "policies": [
+          "joint_fb",
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "moderate|amb30|dyn40|m3",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 77.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "moderate|amb30|dyn40|m6",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 74.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "moderate|amb30|dyn40|m9",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 71.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "moderate|amb40|dyn40|m0",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 80.0
+        },
+        "policies": [
+          "joint_fb",
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "moderate|amb40|dyn40|m3",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 77.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "moderate|amb40|dyn40|m6",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 74.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "moderate|amb40|dyn40|m9",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 71.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "severe|amb30|dyn40|m0",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 80.0
+        },
+        "policies": [
+          "joint_fb",
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "severe|amb30|dyn40|m3",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 77.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "severe|amb30|dyn40|m6",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 74.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "severe|amb30|dyn40|m9",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 71.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "severe|amb40|dyn40|m0",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 80.0
+        },
+        "policies": [
+          "joint_fb",
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "severe|amb40|dyn40|m3",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 77.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "severe|amb40|dyn40|m6",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 74.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "severe|amb40|dyn40|m9",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 40.0,
+          "tsup_ramp_K_per_min": 1.0,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 71.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "clean|amb30|dyn150|m0",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 80.0
+        },
+        "policies": [
+          "joint_fb",
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "clean|amb30|dyn150|m3",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 77.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "clean|amb30|dyn150|m6",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 74.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "clean|amb30|dyn150|m9",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 71.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "clean|amb40|dyn150|m0",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 80.0
+        },
+        "policies": [
+          "joint_fb",
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "clean|amb40|dyn150|m3",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 77.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "clean|amb40|dyn150|m6",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 74.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "clean|amb40|dyn150|m9",
+        "param_overrides": {
+          "r_cond": 0.035,
+          "r_conv_ref": 0.015,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 71.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "moderate|amb30|dyn150|m0",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 80.0
+        },
+        "policies": [
+          "joint_fb",
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "moderate|amb30|dyn150|m3",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 77.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "moderate|amb30|dyn150|m6",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 74.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "moderate|amb30|dyn150|m9",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 71.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "moderate|amb40|dyn150|m0",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 80.0
+        },
+        "policies": [
+          "joint_fb",
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "moderate|amb40|dyn150|m3",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 77.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "moderate|amb40|dyn150|m6",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 74.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "moderate|amb40|dyn150|m9",
+        "param_overrides": {
+          "r_cond": 0.04,
+          "r_conv_ref": 0.0225,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 71.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "severe|amb30|dyn150|m0",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 80.0
+        },
+        "policies": [
+          "joint_fb",
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "severe|amb30|dyn150|m3",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 77.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "severe|amb30|dyn150|m6",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 74.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "severe|amb30|dyn150|m9",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 30.0
+        },
+        "model_param_overrides": {
+          "t_target": 71.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "severe|amb40|dyn150|m0",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 80.0
+        },
+        "policies": [
+          "joint_fb",
+          "joint_lag"
+        ]
+      },
+      {
+        "label": "severe|amb40|dyn150|m3",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 77.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "severe|amb40|dyn150|m6",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 74.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      },
+      {
+        "label": "severe|amb40|dyn150|m9",
+        "param_overrides": {
+          "r_cond": 0.045,
+          "r_conv_ref": 0.03,
+          "loop_mass_kg": 150.0,
+          "tsup_ramp_K_per_min": 0.25,
+          "warm_start": 1.0
+        },
+        "scenario_overrides": {
+          "t_amb": 40.0
+        },
+        "model_param_overrides": {
+          "t_target": 71.0
+        },
+        "policies": [
+          "joint_fb"
+        ]
+      }
+    ]
+  },
+  "data_collection": "Simulator outputs written to the append-only SQLite store; every metric labelled with provenance; per-run config SHA-256 and code SHA-256 recorded; time series for selected seeds.",
+  "statistics": "Paired by seed (identical workload realisation across levels). Per-seed relative difference d=(A-B)/B; mean with two-sided 95% Student-t CI.",
+  "practical_significance_threshold": 0.01
+}

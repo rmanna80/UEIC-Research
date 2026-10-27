@@ -228,3 +228,15 @@ def test_joint_fb_policy_is_registered_and_labels_its_decisions():
     cfg = make_config()
     r = simulate(cfg, SHORT, POLICIES["joint_fb"](cfg), seed=6, record_timeseries=False)
     assert r.m("energy_balance_rel_residual") < 1e-9
+
+
+def test_variants_may_run_a_subset_of_policies():
+    """E013: a variant can list its own policies; variants without the key run the design's list."""
+    from ueic.experiment import expand_cells
+    spec = {"design": {"scenarios": ["S1_moderate"], "policies": ["joint", "joint_fb"], "seeds": [0, 1],
+                       "variants": [{"label": "a"}, {"label": "b", "policies": ["joint_fb"]}]}}
+    cells = expand_cells(spec)
+    got = sorted((c["variant"], c["policy"], c["seed"]) for c in cells)
+    assert got == sorted([("a", p, s) for p in ("joint", "joint_fb") for s in (0, 1)] + [("b", "joint_fb", s) for s in (0, 1)])
+    with pytest.raises(KeyError):
+        expand_cells({"design": {**spec["design"], "variants": [{"label": "c", "policies": ["nope"]}]}})
