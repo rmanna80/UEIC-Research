@@ -1,0 +1,71 @@
+{
+ "kind": "ueic_vf_shape_fit",
+ "source": "M001_calibration.json (compute kernel points)",
+ "evidence": "E (shape transfer from a 250 W consumer card; voltage not measured)",
+ "fixed_parameters": {
+  "beta_compute": 0.983,
+  "beta_memory": 0.0,
+  "kappa_leak": 0.02
+ },
+ "fit": {
+  "v_min_ratio": 0.78,
+  "vf_knee": 0.805,
+  "p_leak_ref": 27.42
+ },
+ "iterations": [
+  {
+   "v_min_ratio": 0.78,
+   "vf_knee": 0.805,
+   "p_leak_ref": 27.42
+  },
+  {
+   "v_min_ratio": 0.78,
+   "vf_knee": 0.805,
+   "p_leak_ref": 27.42
+  }
+ ],
+ "leakage_slope_at_match_point": {
+  "rel_per_K": 0.0013459848998961937,
+  "target": 0.001345984694530801,
+  "s": 0.7471910112359551,
+  "T_C": 55.0
+ },
+ "rms_error_rel_top": 0.016229143821243828,
+ "registry_linear_rms": 0.04907571994451739,
+ "best_linear": {
+  "v_min_ratio": 0.66,
+  "rms": 0.0451300112179656
+ },
+ "points": [
+  {
+   "s": 0.5,
+   "measured": 0.35282114420078514,
+   "fitted": 0.3762132676370547,
+   "registry": 0.32291244278691644
+  },
+  {
+   "s": 0.6205992509363296,
+   "measured": 0.42545538949046835,
+   "fitted": 0.4397546722512484,
+   "registry": 0.4332020622963012
+  },
+  {
+   "s": 0.749812734082397,
+   "measured": 0.5328072176080573,
+   "fitted": 0.5090889672620915,
+   "registry": 0.584617676401915
+  },
+  {
+   "s": 0.8764044943820225,
+   "measured": 0.6801747888304689,
+   "fitted": 0.6818207596834202,
+   "registry": 0.7718441208892818
+  },
+  {
+   "s": 1.0,
+   "measured": 1.0,
+   "fitted": 1.0,
+   "registry": 1.0
+  }
+ ]
+}

@@ -25,6 +25,9 @@ KELVIN = 273.15
 # --------------------------------------------------------------------------- power
 def voltage_ratio(s, cfg):
     s = np.asarray(s, dtype=float)
+    if cfg.vf_knee > 0.0:   # voltage floor up to the knee, then linear to 1 (Phase 4 measured shape)
+        k = cfg.vf_knee
+        return cfg.v_min_ratio + (1.0 - cfg.v_min_ratio) * np.clip((s - k) / (1.0 - k), 0.0, None)
     return cfg.v_min_ratio + (1.0 - cfg.v_min_ratio) * (s - cfg.s_min) / (1.0 - cfg.s_min)
 
 

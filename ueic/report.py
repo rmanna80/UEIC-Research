@@ -324,6 +324,36 @@ def fig_e010(R, out):
     plt.close(fig)
 
 
+def fig_e011(R, out):
+    e = R["E011"]
+    pols = [("independent", "Independent", POLICY_COLOR["independent"]), ("joint", "Joint (steady-state plan)", POLICY_COLOR["joint"]),
+            ("joint_lag", "Joint, lag-aware", SLOTS[2])]
+    plants = [("quasi", "Quasi-steady plant"), ("dyn40", "40 kg loop, 1 K/min ramp"), ("dyn150", "150 kg loop, 0.25 K/min ramp")]
+    fig, axes = plt.subplots(3, 1, figsize=(10, 8.4), dpi=150, sharey=True)
+    fig.patch.set_facecolor(SURF)
+    for ax, (pl, ttl) in zip(axes, plants):
+        _style(ax)
+        conds = [c for c in e["conditions"] if c["plant"] == pl]
+        for j, (pol, name, col) in enumerate(pols):
+            xs = [i + (j - 1) * 0.26 for i in range(len(conds))]
+            ys = [c["by_policy"].get(pol, {}).get("chip_s_over_target") or 0 for c in conds]
+            thr = [c["by_policy"].get(pol, {}).get("chip_s_throttled") or 0 for c in conds]
+            allzero = all(y == 0 for c in e["conditions"] for y in [c["by_policy"].get(pol, {}).get("chip_s_over_target") or 0])
+            ax.bar(xs, ys, width=0.24, color=col, label=(name + (" (0 everywhere)" if allzero else "")) if pl == "quasi" else None)
+            for x, y, t in zip(xs, ys, thr):
+                if t > 0:
+                    ax.text(x, y, f"{t:.0f}", ha="center", va="bottom", fontsize=7, color=INK2)
+        ax.set_xticks(range(len(conds)), [f"{c['degradation']}\n{c['t_amb']:.0f} C" for c in conds], fontsize=8)
+        ax.set_ylabel("chip-s above 80 C", color=INK2, fontsize=9)
+        ax.set_title(ttl, fontsize=10, color=INK, loc="left")
+    axes[0].legend(frameon=False, fontsize=8, loc="upper left", labelcolor=INK, ncol=3)
+    fig.suptitle("E011 · Time above 80 C: lag-aware joint control vs steady-state joint and independent "
+                 "(seed means; labels: chip-s throttled)", fontsize=10, color=INK, x=0.01, ha="left")
+    fig.tight_layout(rect=(0, 0, 1, 0.97))
+    fig.savefig(out / "e011_lag_aware.png", facecolor=SURF)
+    plt.close(fig)
+
+
 # ------------------------------------------------------------------------ markdown
 def md_assumptions(R) -> str:
     L = ["# 04 · Assumptions register", "",
@@ -599,6 +629,25 @@ def md_results(R) -> str:
                      + (f"{pct(jf['mean'], 1)} [{pct(jf['lo'], 1)}, {pct(jf['hi'], 1)}]" if jf else "n/a") + " |")
         L.append("")
 
+    e11 = R.get("E011")
+    if e11:
+        L += ["## E011 · Lag-aware joint control", "",
+              f"Experiment `{e11['id']}`: {e11['n_runs']} runs, {e11['n_failed']} failed. As E010 plus a 150 kg loop with a "
+              "0.25 K/min ramp; `joint_lag` checks thermal safety at the supply temperature the chips will actually see "
+              "before the next decision. Thermal values are seed means over 5 seeds; energy is paired.", "",
+              "![E011](../results/figures/e011_lag_aware.png)", "",
+              "| Plant | Cold plate | Ambient | chip·s > 80 °C (I / J / JL) | throttled (I / J / JL) | late tasks (I / J / JL) | JL vs J | JL vs I |",
+              "|---|---|---|---|---|---|---|---|"]
+        for c in e11["conditions"]:
+            b = c["by_policy"]
+            t3 = lambda m, d: " / ".join(num(b.get(p_, {}).get(m), d) for p_ in ("independent", "joint", "joint_lag"))
+            lj, li = c["lag_vs_joint"], c["lag_vs_independent"]
+            L.append(f"| {c['plant']} | {c['degradation']} | {c['t_amb']:.0f} °C | {t3('chip_s_over_target', 0)} | "
+                     f"{t3('chip_s_throttled', 0)} | {t3('slo_violations', 1)} | "
+                     + (f"{pct(lj['mean'], 2)} [{pct(lj['lo'], 2)}, {pct(lj['hi'], 2)}]" if lj else "n/a") + " | "
+                     + (f"{pct(li['mean'], 2)} [{pct(li['lo'], 2)}, {pct(li['hi'], 2)}]" if li else "n/a") + " |")
+        L.append("")
+
     L += ["## Experiment register (including superseded and failed)", "",
           "| Id | Status | Runs | Title |", "|---|---|---|---|"]
     for x in R["experiments"]:
@@ -638,6 +687,8 @@ def build_report(store, root: Path) -> str:
         fig_e009(R, figs)
     if R.get("E010"):
         fig_e010(R, figs)
+    if R.get("E011"):
+        fig_e011(R, figs)
     docs = root / "docs"
     (docs / "RESULTS.md").write_text(md_results(R))
     (docs / "04_assumptions_register.md").write_text(md_assumptions(R))

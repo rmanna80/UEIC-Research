@@ -68,6 +68,10 @@ _REGISTRY: list[Param] = [
     _P("s_min", 0.5, "-", "G", "Lowest normalized clock frequency available (f/fmax)", group="accelerator"),
     _P("v_min_ratio", 0.70, "-", "E",
        "Vmin/Vmax at s_min; voltage assumed linear in frequency between s_min and 1", 0.60, 0.85, "accelerator"),
+    _P("vf_knee", 0.0, "-", "G",
+       "Voltage-floor form of the V-f curve (Phase 4): voltage stays at v_min_ratio up to clock ratio vf_knee, then "
+       "rises linearly to 1 at s = 1. 0 = registry linear form from s_min (E001-E011). A value fitted to the RTX 5070's "
+       "measured power-vs-clock shape is a shape transfer (class E), see docs/10", group="accelerator"),
     _P("beta_compute", 0.95, "-", "E",
        "Throughput ~ s**beta for compute-bound work (beta=1 is perfectly clock-bound)", 0.85, 1.0, "workload"),
     _P("beta_memory", 0.35, "-", "E",
@@ -227,6 +231,8 @@ def validate(cfg: Mapping[str, Any]) -> None:
     for k in ("beta_compute", "beta_memory"):
         if not 0.0 <= cfg[k] <= 1.0:
             raise ValueError(f"{k} must be in [0,1] (got {cfg[k]})")
+    if cfg["vf_knee"] != 0.0 and not cfg["s_min"] <= cfg["vf_knee"] < 1.0:
+        raise ValueError("vf_knee must be 0 (off) or in [s_min, 1)")
     if not 0.0 < cfg["v_min_ratio"] <= 1.0:
         raise ValueError(f"v_min_ratio must be in (0,1] (got {cfg['v_min_ratio']})")
     if cfg["kappa_leak"] < 0 or cfg["p_leak_ref"] < 0:

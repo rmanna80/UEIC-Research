@@ -233,7 +233,7 @@ def compute_all(store: Store, threshold: float = 0.01) -> dict[str, Any]:
         "E001": e001(store, threshold), "E002": e002(store, threshold), "E003": e003(store, threshold),
         "E004": e004(store), "E005": e005(store, threshold),
         "E006": e006(store, threshold), "E007": e007(store, threshold), "E008": e008(store, threshold),
-        "M001": m001(store), "E001C": e001c(store, threshold), "E009": e009(store, threshold), "E010": e010(store, threshold),
+        "M001": m001(store), "E001C": e001c(store, threshold), "E009": e009(store, threshold), "E010": e010(store, threshold), "E011": e011(store, threshold),
         "assumptions": assumptions_table(),
         "research_log": store.research_log(),
         "experiments": [{"id": x["id"], "key": x["key"], "status": x["status"], "title": x["spec"]["title"],
@@ -322,6 +322,7 @@ def verdicts(R: dict[str, Any]) -> list[dict[str, Any]]:
     out += verdicts_calibrated(R)
     out += verdicts_e009(R)
     out += verdicts_e010(R)
+    out += verdicts_e011(R)
     return out
 
 
@@ -721,4 +722,77 @@ def verdicts_e010(R: dict[str, Any]) -> list[dict[str, Any]]:
         {"key": "E010 H5", "state": st(e["H5"]["supported"]),
          "text": f"Joint vs fixed energy {100 * max(r['mean'] for r in jf):+.1f}% to {100 * min(r['mean'] for r in jf):+.1f}%; "
                  + ("at least 10% below fixed in every condition." if e["H5"]["supported"] else f"not confirmed in {', '.join(e['H5']['failures'])}.")},
+    ]
+
+
+def e011(store: Store, threshold: float) -> dict[str, Any] | None:
+    eid = store.latest_experiment("E011")
+    if not eid:
+        return None
+    exp = store.experiment(eid)
+    runs = store.runs(eid)
+    labels = [v["label"] for v in exp["spec"]["design"]["variants"]]
+    means: dict = defaultdict(dict)
+    for m in E010_METRICS:
+        for r in A.summary(runs, m):
+            means[r["group"][1]].setdefault(r["policy"], {})[m] = _f(r["mean"])
+    energy = {}
+    for a, b in (("joint_lag", "joint"), ("joint_lag", "independent"), ("joint", "independent")):
+        for r in A.paired(runs, "E_per_success_kJ", a, b):
+            energy[(r["group"][1], a, b)] = _row(r)
+    conds = []
+    for lab in labels:
+        dg, amb, pl = lab.split("|")
+        conds.append({"label": lab, "degradation": dg, "t_amb": float(amb[3:]), "plant": pl, "by_policy": means.get(lab, {}),
+                      "lag_vs_joint": energy.get((lab, "joint_lag", "joint")),
+                      "lag_vs_independent": energy.get((lab, "joint_lag", "independent")),
+                      "joint_vs_independent": energy.get((lab, "joint", "independent"))})
+    g = lambda c, pol, m: (c["by_policy"].get(pol, {}).get(m) or 0.0)
+    dyn = [c for c in conds if c["plant"] != "quasi"]
+    quasi = [c for c in conds if c["plant"] == "quasi"]
+    h1 = [c["label"] for c in conds if g(c, "joint_lag", "chip_s_throttled") > 0]
+    h2 = [c["label"] for c in dyn if g(c, "joint_lag", "chip_s_over_target") > 0]
+    h3 = [c["label"] for c in quasi if any(c["by_policy"].get("joint_lag", {}).get(m) != c["by_policy"].get("joint", {}).get(m)
+                                           for m in E010_METRICS)]
+    h4a = [c["label"] for c in conds if not (c["lag_vs_joint"] and c["lag_vs_joint"]["hi"] is not None
+                                             and c["lag_vs_joint"]["hi"] < 0.005)]
+    h4b = [c["label"] for c in conds if g(c, "independent", "chip_s_over_target") > 0
+           and not (c["lag_vs_independent"] and c["lag_vs_independent"]["hi"] is not None and c["lag_vs_independent"]["hi"] < 0)]
+    h5 = [c["label"] for c in conds if g(c, "joint_lag", "slo_violations")
+          > max(g(c, "joint", "slo_violations"), g(c, "independent", "slo_violations")) + 2]
+    return {"id": eid, "spec": exp["spec"], "conditions": conds, "n_runs": len(runs),
+            "n_failed": sum(r["status"] != "completed" for r in runs),
+            "H1": {"supported": not h1, "failures": h1}, "H2": {"supported": not h2, "failures": h2},
+            "H3": {"supported": not h3, "failures": h3},
+            "H4": {"supported": not h4a and not h4b, "vs_joint_failures": h4a, "vs_independent_failures": h4b},
+            "H5": {"supported": not h5, "failures": h5}}
+
+
+def verdicts_e011(R: dict[str, Any]) -> list[dict[str, Any]]:
+    e = R.get("E011")
+    if not e:
+        return []
+    st = lambda ok: "supported" if ok else "not supported"
+    g = lambda c, pol, m: (c["by_policy"].get(pol, {}).get(m) or 0.0)
+    dyn = [c for c in e["conditions"] if c["plant"] != "quasi"]
+    tot = lambda pol, m, cs: sum(g(c, pol, m) for c in cs)
+    lj = [c["lag_vs_joint"]["mean"] for c in e["conditions"] if c["lag_vs_joint"]]
+    fmt_fail = lambda xs: (": " + ", ".join(xs)) if xs else ""
+    return [
+        {"key": "E011 H1", "state": st(e["H1"]["supported"]),
+         "text": f"joint_lag throttled in {len(e['H1']['failures'])}/27 conditions{fmt_fail(e['H1']['failures'])}."},
+        {"key": "E011 H2", "state": st(e["H2"]["supported"]),
+         "text": f"Dynamic loops, chip-s above 80 C summed over 18 conditions (seed means): independent "
+                 f"{tot('independent', 'chip_s_over_target', dyn):.0f}, joint {tot('joint', 'chip_s_over_target', dyn):.0f}, "
+                 f"joint_lag {tot('joint_lag', 'chip_s_over_target', dyn):.0f}; joint_lag above target in "
+                 f"{len(e['H2']['failures'])}/18{fmt_fail(e['H2']['failures'])}."},
+        {"key": "E011 H3", "state": st(e["H3"]["supported"]),
+         "text": f"Quasi-steady plant: joint_lag identical to joint in {9 - len(e['H3']['failures'])}/9 conditions."},
+        {"key": "E011 H4", "state": st(e["H4"]["supported"]),
+         "text": f"joint_lag vs joint energy {100 * min(lj):+.2f}% to {100 * max(lj):+.2f}%; not below +0.5% in "
+                 f"{len(e['H4']['vs_joint_failures'])}, not below independent where it overheated in "
+                 f"{len(e['H4']['vs_independent_failures'])}{fmt_fail(e['H4']['vs_joint_failures'] + e['H4']['vs_independent_failures'])}."},
+        {"key": "E011 H5", "state": st(e["H5"]["supported"]),
+         "text": f"joint_lag's late tasks more than 2 above the worse of joint and independent in "
+                 f"{len(e['H5']['failures'])}/27 conditions{fmt_fail(e['H5']['failures'])}."},
     ]
