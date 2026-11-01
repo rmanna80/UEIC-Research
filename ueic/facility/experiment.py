@@ -23,7 +23,10 @@ UNITS = {"jobs_arrived": "count", "jobs_completed": "count", "jobs_on_time": "co
          "E_grid_kWh": "kWh", "E_it_kWh": "kWh", "E_pump_kWh": "kWh", "E_fan_kWh": "kWh", "E_chiller_kWh": "kWh",
          "E_per_job_kJ": "kJ", "E_per_work_kJ": "kJ/(GPU*s)", "E_per_on_time_job_kJ": "kJ",
          "chip_s_over_target": "chip*s", "throttle_gpu_s": "GPU*s", "T_max_C": "degC", "T_sup_mean_C": "degC",
-         "cap_steps": "count", "P_grid_peak_kW": "kW", "utilisation": "-", "energy_balance_rel": "-", "n_gpus": "count"}
+         "cap_steps": "count", "P_grid_peak_kW": "kW", "utilisation": "-", "energy_balance_rel": "-", "n_gpus": "count",
+         "cost": "currency (illustrative tariff)", "co2_kg": "kg (illustrative intensity)", "deferrals": "count",
+         "E_event_kWh": "kWh", "E_above_cap_kWh": "kWh", "max_exceed_kW": "kW", "t_over_cap_s": "s",
+         "work_in_event_gpu_s": "GPU*s", "storage_used_kWh_th": "kWh_th", "storage_charge_kWh_el": "kWh"}
 
 
 def expand(spec: dict[str, Any]) -> list[dict[str, Any]]:
@@ -46,7 +49,11 @@ def build(cell: dict[str, Any]):
     from ..scheduling.placement import make_scheduler
     topo = cell["topology"]
     cl = from_dict(topo) if isinstance(topo, dict) else load(topo)
-    fc = FacilityConfig(**cell["facility"])
+    fac = dict(cell["facility"])
+    for k in ("grid_caps", "storage_charge"):
+        if k in fac:
+            fac[k] = tuple(tuple(x) for x in fac[k])
+    fc = FacilityConfig(**fac)
     js = JobSpec(**{k: tuple(tuple(x) for x in v) if k == "bursts" else (tuple(v) if isinstance(v, list) else v)
                     for k, v in cell["jobs"].items()})
     jobs = generate(js, cl.n_gpus, fc.duration_s, cell["seed"])

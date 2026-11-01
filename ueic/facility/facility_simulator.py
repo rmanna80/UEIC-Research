@@ -38,6 +38,10 @@ from . import networking as net
 from .cluster import Cluster
 from .jobs import Job
 from .power_network import cap_group
+from ..grid import carbon as gcarbon
+from ..grid import power_cap as gcap
+from ..grid import pricing as gprice
+from ..grid.workload_flexibility import is_deferrable
 
 
 @dataclass
@@ -55,6 +59,18 @@ class FacilityConfig:
     c_node: float = 0.10
     c_rack: float = 0.10
     record_every_s: float = 30.0
+    # Stage 7 grid coupling (all off by default)
+    grid_caps: tuple = ()             # ((t0, t1, cap_W), ...) on facility grid power
+    enforce_caps: bool = True         # False: caps are only accounted for (compliance), not enforced
+    defer_during_cap: bool = False    # hold deferrable jobs while a cap is active (grid.workload_flexibility)
+    defer_factor: float = 1.5
+    storage_kWh_th: float = 0.0       # cold storage: heat it can absorb in place of chiller work
+    storage_charge: tuple = ()        # ((t0, t1, Q_charge_W), ...) extra chiller duty to charge it
+    storage_loss: float = 0.05        # fraction of charged cold lost before use
+    storage_T: float = 12.0           # charging temperature (sets the charging COP)
+    price_profile: str = "flat"
+    carbon_profile: str = "flat"
+    t0_clock_s: float = 0.0           # time of day at t = 0 (s since midnight)
 
 
 class FacilityView:
@@ -181,8 +197,12 @@ class FacilitySim:
     def _schedule(self):
         view = FacilityView(self)
         queue = sorted(self.queue, key=lambda j: (j.deadline, j.id))
+        caps = self.fc.grid_caps
         for job in queue:
             if not ((self.job_of < 0) & (self.mem >= job.mem_GB)).any():
+                continue
+            if self.fc.defer_during_cap and is_deferrable(job, self.t, caps, self.fc.defer_factor):
+                self.n_deferrals += 1
                 continue
             out = self.sched.select(job, view, self.t)
             if out is None:
@@ -209,6 +229,13 @@ class FacilitySim:
         acc = {k: 0.0 for k in ("E_it", "E_grid", "E_pump", "E_fan", "E_ch", "E_chip", "dU", "Q_cool", "work",
                                 "throttle_gpu_s", "chip_s_over_target", "cap_steps", "busy_gpu_s", "T_sup_int")}
         T_max = -np.inf
+        self.n_deferrals = 0
+        comp = gcap.Compliance()
+        E_s = 0.0                                   # stored cold, J of heat it can absorb
+        E_s_max = fc.storage_kWh_th * 3.6e6
+        P_nonit = 0.0
+        for k in ("cost", "co2_g", "storage_used_J", "storage_charge_el_J", "work_in_event"):
+            acc[k] = 0.0
         P_grid_max = 0.0
         ts: dict[str, list[float]] = {k: [] for k in ("t", "T_sup", "P_grid_kW", "T_max", "running", "queued")}
         F, dp, f_node = self._hydraulics()
@@ -232,9 +259,13 @@ class FacilitySim:
                     idx = np.nonzero(self.rack_of == r)[0]
                     s[idx], hit = cap_group(s[idx], busy[idx], pw(idx), self.rack_limits[r], cfg.s_min)
                     acc["cap_steps"] += hit
-            if self.cl.facility_power_limit_W:
+            cap = gcap.active_cap(self.t, fc.grid_caps)
+            lim = self.cl.facility_power_limit_W or np.inf
+            if cap is not None and fc.enforce_caps:   # EMS: grid cap -> IT limit using last step's non-IT power
+                lim = min(lim, max(cap - P_nonit, 0.0) * cfg.eta_conv)
+            if np.isfinite(lim):
                 idx = np.arange(self.G)
-                s, hit = cap_group(s, busy, pw(idx), self.cl.facility_power_limit_W, cfg.s_min)
+                s, hit = cap_group(s, busy, pw(idx), lim, cfg.s_min)
                 acc["cap_steps"] += hit
             self.s_eff = s
             self.P = self.power_at(np.arange(self.G), s, self.T, self.mb, busy)
@@ -270,6 +301,8 @@ class FacilitySim:
                 prog = min(j.remaining, rate * dt)
                 j.remaining -= prog
                 acc["work"] += prog * j.n_gpus
+                if cap is not None:
+                    acc["work_in_event"] += prog * j.n_gpus
                 if j.remaining <= 1e-9:
                     j.finish = self.t + dt
                     finished.append(j)
@@ -282,8 +315,26 @@ class FacilitySim:
             f_avg = F / self.q_design.sum()
             pl = ph.plant(Q_tot / self.n_mod, self.T_sup, f_avg, fc.T_amb, cfg)
             P_fan, W_ch = self.n_mod * float(pl["P_fan"]), self.n_mod * float(pl["W_ch"])
+            Q_ch = self.n_mod * float(pl["Q_ch"])
+            if cap is not None and E_s > 0 and Q_ch > 0:      # stored cold replaces chiller duty during the cap
+                use = min(Q_ch * dt, E_s)
+                W_ch *= 1.0 - use / (Q_ch * dt)
+                E_s -= use
+                acc["storage_used_J"] += use
+            W_charge = 0.0
+            for t0, t1, q_c in fc.storage_charge:
+                if t0 <= self.t < t1 and E_s < E_s_max:
+                    q = min(q_c, (E_s_max - E_s) / dt / (1.0 - fc.storage_loss))
+                    W_charge = q / float(ph.chiller_cop(fc.storage_T, fc.T_amb, cfg))
+                    E_s += q * dt * (1.0 - fc.storage_loss)
+                    acc["storage_charge_el_J"] += W_charge * dt
             P_it = float(self.P.sum())
-            P_grid = P_it / cfg.eta_conv + P_pump + P_fan + W_ch
+            P_grid = P_it / cfg.eta_conv + P_pump + P_fan + W_ch + W_charge
+            P_nonit = P_pump + P_fan + W_ch + W_charge
+            comp.add(P_grid, cap, dt)
+            tod = fc.t0_clock_s + self.t
+            acc["cost"] += P_grid * dt / 3.6e6 * gprice.price(tod, fc.price_profile)
+            acc["co2_g"] += P_grid * dt / 3.6e6 * gcarbon.intensity(tod, fc.carbon_profile)
             for k, v in (("E_it", P_it), ("E_grid", P_grid), ("E_pump", P_pump), ("E_fan", P_fan), ("E_ch", W_ch),
                          ("T_sup_int", self.T_sup)):
                 acc[k] += v * dt
@@ -294,6 +345,7 @@ class FacilitySim:
                     ts[k].append(float(v))
                 next_rec += fc.record_every_s
             self.t += dt
+        self.compliance = comp
         return self._metrics(done, acc, T_max, P_grid_max, t_end, ts)
 
     def _metrics(self, done, acc, T_max, P_grid_max, t_end, ts) -> dict[str, Any]:
@@ -316,5 +368,10 @@ class FacilitySim:
             "T_max_C": T_max, "T_sup_mean_C": acc["T_sup_int"] / t_end, "cap_steps": acc["cap_steps"],
             "P_grid_peak_kW": P_grid_max / 1e3, "utilisation": acc["busy_gpu_s"] / (self.G * t_end),
             "energy_balance_rel": float(bal), "n_gpus": float(self.G),
+            "cost": acc["cost"], "co2_kg": acc["co2_g"] / 1e3, "deferrals": float(self.n_deferrals),
+            "E_event_kWh": self.compliance.E_event_J * J, "E_above_cap_kWh": self.compliance.E_above_J * J,
+            "max_exceed_kW": self.compliance.max_exceed_W / 1e3, "t_over_cap_s": self.compliance.t_out_s,
+            "work_in_event_gpu_s": acc["work_in_event"], "storage_used_kWh_th": acc["storage_used_J"] * J,
+            "storage_charge_kWh_el": acc["storage_charge_el_J"] * J,
         }
         return {"metrics": m, "timeseries": ts}

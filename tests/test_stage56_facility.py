@@ -149,3 +149,71 @@ def test_admission_rule():
     assert admit((-0.1, [0], 1.0), (0.05, [0], 0.8), 100, 50, 60)[0] == "start_reduced"
     assert admit((-0.1, [0], 1.0), None, 500, 50, 60)[0] == "hold"
     assert admit((-0.1, [0], 1.0), None, 80, 50, 60)[0] == "start_over_budget"
+
+
+def test_phase_clock_memory_bound_lower():
+    from ueic.scheduling.phase_scheduler import phase_clock
+    cfg = make_config({})
+    c, m = phase_clock(cfg, False, 60.0), phase_clock(cfg, True, 60.0)
+    assert m["s"] <= c["s"] and m["saving_vs_max"] >= 0
+    assert phase_clock(cfg, True, 60.0, throughput_floor=0.99)["s"] >= 0.97
+    assert not phase_clock(cfg, False, 60.0, throughput_floor=1.5)["feasible"]
+
+
+def test_router_uses_measured_quality_and_reacts_to_conditions():
+    from ueic.scheduling.model_router import ModelProfile, route, wilson_lower
+    cfg = make_config({"plant_model": 1})
+    small = ModelProfile("small", {"gsm8k": (220, 300)}, 300.0, 4.0, 150.0, 60.0, "synthetic")
+    large = ModelProfile("large", {"gsm8k": (255, 300)}, 900.0, 9.0, 250.0, 60.0, "synthetic")
+    kw = dict(latency_slo_s=10.0, T_gpu=60.0, T_sup=30.0, T_amb=20.0, Q_node_W=4000.0)
+    assert route("gsm8k", [small, large], cfg, quality_floor=0.6, power_headroom_W=500, **kw)["model"] == "small"
+    assert route("gsm8k", [small, large], cfg, quality_floor=0.8, power_headroom_W=500, **kw)["model"] == "large"
+    assert route("gsm8k", [small, large], cfg, quality_floor=0.8, power_headroom_W=200, **kw)["model"] is None
+    hot = route("gsm8k", [small], cfg, quality_floor=0.6, power_headroom_W=500, **{**kw, "T_gpu": 80.0})
+    assert hot["leak_ratio"] > 1.0
+    assert 0 < wilson_lower(50, 100) < 0.5
+    with pytest.raises(KeyError):
+        route("humaneval", [small], cfg, quality_floor=0.5, power_headroom_W=500, **kw)
+
+
+def test_workload_optimizer():
+    from ueic.scheduling.workload_optimizer import edf_batches, max_clock_within_budget
+    assert max_clock_within_budget(lambda s: 600 * s, 500) == 0.8
+    assert max_clock_within_budget(lambda s: 600 * s, 100) is None
+    reqs = [{"arrival": 0, "deadline": d} for d in (10, 3, 30, 31)]
+    b = edf_batches(reqs, 3, lambda n: 1.0 + 0.5 * n, 0.0)
+    assert [[r["deadline"] for r in x] for x in b] == [[3, 10, 30], [31]]
+    b = edf_batches(reqs, 3, lambda n: 2.0 + 0.5 * n, 0.0)      # a batch of 3 (3.5 s) would make deadline 3 late
+    assert [len(x) for x in b] == [2, 2]
+
+
+def test_grid_signals_and_cap_compliance():
+    from ueic.grid import carbon, power_cap, pricing
+    from ueic.grid.workload_flexibility import is_deferrable
+    assert pricing.price(17 * 3600, "tou") == 0.30 and pricing.price(9 * 3600, "tou") == 0.10
+    assert pricing.cost(np.array([0.0, 3600.0]), np.array([1000.0, 1000.0])) == pytest.approx(0.30)
+    assert carbon.intensity(13 * 3600, "diurnal") < carbon.intensity(19 * 3600, "diurnal")
+    assert power_cap.active_cap(50, [(0, 100, 5.0), (40, 60, 3.0)]) == 3.0 and power_cap.active_cap(200, [(0, 100, 5.0)]) is None
+    c = power_cap.Compliance(); c.add(12.0, 10.0, 2.0); c.add(8.0, 10.0, 2.0); c.add(50.0, None, 2.0)
+    assert (c.E_above_J, c.max_exceed_W, c.t_out_s, c.E_event_J) == (4.0, 2.0, 2.0, 40.0)
+    j = Job(0, 0.0, 1, 100.0, 10.0, False, 1000.0)
+    assert is_deferrable(j, 50.0, [(0, 600, 1.0)]) and not is_deferrable(j, 50.0, [(0, 900, 1.0)])
+    assert not is_deferrable(j, 700.0, [(0, 600, 1.0)])
+
+
+def test_cap_enforcement_storage_and_deferral_in_facility():
+    topo = make_topology(1, 2, 8, chain=2)
+    cl = from_dict(topo)
+    jobs = lambda: generate(JobSpec(load=0.8), cl.n_gpus, 2400.0, 2)       # noqa: E731
+    base = dict(duration_s=2400.0, drain_s=600.0, T_amb=30.0, T_set=25.0)
+    cap = [(1200.0, 1800.0, 6000.0)]
+    run = lambda **kw: FacilitySim(cl, make_scheduler("least_loaded"), jobs(), FacilityConfig(**base, **kw),   # noqa: E731
+                                   {"plant_model": 1}).run()["metrics"]
+    free = run(grid_caps=cap, enforce_caps=False)
+    capped = run(grid_caps=cap)
+    assert free["E_above_cap_kWh"] > 0 and capped["E_above_cap_kWh"] <= 0.05 * capped["E_event_kWh"]
+    stor = run(grid_caps=cap, storage_kWh_th=3.0, storage_charge=((600.0, 1200.0, 4000.0),))
+    assert stor["storage_used_kWh_th"] > 0 and stor["storage_charge_kWh_el"] > 0
+    assert stor["work_in_event_gpu_s"] >= capped["work_in_event_gpu_s"]
+    dfr = run(grid_caps=cap, defer_during_cap=True)
+    assert dfr["deferrals"] > 0 and abs(dfr["energy_balance_rel"]) < 1e-9
