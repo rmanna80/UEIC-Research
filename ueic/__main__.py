@@ -355,6 +355,13 @@ def main(argv: list[str] | None = None) -> int:
         if a.cmd == "run":
             from .experiment import load_spec, run_experiment
             spec = load_spec(a.spec)
+            if spec.get("kind") == "facility":
+                from .facility.experiment import run_facility_experiment
+                st = store
+                eid = run_facility_experiment(spec, st, a.workers,
+                                              progress=lambda d, n: print(f"  {d}/{n} runs", flush=True) if d % max(1, n // 20) == 0 or d == n else None)
+                print(f"{eid}: {st.experiment(eid)['summary']}")
+                return 0
             if spec.get("kind") == "hardware_protocol":
                 print(f"{spec['key']} is a hardware protocol (status {spec.get('status')}); it is not simulated. "
                       f"See: python -m ueic infer plan {a.spec} --help")
