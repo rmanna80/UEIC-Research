@@ -62,7 +62,7 @@ All internal quantities are SI: W, J, K (temperature differences), kg, m³, s. T
   * the correlation is approximate.
   * Too small an air ratio or approach makes the design point unreachable, and the constructor raises (tested).
 * **Validation strategy:** compare with a manufacturer's dry-cooler selection table once one is obtained. Until then the cubic fan law is the only part with strong (class A) support.
-* **What it changes:** at the node's design heat and 20 °C ambient, fan power at 25 °C supply equals the legacy 100 W. At 30, 35 and 40 °C supply it falls to about 14, 4 and 1.4 W, against a constant 100 W in the legacy plant (`python -c` check in the Stage 1 commit message; reproduced by `test_fan_power_falls_with_approach_and_part_load`).
+* **What it changes:** at the node's design heat and 20 °C ambient, fan power at 25 °C supply equals the legacy 100 W. At 30, 35 and 40 °C supply it falls to about 14, 4 and 1.4 W, against a constant 100 W in the legacy plant (computed with `ph.plant(5008, T, 1.0, 20, cfg)`; the monotonic fall is checked by `test_fan_power_falls_with_approach_and_part_load`).
 
 ### 3.2 Chiller: `chiller.py`
 
