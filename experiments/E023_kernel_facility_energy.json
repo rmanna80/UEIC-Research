@@ -1,0 +1,31 @@
+{
+ "key": "E023",
+ "kind": "hardware_protocol",
+ "status": "pending_hardware",
+ "title": "Is the fastest (or lowest GPU-energy) equivalent kernel also the lowest facility energy per correct result?",
+ "research_question": "For mathematically equivalent kernels that meet one numerical tolerance, does the ranking by GPU time or GPU energy agree with the ranking by estimated facility energy per correct result?",
+ "hypothesis": "Kernels: equivalent PyTorch implementations of one FP32 GEMM shape set (torch.matmul; torch.einsum; a blocked matmul over 4 tiles; torch.matmul under a locked lower clock is NOT a kernel and is excluded), all meeting rtol 1e-4, atol 1e-4 against a float64 reference; ATLAS- and KernelSmith-generated candidates are added only when those repositories can be inspected (pending). Measured on the RTX 5070: time per call, NVML energy per call, peak power, end temperature (5 repeats of >= 10 s each, random order). Facility energy estimated with the NTU plant at 30 C supply and 20 C ambient (estimated, labelled). H1: the ranking by GPU energy per call equals the ranking by time per call for all pairs whose GPU-energy difference exceeds 5%. H2: the ranking by estimated facility energy per call equals the ranking by GPU energy per call for every pair (expected, since the estimate is monotonic in GPU energy at fixed conditions; a violation would come only through peak-power-dependent cooling, which the estimate does not model). H3: lower peak power does not imply lower energy per call: at least one pair ranks differently by peak power than by energy (descriptive if fewer than 3 kernels qualify).",
+ "null_hypothesis": "Kernel rankings by time, GPU energy and facility energy are the same.",
+ "independent_variables": [
+  "kernel implementation (>= 3 equivalent)",
+  "GEMM shape (3)"
+ ],
+ "dependent_variables": [
+  "s_per_call",
+  "J_per_call (NVML)",
+  "peak_W",
+  "T_end_C",
+  "facility_est_J (estimated)"
+ ],
+ "controlled_variables": [
+  "identical inputs and tolerance",
+  "GPU clock as left by the operator (recorded)",
+  "warm-up"
+ ],
+ "baseline": "torch.matmul",
+ "measurement_boundary": "GPU board (NVML); facility is an estimate from the plant model, never measured.",
+ "known_limitations": "NVML sampling smooths sub-100 ms power peaks; equivalent kernels in PyTorch share libraries; facility estimate is monotonic in GPU energy at fixed conditions; one GPU.",
+ "disclosure": "Harness tested only with synthetic power samples; no kernel measured on the GPU before registration.",
+ "status_note": "Software ready (ueic.integrations.kernel_energy). Needs the user's GPU. ATLAS/KernelSmith pending access.",
+ "practical_significance_threshold": 0.05
+}
