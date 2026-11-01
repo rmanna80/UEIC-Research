@@ -31,7 +31,7 @@ import numpy as np
 
 from . import physics as ph
 from .policies import Action, Observation, Policy
-from .workload import Scenario, Workload, generate, offered_load
+from .workload import Scenario, Workload, ambient, generate, offered_load
 
 PROV_SIM = "simulator_output"
 PROV_MEAS = "physical_measurement"
@@ -58,6 +58,7 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
     routing = scenario.routing
     rs_rv = cfg.small_cost_ratio + cfg.verify_cost_ratio
     T_amb = float(scenario.t_amb)
+    amb_varies = bool(scenario.t_amb_profile)
     C = float(cfg.c_th)
     warnings: list[str] = []
 
@@ -114,6 +115,9 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
     M_cp = float(cfg.loop_mass_kg) * cfg.water_cp
     ramp = float(cfg.tsup_ramp_K_per_min) / 60.0      # K per second
     T_tank: float | None = None                        # supply water reaching the chips
+    cmd_delay = float(cfg.tsup_cmd_delay_s)            # Stage 3: setpoint command transport/actuation delay
+    cmd_queue: deque[tuple[float, float]] = deque()
+    T_target: float | None = None
     T_plant_sp: float | None = None                    # plant outlet setpoint after ramp limiting
 
     # ---- accumulators (J)
@@ -141,6 +145,8 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
     t_hard_stop = scenario.duration_s + cfg.drain_max_s
     steps = 0
     while True:
+        if amb_varies:
+            T_amb = ambient(t, scenario)
         # ---------------- control
         if t >= next_ctrl - 1e-9:
             if t > 0:
@@ -162,6 +168,8 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
                 n_clock_changes += int(ch_s); n_tsup_changes += int(ch_t); n_flow_changes += int(ch_f)
                 tsup_travel += abs(action.t_sup - prev_action.t_sup)
             prev_action = action
+            if cmd_delay > 0:
+                cmd_queue.append((t + cmd_delay, float(np.clip(action.t_sup, cfg.t_sup_min, cfg.t_sup_max))))
             T_peak_int = -np.inf
             arrived_int[:] = 0.0
             p_peak_int = 0.0
@@ -171,13 +179,20 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
         s_cls = np.array(action.s, dtype=float)
         T_cmd = float(np.clip(action.t_sup, cfg.t_sup_min, cfg.t_sup_max))
         flow = float(np.clip(action.flow, cfg.flow_min_factor, cfg.flow_max_factor))
-        if T_plant_sp is None:
-            T_plant_sp = T_cmd
-            T_tank = T_cmd
-        elif ramp > 0:
-            T_plant_sp += float(np.clip(T_cmd - T_plant_sp, -ramp * dt, ramp * dt))
+        if cmd_delay > 0:                                 # Stage 3: setpoint commands reach the plant late
+            while cmd_queue and cmd_queue[0][0] <= t + 1e-9:
+                T_target = cmd_queue.popleft()[1]
+            if T_target is None:
+                T_target = T_cmd
         else:
-            T_plant_sp = T_cmd
+            T_target = T_cmd
+        if T_plant_sp is None:
+            T_plant_sp = T_target
+            T_tank = T_target
+        elif ramp > 0:
+            T_plant_sp += float(np.clip(T_target - T_plant_sp, -ramp * dt, ramp * dt))
+        else:
+            T_plant_sp = T_target
         T_sup = T_tank if dyn else T_plant_sp
 
         # ---------------- arrivals (released at the start of the step they arrive in)
@@ -394,10 +409,12 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
         "clock_changes": (float(n_clock_changes), "count", S),
         "flow_changes": (float(n_flow_changes), "count", S),
         "tsup_travel_K": (tsup_travel, "K", S),
+        "decisions_fallback": (float(sum(c for n_, c in notes.items() if n_.startswith("fallback"))), "count", S),
+        "decisions_filtered": (float(sum(c for n_, c in notes.items() if "filtered" in n_)), "count", S),
         "controller_wall_mean_ms": (float(dec.mean() * 1e3), "ms", PROV_MEAS),
         "sim_wall_s": (sim_wall, "s", PROV_MEAS),
     }
     for note, cnt in notes.items():
-        if "infeasible" in note or "capacity-limited" in note:
+        if "infeasible" in note or "capacity-limited" in note or note.startswith("fallback"):
             warnings.append(f"controller note '{note}' x{cnt}")
     return SimResult(metrics, ts if record_timeseries else {}, warnings, lat)

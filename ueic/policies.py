@@ -379,3 +379,50 @@ class JointMeasuredPolicy(JointPolicy):
 
 POLICIES = {p.name: p for p in (FixedPolicy, ComputeOnlyPolicy, CoolingOnlyPolicy, IndependentPolicy, JointPolicy,
                                 JointRobustPolicy, JointLagPolicy, JointFallbackPolicy, JointMeasuredPolicy)}
+
+
+class _PolicyRegistry(dict):
+    """POLICIES with the Stage 3 controllers (ueic/control) added on first use. They import this
+    module, so registering them lazily avoids an import cycle whichever module is imported first."""
+    _stage3 = False
+
+    def _ensure(self):
+        if not self._stage3:
+            self._stage3 = True
+            from .control.predictive_mpc import MPCPolicy, RobustMPCPolicy
+            dict.update(self, {MPCPolicy.name: MPCPolicy, RobustMPCPolicy.name: RobustMPCPolicy})
+
+    def __getitem__(self, k):
+        self._ensure()
+        return dict.__getitem__(self, k)
+
+    def __contains__(self, k):
+        self._ensure()
+        return dict.__contains__(self, k)
+
+    def __iter__(self):
+        self._ensure()
+        return dict.__iter__(self)
+
+    def __len__(self):
+        self._ensure()
+        return dict.__len__(self)
+
+    def get(self, k, default=None):
+        self._ensure()
+        return dict.get(self, k, default)
+
+    def keys(self):
+        self._ensure()
+        return dict.keys(self)
+
+    def items(self):
+        self._ensure()
+        return dict.items(self)
+
+    def values(self):
+        self._ensure()
+        return dict.values(self)
+
+
+POLICIES = _PolicyRegistry(POLICIES)
