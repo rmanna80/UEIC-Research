@@ -221,6 +221,11 @@ def e005(store: Store, threshold: float) -> dict[str, Any] | None:
             "n_runs": len(runs), "n_failed": sum(r["status"] != "completed" for r in runs)}
 
 
+def _next(store: Store) -> dict[str, Any]:
+    from . import results_next as N
+    return {"E018": N.e018(store), "E019": N.e019(store), "E020": N.e020(store), "E022": N.e022(store)}
+
+
 def compute_all(store: Store, threshold: float = 0.01) -> dict[str, Any]:
     from datetime import datetime, timezone
     from .params import assumptions_table
@@ -233,7 +238,7 @@ def compute_all(store: Store, threshold: float = 0.01) -> dict[str, Any]:
         "E001": e001(store, threshold), "E002": e002(store, threshold), "E003": e003(store, threshold),
         "E004": e004(store), "E005": e005(store, threshold),
         "E006": e006(store, threshold), "E007": e007(store, threshold), "E008": e008(store, threshold),
-        "M001": m001(store), "E001C": e001c(store, threshold), "E009": e009(store, threshold), "E010": e010(store, threshold), "E011": e011(store, threshold), "E011B": e011b(store, threshold), "E012": e012(store, threshold), "E013": e013(store, threshold), "E014": e014(store, threshold), "E015": e015(store, threshold), "E016": e016(store, threshold), "E021": e021(store, threshold),
+        "M001": m001(store), "E001C": e001c(store, threshold), "E009": e009(store, threshold), "E010": e010(store, threshold), "E011": e011(store, threshold), "E011B": e011b(store, threshold), "E012": e012(store, threshold), "E013": e013(store, threshold), "E014": e014(store, threshold), "E015": e015(store, threshold), "E016": e016(store, threshold), "E021": e021(store, threshold), **_next(store),
         "assumptions": assumptions_table(),
         "research_log": store.research_log(),
         "experiments": [{"id": x["id"], "key": x["key"], "status": x["status"], "title": x["spec"]["title"],
@@ -330,6 +335,8 @@ def verdicts(R: dict[str, Any]) -> list[dict[str, Any]]:
     out += verdicts_e015(R)
     out += verdicts_e016(R)
     out += verdicts_e021(R)
+    from . import results_next as N
+    out += N.verdicts_e018(R) + N.verdicts_e019(R) + N.verdicts_e020(R) + N.verdicts_e022(R)
     return out
 
 

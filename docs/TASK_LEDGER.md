@@ -14,7 +14,7 @@ Branch `research/ueic-next-generation`. Status values: **done** (code, tests, do
 | 2 | Identification (ARX, step response, RLS), identifiability, active experiment design, drift detection, adaptive twins | done | docs/15; EKF/UKF considered and not built (RLS sufficient for the linear problem); applied to RTX 5070 warm-ups |
 | 2 | E016 adaptive identification | in progress | pre-registered (353edb1), queued after E015 |
 | 2 | M003 leakage sweep (user) | pending hardware | rerun with the guarded procedure (`calib plan-leak`) |
-| 4 | Inference adapters (vLLM, Ollama, SGLang), tracing, energy accounting, quality evaluation, sessions, CLI | done (software) | docs/17; tested against mock HTTP servers and a synthetic engine; no live engine measured yet; SGLang adapter not exercised on a live server |
+| 4 | Inference adapters (vLLM, Ollama, SGLang), tracing, energy accounting, quality evaluation, sessions, CLI | done (software) | docs/18; tested against mock HTTP servers and a synthetic engine; no live engine measured yet; SGLang adapter not exercised on a live server |
 | 4 | E017 real LLM energy per useful result | pending hardware | pre-registered as a hardware protocol; operator procedure `infer plan`; needs the user's GPU, Ollama and GSM8K |
 | 5 | Thermal capacity budgets, thermal-credit scheduling, router, placement; E018 | pending | |
 | 6 | Multi-node facility simulator; E020 | pending | |

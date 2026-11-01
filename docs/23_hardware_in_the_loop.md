@@ -1,4 +1,4 @@
-# 22 · Hardware-in-the-loop: adapters, permissions and an instrumentation plan (Stage 9)
+# 23 · Hardware-in-the-loop: adapters, permissions and an instrumentation plan (Stage 9)
 
 **Status:**
 * Software: implemented and tested with mock devices and a replayed RTX 5070 NVML recording (`ueic/hardware/`, `tests/test_stage9_hardware.py`).

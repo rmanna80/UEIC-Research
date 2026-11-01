@@ -1,6 +1,6 @@
 """Shared sensor patterns: a generic CSV-ingest sensor (read-only; for instruments whose own software logs
 to a file) and a simulated sensor with declared accuracy. Device-specific drivers are not written until an
-instrument is chosen (docs/22): no vendor protocol is assumed here."""
+instrument is chosen (docs/23): no vendor protocol is assumed here."""
 from __future__ import annotations
 
 import csv

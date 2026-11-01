@@ -46,7 +46,7 @@ def test_cusum_false_alarm_rate_and_detection():
         for i, x in enumerate(rng.normal(2.0, 0.5, 200)):
             c.update(float(x), i)
         fa += c.alarm is not None
-    assert fa <= 15                                            # measured: 14 of 200 sequences (docs/21)
+    assert fa <= 15                                            # measured: 14 of 200 sequences (docs/22)
     rng = np.random.default_rng(1)
     c = ResidualCUSUM()
     for i, x in enumerate(rng.normal(2.0, 0.5, 20)):

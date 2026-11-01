@@ -1,5 +1,5 @@
 """Pump speed actuator. Only a simulated pump exists: no real pump driver is written until a controllable
-loop with an independent flow interlock is built and reviewed (docs/22). Writes go through
+loop with an independent flow interlock is built and reviewed (docs/23). Writes go through
 ``permissions.GuardedSession`` and are limited to the declared range and step."""
 from __future__ import annotations
 

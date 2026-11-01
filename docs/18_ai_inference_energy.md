@@ -1,4 +1,4 @@
-# 17 · Real inference integration (Stage 4)
+# 18 · AI inference energy: real serving integration (Stage 4)
 
 **Status:**
 * Software: implemented and tested against local mock HTTP servers and a synthetic mock engine (`tests/test_stage4_inference.py`, 16 tests).
