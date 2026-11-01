@@ -115,6 +115,7 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
     M_cp = float(cfg.loop_mass_kg) * cfg.water_cp
     ramp = float(cfg.tsup_ramp_K_per_min) / 60.0      # K per second
     T_tank: float | None = None                        # supply water reaching the chips
+    fouling = float(cfg.r_fouling_per_h) > 0 or float(cfg.r_fouling_step) > 0
     cmd_delay = float(cfg.tsup_cmd_delay_s)            # Stage 3: setpoint command transport/actuation delay
     cmd_queue: deque[tuple[float, float]] = deque()
     T_target: float | None = None
@@ -232,6 +233,9 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
 
         # ---------------- thermal
         R = float(ph.r_total(flow, cfg))
+        if fouling:                                       # Stage 2: plant-only cold-plate degradation (E016)
+            R += float(cfg.r_fouling_step) * (t >= cfg.r_fouling_start_s) + \
+                float(cfg.r_fouling_per_h) * max(0.0, t - float(cfg.r_fouling_start_s)) / 3600.0
         T_new, Qj = ph.thermal_step(T, P, T_sup, R, C, dt)
         q_rate = float(Qj.sum()) / dt
         T = T_new
@@ -414,6 +418,9 @@ def simulate(cfg, scenario: Scenario, policy: Policy, seed: int, workload: Workl
         "controller_wall_mean_ms": (float(dec.mean() * 1e3), "ms", PROV_MEAS),
         "sim_wall_s": (sim_wall, "s", PROV_MEAS),
     }
+    if hasattr(policy, "diagnostics"):                  # Stage 2: controller self-reported diagnostics
+        for k_, v_ in policy.diagnostics().items():
+            metrics[f"diag_{k_}"] = (float(v_), "-", S)
     for note, cnt in notes.items():
         if "infeasible" in note or "capacity-limited" in note or note.startswith("fallback"):
             warnings.append(f"controller note '{note}' x{cnt}")

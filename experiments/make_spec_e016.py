@@ -1,0 +1,77 @@
+"""Pre-registered spec for E016: does adaptive system identification reduce prediction error and unsafe
+decisions compared with fixed-parameter control? (Research question G of the next-generation plan.)
+
+Written and committed before any E016 cell ran. Usage:  python experiments/make_spec_e016.py
+"""
+import json
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+e011 = json.loads((HERE / "E011_lag_aware.json").read_text())
+BASE = {**e011["design"]["param_overrides"], "warm_start": 1.0, "r_cond": 0.035, "r_conv_ref": 0.015}   # clean plates
+DRIFT = {"none": {}, "slow": {"r_fouling_per_h": 0.005, "r_fouling_start_s": 3600.0},
+         "fast": {"r_fouling_per_h": 0.015, "r_fouling_start_s": 3600.0},
+         "step": {"r_fouling_step": 0.02, "r_fouling_start_s": 5400.0}}
+AMB = [25.0, 35.0]
+variants = [{"label": f"{d}|amb{a:.0f}", "param_overrides": dv, "scenario_overrides": {"t_amb": a}}
+            for d, dv in DRIFT.items() for a in AMB]
+POL = ["joint_fixed", "joint_recal", "joint_adaptive", "joint_robust"]
+
+spec = {
+    "key": "E016",
+    "title": "Adaptive system identification vs fixed and periodically recalibrated models under cold-plate drift",
+    "research_question": "Does adaptive identification of the cold-plate resistance reduce prediction error and unsafe "
+                         "decisions compared with a fixed-parameter twin and with periodic recalibration, and can drift "
+                         "be detected early from prediction residuals?",
+    "hypothesis": (
+        "Conditions: plant-only cold-plate resistance drift none / slow ramp (+0.005 K/W per h from 1 h) / fast ramp "
+        "(+0.015 K/W per h from 1 h) / step (+0.02 K/W at 1.5 h) x ambient 25 and 35 C; S6 load profile, 4 h, clean "
+        "plates at start, instant plant, measured clock sensitivity and leakage slope (E011 base); 5 seeds. Policies: "
+        "joint_fixed (joint_fb with diagnostics), joint_recal (refit every 30 min), joint_adaptive (RLS, forgetting "
+        "0.95), joint_robust (E008 bias correction; different overload fallback, so its energy is not compared). "
+        "H1 (no harm without drift): in both no-drift conditions joint_recal and joint_adaptive are within +/-0.5% of "
+        "joint_fixed in energy per successful task (95% CI) and record no more chip-seconds above 80 C. "
+        "H2 (drift makes a fixed model unsafe): joint_fixed exceeds 80 C (seed mean > 0) in at least 4 of the 6 drift "
+        "conditions. "
+        "H3 (adaptation restores safety): wherever joint_fixed exceeds 80 C, joint_adaptive's chip-seconds above 80 C "
+        "are at least 80% lower. "
+        "H4 (adaptive beats periodic after a step): in both step conditions joint_adaptive records fewer chip-seconds "
+        "above 80 C than joint_recal (seed means). "
+        "H5 (prediction error): joint_adaptive's mean absolute error in predicting the peak junction temperature is at "
+        "most half of joint_fixed's in every drift condition. "
+        "H6 (cost): where joint_fixed records no time above 80 C, joint_adaptive's energy per successful task is at "
+        "most 2% above joint_fixed's (95% CI upper bound). "
+        "H7 (detection): a Page-Hinkley test (delta 0.5 K, lambda 10 K) on joint_fixed's residuals alarms within 30 "
+        "min of the step in every seed of both step conditions and in no seed of the no-drift conditions."),
+    "null_hypothesis": "Adaptive identification changes neither prediction error nor safety relative to a fixed model.",
+    "independent_variables": ["drift (4)", "ambient (2)", "policy (4)"],
+    "dependent_variables": ["chip_s_over_target", "chip_s_throttled", "E_per_success_kJ", "slo_violations",
+                            "diag_pred_peak_mae_K", "diag_pred_peak_bias_K", "diag_model_dR_final", "diag_drift_alarm_t_s"],
+    "controlled_variables": ["seeds 0-4", "S6 load profile (mean 0.65, amplitude 0.15)", "warm start", "instant plant",
+                             "E011 base parameters", "drift exists only in the simulated plant, never in the models"],
+    "baseline": "joint_fixed within each condition",
+    "configuration": f"Base {BASE}. Drift {DRIFT}. Ambient {AMB}. Policies {POL}.",
+    "evaluation_criteria": "Thermal outcomes and diagnostics as seed means; energy as paired relative differences with "
+                           "95% t-CI; alarm times per seed.",
+    "sample_size": "5 seeds per cell (paired), 160 runs.",
+    "randomization": "Workloads drawn per seed and shared across policies.",
+    "measurement_boundary": "Simulated facility boundary of one 8-accelerator node; nothing measured.",
+    "known_limitations": (
+        "The drift is a uniform resistance increase on all chips; real fouling is uneven. The estimator sees the mean "
+        "junction temperature and mean chip heat only. Detection thresholds are fixed design choices. The adaptive model "
+        "may only become more conservative (Delta_R clipped at 0). Simulation only."),
+    "disclosure": (
+        "Known before registration: E005/E008 (twin mismatch, joint_robust) and unit tests of the estimators on synthetic "
+        "data, including one 1 h run of joint_adaptive with a +0.02 K/W step at 15 min (test: final Delta_R near 0.02). "
+        "E015 was running; its results had not been looked at. No E016 cell was run before registration."),
+    "design": {"scenarios": ["S6_degraded_cooling"], "policies": POL, "seeds": [0, 1, 2, 3, 4], "timeseries_seeds": [0],
+               "param_overrides": BASE, "variants": variants},
+}
+base = json.loads((HERE / "E001_policy_benchmark.json").read_text())
+for k in ("data_collection", "statistics", "practical_significance_threshold"):
+    if k in base:
+        spec[k] = base[k]
+
+if __name__ == "__main__":
+    (HERE / "E016_adaptive_identification.json").write_text(json.dumps(spec, indent=2))
+    print(f"wrote E016_adaptive_identification.json: {len(variants)} variants, {len(variants) * len(POL) * 5} runs")

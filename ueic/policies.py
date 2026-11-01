@@ -390,7 +390,9 @@ class _PolicyRegistry(dict):
         if not self._stage3:
             self._stage3 = True
             from .control.predictive_mpc import MPCPolicy, RobustMPCPolicy
-            dict.update(self, {MPCPolicy.name: MPCPolicy, RobustMPCPolicy.name: RobustMPCPolicy})
+            from .models.adaptive_twin import AdaptivePolicy, FixedTrackedPolicy, RecalibratedPolicy
+            dict.update(self, {c.name: c for c in (MPCPolicy, RobustMPCPolicy, FixedTrackedPolicy, RecalibratedPolicy,
+                                                   AdaptivePolicy)})
 
     def __getitem__(self, k):
         self._ensure()

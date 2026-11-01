@@ -161,6 +161,12 @@ _REGISTRY: list[Param] = [
     _P("tsup_ramp_K_per_min", 0.0, "K/min", "G",
        "Max rate at which the plant can move its outlet temperature. 0 = instantaneous (E001-E005). "
        "E006 uses 1.0 and 0.25 (class F placeholders)", group="loop"),
+    _P("r_fouling_per_h", 0.0, "K/W per h", "G",
+       "Plant-only cold-plate degradation: junction-to-coolant resistance grows at this rate after "
+       "r_fouling_start_s (E016). The controllers' models do not include it", group="loop"),
+    _P("r_fouling_step", 0.0, "K/W", "G", "Plant-only step increase of the resistance at r_fouling_start_s (E016)",
+       group="loop"),
+    _P("r_fouling_start_s", 0.0, "s", "G", "Onset time of plant-only fouling (E016)", group="loop"),
     _P("tsup_cmd_delay_s", 0.0, "s", "G",
        "Delay before a supply-setpoint command reaches the plant (communication, valve and controller "
        "latency; Stage 3). 0 = immediate, as in E001-E014", group="loop"),
@@ -256,7 +262,7 @@ def validate(cfg: Mapping[str, Any]) -> None:
     if cfg["dt"] > cfg["control_interval"]:
         raise ValueError("dt must not exceed control_interval")
     for k in ("loop_mass_kg", "tsup_ramp_K_per_min", "joint_switch_rel", "tsup_cmd_delay_s", "mpc_robust_margin_K",
-              "safety_margin_K"):
+              "safety_margin_K", "r_fouling_per_h", "r_fouling_step", "r_fouling_start_s"):
         if cfg[k] < 0:
             raise ValueError(f"{k} must be >= 0")
     if cfg["warm_start"] not in (0, 0.0, 1, 1.0):
