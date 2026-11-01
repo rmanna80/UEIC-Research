@@ -290,6 +290,54 @@ What it means:
 * A conflicted `git stash pop` on the PC left three time-series files in the repository without database records; they are in `results/orphaned/` with a forensic note.
 * **Leakage attempt 2 (M002)** at 2347 MHz had steady load, but the fan ran on automatic control rather than fixed: 0% at idle, 27–35% under load. The card held 63–64 °C for 13 of 15 minutes, and the driver dropped one clock step (2340 → 2332 MHz) with a ~4 W power step. Under the old ±15 MHz clock rule that step made power appear to *fall* with temperature (−0.22 W/K). The leakage fit now keeps one clock step only. The coefficient is still not identified, but the slope agrees with attempt 1: board power rises 0.12–0.14% per K, about a third of the registry's 0.35–0.37%.
 
+## Next generation (branch `research/ueic-next-generation`, 2026-11-01)
+
+Plan and stage status: `12_next_generation_architecture.md`, `TASK_LEDGER.md`. Every result in this section is **simulated**. Hypotheses were committed before each experiment ran and were not changed afterwards; a "not supported" verdict is reported as such.
+
+### E015 · Thermal futures: multi-step MPC vs the measured-state rule (1,320 runs, 0 failed)
+
+24 conditions: 4 scenarios × 3 plants (instant, 40 kg, 150 kg loop) × 2 command delays. 5 seeds. Details are in `16_predictive_control.md` and `RESULTS.md`.
+
+| Hypothesis | Verdict | What happened |
+|---|---|---|
+| H1 safety | **supported** | The MPC and robust MPC never exceeded 80 °C in any condition, with any forecast (persistence, oracle, noisy, −30% biased, burst-blind), and never fell back. For comparison: steady-state `joint` exceeded 80 °C in 10 of 24 conditions; `independent` in 18 (139–1,068 chip-s); even `joint_meas` did in 2 (ambient ramp with 180 s delay, 37 chip-s; fouling with 180 s delay, 524 chip-s) |
+| H2 anticipation reduces late tasks on slow loops | not supported | Burst scenario: 1.2 → 0.8 late tasks (seed means) in all four slow-loop conditions. That is 33% fewer, but the pre-registered "at least 1 fewer" was not met. The burst was too small to stress the baseline, so the test had little power (a design weakness) |
+| H3 no value without inertia | not supported | On the instant plant without delay, the MPC (oracle) used 3.2% (fouling) and 1.5% (ambient ramp) less energy per success than `joint_meas`. In the burst scenario the difference was small (−0.4%) but its CI (−1.9 to +1.1%) is not inside ±1%. Part of the MPC's advantage therefore does not come from anticipating inertia. A likely cause, not yet tested, is the different decision rule: a backlog price and clocks chosen per step |
+| H4 forecast quality | not supported | Late tasks summed over the slow-loop bursts: oracle 3.2 ≤ noisy 8.0, and oracle < persistence 4.8. But the **burst-blind** forecast caused 56 late tasks, 12× persistence. A confident forecast that misses bursts was much worse than no forecast |
+| H5 no capacity from anticipation | supported | Overload: every arm had ~180 late tasks; MPC within ±15% of `joint_meas` |
+| H6 cost of robustness | supported | `mpc_robust` cost +0.7% energy vs `mpc` (oracle), with peaks ~2 K lower |
+
+**Descriptive:**
+* The MPC's energy advantage over `joint_meas` grew with loop inertia and fault severity:
+  * fouling: −3.1 to −4.9% (oracle) and −0.4 to −3.4% (persistence);
+  * burst on the 150 kg loop: −3.1%;
+  * overload: +0.5 to +1.1% (the cost of keeping more margin).
+* A −30% biased forecast saved 9% energy in the burst scenario but caused 6× the late tasks. The biased forecast saving energy is a service failure, not an efficiency gain.
+
+**Interpretation:**
+* In this simulator, the predictive controller with an independent safety filter is the only arm that was safe everywhere.
+* It is also cheaper than the safe measured-state rule where inertia or degradation matter.
+* Its service benefit could not be shown, because the scenarios were too easy for late tasks.
+* Forecast errors that hide demand are the main risk. A forecaster should be judged by how it fails, not only by its average error.
+* All of this rests on the simulator's loop model, which the controller knows exactly. E016 and E019 relax that.
+
+### E016 · Adaptive identification under simulated cold-plate drift (160 runs, 0 failed)
+
+| Hypothesis | Verdict | What happened |
+|---|---|---|
+| H1 no harm without drift | supported | Recalibrating and adaptive twins within ±0.5% energy, no extra time above 80 °C |
+| H2 drift makes a fixed model unsafe | supported | `joint_fixed` exceeded 80 °C in 4 of 6 drift conditions |
+| H3 adaptation restores safety (≥ 80% less) | not supported | chip-s above 80 °C, fixed → adaptive: slow/35 °C 15 → 0; fast/25 °C 49 → 0; **fast/35 °C 778 → 182 (−77%)**; **step/35 °C 1,444 → 969 (−33%)** |
+| H4 adaptive beats periodic after a step | not supported | 35 °C: adaptive 969 vs periodic 1,169 (better). 25 °C: both 0, so "fewer" cannot hold |
+| H5 prediction error halved | not supported | Peak-temperature MAE, fixed → adaptive: fast and step drift 5.2 → 2.1 K and 4.5 → 2.0 K (better than half); slow drift 2.3 → 1.5 K (0.65) |
+| H6 cost | supported | No energy penalty where the fixed model was safe |
+| H7 drift detection | not supported | No false alarms without drift, but the Page–Hinkley test alarmed late or not at all after the step in some seeds of both step conditions |
+
+**Interpretation:**
+* Online resistance estimation removes most of the risk from gradual fouling.
+* It does not remove the risk from an abrupt step at high ambient. Forgetting-factor RLS needs several intervals to move, and the controller keeps running hot in the meantime.
+* A fault-aware layer that reacts to the residual directly, rather than through the twin, is the natural complement. That is what E019 tests.
+
 ## Definition of done (charter §16), initial platform
 
 | # | Criterion | Status |

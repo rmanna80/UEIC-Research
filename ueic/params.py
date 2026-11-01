@@ -199,6 +199,13 @@ _REGISTRY: list[Param] = [
        "Robust MPC: extra margin below t_target for cold-plate and leakage model error", group="policy"),
     _P("safety_margin_K", 0.0, "K", "G",
        "Independent safety filter: required margin below t_target when validating an action", group="policy"),
+    _P("fault_kind", 0, "code", "G",
+       "Stage 8 fault injection (E019): 0 none, 1 sensor dropout, 2 junction bias, 3 stuck sensors, 4 clock stuck, "
+       "5 communication failure, 6 controller crash, 7 solver infeasible, 8 supply-sensor bias; read only by "
+       "reliability.fault_injection wrappers (simulation)", group="fault"),
+    _P("fault_t_start", 3600.0, "s", "G", "Start of the injected fault window", group="fault"),
+    _P("fault_t_end", 5400.0, "s", "G", "End of the injected fault window", group="fault"),
+    _P("fault_magnitude", 0.0, "K", "G", "Bias added to the faulted reading (kinds 2 and 8)", group="fault"),
     _P("joint_bias_gain", 0.5, "-", "G",
        "EWMA gain of the joint_robust controller's temperature-bias estimate (measured minus predicted peak "
        "junction temperature, clipped at 0); used only by joint_robust", group="policy"),

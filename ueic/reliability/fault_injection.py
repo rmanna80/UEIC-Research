@@ -109,3 +109,21 @@ def make_stack(model_cfg, inner_name: str, aware: bool, **fault):
     inner = POLICIES[inner_name](model_cfg)
     sup = (FaultAwareSupervisor if aware else NominalSupervisor)(model_cfg, inner)
     return FaultInjector(model_cfg, sup, **fault)
+
+
+def _stack_class(inner_name: str, aware: bool):
+    from .safety_monitor import FaultAwareSupervisor, NominalSupervisor
+
+    class Stack(FaultInjector):
+        name = f"{'aware' if aware else 'nominal'}_{inner_name}"
+
+        def __init__(self, model_cfg):
+            from ..policies import POLICIES
+            sup_cls = FaultAwareSupervisor if aware else NominalSupervisor
+            super().__init__(model_cfg, sup_cls(model_cfg, POLICIES[inner_name](model_cfg)))
+
+    Stack.__name__ = Stack.__qualname__ = f"Stack_{Stack.name}"
+    return Stack
+
+
+STACKS = [_stack_class(i, a) for i in ("joint_meas", "mpc") for a in (False, True)]

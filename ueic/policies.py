@@ -393,6 +393,8 @@ class _PolicyRegistry(dict):
             from .models.adaptive_twin import AdaptivePolicy, FixedTrackedPolicy, RecalibratedPolicy
             dict.update(self, {c.name: c for c in (MPCPolicy, RobustMPCPolicy, FixedTrackedPolicy, RecalibratedPolicy,
                                                    AdaptivePolicy)})
+            from .reliability.fault_injection import STACKS     # Stage 8 (E019): supervisor + fault-injection stacks
+            dict.update(self, {c.name: c for c in STACKS})
 
     def __getitem__(self, k):
         self._ensure()
