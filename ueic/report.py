@@ -899,6 +899,23 @@ def md_results(R) -> str:
                      + f" | {num(g('joint|base', 'chip_s_over_target'), 0)} / {num(g('mpc|oracle', 'chip_s_over_target'), 0)} |")
         L.append("")
 
+    e16 = R.get("E016")
+    if e16:
+        L += ["## E016 · Adaptive system identification under cold-plate drift", "",
+              f"Experiment `{e16['id']}`: {e16['n_runs']} runs, {e16['n_failed']} failed. Drift exists only in the simulated "
+              "plant. Seed means; energy paired against joint_fixed.", "",
+              "| Drift | Ambient | chip·s > 80 °C (fixed / recal / adaptive / robust) | peak-T MAE K (fixed / adaptive) | final ΔR K/W (adaptive) | adaptive energy vs fixed | fixed alarm times (s) |",
+              "|---|---|---|---|---|---|---|"]
+        for c in e16["conditions"]:
+            g = lambda p_, k: c["by_policy"][p_].get(k)
+            ov = " / ".join(num(g(p_, "chip_s_over_target"), 0) for p_ in ("joint_fixed", "joint_recal", "joint_adaptive", "joint_robust"))
+            e_ = c["energy_vs_fixed"]["joint_adaptive"]
+            al = ", ".join("none" if (a is None or a < 0) else f"{a:.0f}" for a in c["alarms_fixed"])
+            L.append(f"| {c['drift']} | {c['t_amb']:.0f} °C | {ov} | {num(g('joint_fixed', 'diag_pred_peak_mae_K'), 2)} / "
+                     f"{num(g('joint_adaptive', 'diag_pred_peak_mae_K'), 2)} | {num(g('joint_adaptive', 'diag_model_dR_final'), 4)} | "
+                     + (f"{pct(e_['mean'], 2)} [{pct(e_['lo'], 2)}, {pct(e_['hi'], 2)}]" if e_ else "n/a") + f" | {al} |")
+        L.append("")
+
     L += ["## Experiment register (including superseded and failed)", "",
           "| Id | Status | Runs | Title |", "|---|---|---|---|"]
     for x in R["experiments"]:

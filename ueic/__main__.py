@@ -22,6 +22,10 @@
   python -m ueic calib plan-leak --clock 2017 --fans 100,85,70,55,40   # M003 fan-sweep procedure to review and run
   python -m ueic calib leak data/calibration/* --out data/calibration/M003_leakage_sweep.json
   python -m ueic run experiments/E001_policy_benchmark.json --calibration data/calibration/calibration.json
+  python -m ueic infer probe --engine ollama --model llama3.2:3b      # Stage 4: engine + model identity
+  python -m ueic infer run --engine ollama --model M --items smoke --concurrency 1 --label "..."   # traced session
+  python -m ueic infer plan experiments/E017_real_llm_energy.json --models A,B --f-sus 2347   # operator procedure
+  python -m ueic infer analyze-e017 data/inference/E017 --larger-model B   # pre-registered selection rules
 """
 from __future__ import annotations
 
@@ -45,6 +49,53 @@ def _print_summary(r: dict) -> None:
         print("no power or thermal limit was active")
     for line in r["interpretation"]:
         print("  - " + line)
+
+
+def _infer(a) -> int:
+    import json
+    import re
+    from datetime import datetime
+    from .inference import protocol
+    from .inference.adapters import make_adapter
+    if a.icmd == "plan":
+        spec = json.loads(Path(a.spec).read_text())
+        print(protocol.plan_e017(spec, a.models.split(","), a.f_sus, a.f_low, a.dataset))
+        return 0
+    if a.icmd == "analyze-e017":
+        spec = json.loads(Path(a.spec).read_text())
+        ss = protocol._sessions(a.root)
+        sel = protocol.select_arms(ss, spec, a.larger_model)
+        print(json.dumps(sel, indent=1, default=str))
+        arms = sel.get("arms") or {}
+        if arms.get("J") and arms.get("B1"):
+            print(json.dumps({"H1_J_vs_B1": protocol.holdout_ratio(ss, arms["J"], arms["B1"])}, indent=1))
+        return 0
+    ad = make_adapter(a.engine, a.url, a.model)
+    if a.icmd == "probe":
+        print(json.dumps(ad.info(), indent=1, default=str))
+        return 0
+    from .inference import session, workload_generator as wg
+    items = wg.smoke_items(a.limit or 20) if a.items == "smoke" else wg.load_items(a.items, a.limit, a.offset)
+    idle = a.idle_W
+    if a.idle_s and not a.no_telemetry:
+        r = session.measure_idle_power(a.idle_s, a.gpu)
+        idle = r["idle_W"]
+        print(f"idle board power {idle:.1f} W ({r['n']} samples)")
+    slug = re.sub(r"[^A-Za-z0-9=._-]+", "_", a.label or f"{a.engine}_{ad.model}")[:120]
+    out = Path(a.out) / slug / datetime.now().strftime("%Y%m%dT%H%M%S")
+    summ = session.run_session(ad, items, out, mode=a.mode, concurrency=a.concurrency, rate_per_s=a.rate,
+                               deadline_s=a.deadline_s, max_tokens=a.max_tokens, timeout_s=a.timeout_s,
+                               max_retries=a.retries, telemetry=not a.no_telemetry, gpu=a.gpu, idle_W=idle,
+                               expect_clock_MHz=a.expect_clock, label=a.label, price_per_kWh=a.price,
+                               task_cfg={"allow_code_execution": a.allow_code_execution})
+    lat = summ["latency"]
+    print(f"{out}: {lat['n_ok']}/{lat['n']} ok, {lat['n_correct']} correct, {lat['n_deadline_missed']} late, "
+          f"e2e p95 {lat.get('e2e_p95_s')}")
+    for b, m in (summ.get("energy", {}).get("metrics") or {}).items():
+        print(f"  {b}: {m['E_J']:.0f} J, {m['J_per_useful_result']:.1f} J per useful result, {m['J_per_output_token']:.3f} J/token")
+    for g in summ["guard_problems"]:
+        print(f"  GUARD: {g}")
+    return 1 if summ["guard_failed"] else 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -96,6 +147,31 @@ def main(argv: list[str] | None = None) -> int:
     cf.add_argument("--device", default=None, help="part of the GPU name or UUID, when sessions from several GPUs are present")
     ci = csub.add_parser("ingest"); ci.add_argument("calibration"); ci.add_argument("--key", default="M001")
     ci.add_argument("--title", default=None)
+    inf = sub.add_parser("infer", help="Stage 4: real inference sessions (read-only; you set clocks)")
+    isub = inf.add_subparsers(dest="icmd", required=True)
+    for name in ("probe", "run"):
+        x = isub.add_parser(name)
+        x.add_argument("--engine", choices=["ollama", "vllm", "sglang", "mock"], required=True)
+        x.add_argument("--url", default=None); x.add_argument("--model", default=None)
+    ir = isub.choices["run"]
+    ir.add_argument("--items", required=True, help="dataset JSONL (id, task, prompt, reference) or 'smoke'")
+    ir.add_argument("--offset", type=int, default=0); ir.add_argument("--limit", type=int, default=None)
+    ir.add_argument("--mode", choices=["closed", "open"], default="closed")
+    ir.add_argument("--concurrency", type=int, default=1); ir.add_argument("--rate", type=float, default=None)
+    ir.add_argument("--deadline-s", type=float, default=None); ir.add_argument("--max-tokens", type=int, default=512)
+    ir.add_argument("--timeout-s", type=float, default=300.0); ir.add_argument("--retries", type=int, default=1)
+    ir.add_argument("--label", default=""); ir.add_argument("--expect-clock", type=float, default=None)
+    ir.add_argument("--idle-s", type=float, default=0.0, help="measure idle board power first (read-only)")
+    ir.add_argument("--idle-W", type=float, default=None); ir.add_argument("--gpu", type=int, default=0)
+    ir.add_argument("--no-telemetry", action="store_true"); ir.add_argument("--price", type=float, default=None)
+    ir.add_argument("--allow-code-execution", action="store_true",
+                    help="run model-written code for HumanEval scoring (use a disposable VM/container)")
+    ir.add_argument("--out", default=str(ROOT / "data" / "inference"))
+    ipl = isub.add_parser("plan"); ipl.add_argument("spec"); ipl.add_argument("--models", required=True)
+    ipl.add_argument("--f-sus", type=int, required=True); ipl.add_argument("--f-low", type=int, default=None)
+    ipl.add_argument("--dataset", default="data/datasets/gsm8k_test_items.jsonl")
+    ia = isub.add_parser("analyze-e017"); ia.add_argument("root"); ia.add_argument("--larger-model", required=True)
+    ia.add_argument("--spec", default=str(ROOT / "experiments" / "E017_real_llm_energy.json"))
     sv = sub.add_parser("serve", help="Phase 2: local API + 3-D lab at http://127.0.0.1:8765/lab/")
     sv.add_argument("--host", default="127.0.0.1"); sv.add_argument("--port", type=int, default=8765)
     sv.add_argument("--workers", type=int, default=None)
@@ -131,6 +207,8 @@ def main(argv: list[str] | None = None) -> int:
             meta = Logger(a.out, interval_s=a.interval, gpus=None if a.gpu is None else [a.gpu], label=a.label).run(a.seconds)
             print(f"{meta['n_samples']} samples -> {a.out} (sha256 {meta['csv_sha256'][:12]})")
         return 0
+    if a.cmd == "infer":
+        return _infer(a)
     if a.cmd == "calib" and a.ccmd in ("check", "probe", "show", "plan", "plan-leak", "leak", "run", "fit"):
         from . import calibrate as cal
         if a.ccmd == "check":
@@ -277,6 +355,10 @@ def main(argv: list[str] | None = None) -> int:
         if a.cmd == "run":
             from .experiment import load_spec, run_experiment
             spec = load_spec(a.spec)
+            if spec.get("kind") == "hardware_protocol":
+                print(f"{spec['key']} is a hardware protocol (status {spec.get('status')}); it is not simulated. "
+                      f"See: python -m ueic infer plan {a.spec} --help")
+                return 2
             if a.calibration:
                 import hashlib, json as _json
                 from .calibrate import apply_calibration
