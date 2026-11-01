@@ -275,6 +275,15 @@ What it means:
 * **One difference between the worlds is fragile.** At 35 °C ambient the RTX 5070-derived world counts 39–41% of rejected heat as reusable against 25% for the registry world. But mean return temperatures differ by only 0.4–0.5 K (44.3–44.4 vs 43.9 °C) around the 45 °C threshold, so this is threshold-sensitive. The suggested mechanism (less flow spent cooling chips) was not isolated.
 * **In the model the only temperature dependence of chip power is leakage, so this cost is set by the leakage slope.** That is the weakest measured input: one card, a 4 K window. M003 (`09` §8) would narrow it.
 
+**M003 attempt 1 (2026-10-27, user's RTX 5070): no measurement.** This is from the console output the user reported; the session data was not pushed.
+* The ten sessions (five load, five idle) ran without an active clock lock. The GPU boosted to 2670–2692 MHz at its 250 W power limit.
+* The pasted procedure ran every step back to back, so the fan speed was never changed. The two load points `calib leak` kept both report 47% fan and 73 °C.
+* `calib leak` refused to fit (2 usable points, at least 3 needed). Even with three, points at the power limit could not have measured leakage.
+* Fixes, on `main` at 6096bb4:
+  * each run checks itself after ~30 s against its `clk=` and `fan=` labels and the power limit, and stops early if they disagree;
+  * `calib leak` drops power-limited and unapplied-fan points;
+  * the procedure pauses before every fan change.
+
 **Failures and corrections during this measurement:**
 * The first desktop fit reported two failed fits (`v_min_ratio` = 0.3 and `kappa_leak` = 0.2, both exactly at their bounds) as class-B measurements. Acceptance rules R1–R3 now stop that. They were set after seeing that fit summary and before examining the raw data, and this is disclosed.
 * The tool reported "clock held down by a power cap" at 35% of the power limit. On this GPU the driver sets that flag whenever clocks are locked. A flag now counts as a limit only if the clock was not held or power was near the limit.
