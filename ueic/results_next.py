@@ -267,3 +267,51 @@ def verdicts_e019(R: dict[str, Any]) -> list[dict[str, Any]]:
              f"{100 * (e['H5']['fraction'] or 0):.0f}% of runs that left NORMAL."},
             {"key": "E019 H6", "state": st(e["H6"]["supported"]), "text": f"degradation alarm in {100 * (e['H6']['fraction'] or 0):.0f}% "
              "of fault-aware runs with fouling, a degraded pump or a wrong model."}]
+
+
+# ------------------------------------------------------------------ E024
+def e024(store: Store, threshold: float = 0.05) -> dict[str, Any] | None:
+    eid, runs, idx = _load(store, "E024")
+    if not eid:
+        return None
+    arm = {c: next(iter(p.values())) for (c, _), p in idx.items()}
+    full, base = arm.get("S1V1T1D1", {}), arm.get("S0V0T0D0", {})
+    k = "E_per_on_time_job_kJ"
+    h1 = _paired(full, base, k)
+    loo = {}
+    for i, f in enumerate("SVTD"):
+        lab = "".join(f"{g}{0 if j == i else 1}" for j, g in enumerate("SVTD"))
+        loo[f] = _paired(arm.get(lab, {}), full, k)
+    means = {c: {m: _f(_mean(d, m)) for m in (k, "on_time_frac", "chip_s_over_target", "E_above_cap_kWh", "cost", "co2_kg",
+                                              "T_sup_mean_C")} for c, d in arm.items()}
+    lev = lambda c, f: 1 if f"{f}1" in c else -1            # noqa: E731  effect coding
+    E = {c: v[k] for c, v in means.items() if v[k] is not None}
+    main = {f: _f(np.mean([E[c] * lev(c, f) for c in E]) * 2 / max(np.mean(list(E.values())), 1e-9)) for f in "SVTD"} if len(E) == 16 else {}
+    inter = {}
+    if len(E) == 16:
+        for a in range(4):
+            for b in range(a + 1, 4):
+                fa, fb = "SVTD"[a], "SVTD"[b]
+                inter[fa + fb] = _f(np.mean([E[c] * lev(c, fa) * lev(c, fb) for c in E]) * 2 / np.mean(list(E.values())))
+    M = lambda c, m: (means.get(c) or {}).get(m)   # noqa: E731
+    return {"id": eid, "n_runs": len(runs), "n_failed": sum(r["status"] != "completed" for r in runs), "means": means,
+            "main_effects_rel": main, "interactions_rel": inter,
+            "H1": {"supported": h1["hi"] is not None and h1["hi"] < 0 and h1["mean"] <= -threshold, "value": h1},
+            "H2": {"supported": all(v["mean"] is not None and v["mean"] > 0 for v in loo.values()), "values": loo},
+            "H3": {"supported": abs((M("S1V1T1D1", "on_time_frac") or 0) - (M("S0V0T0D0", "on_time_frac") or 0)) <= 0.01},
+            "H4": {"supported": (M("S1V1T1D1", "chip_s_over_target") or 0) <= (M("S0V0T0D0", "chip_s_over_target") or 0) + 1e-9}}
+
+
+def verdicts_e024(R: dict[str, Any]) -> list[dict[str, Any]]:
+    e = R.get("E024")
+    if not e:
+        return []
+    st = lambda ok: "supported" if ok else "not supported"   # noqa: E731
+    pct = lambda v: "n/a" if v is None else f"{100 * v:+.1f}%"   # noqa: E731
+    h1 = e["H1"]["value"]
+    m = e["means"]
+    return [{"key": "E024 H1", "state": st(e["H1"]["supported"]), "text": f"full vs baseline energy per on-time job {pct(h1['mean'])} [{pct(h1['lo'])}, {pct(h1['hi'])}]."},
+            {"key": "E024 H2", "state": st(e["H2"]["supported"]), "text": "leave-one-out vs full: " +
+             "; ".join(f"without {f} {pct(v['mean'])}" for f, v in e["H2"]["values"].items()) + "."},
+            {"key": "E024 H3", "state": st(e["H3"]["supported"]), "text": f"on-time fraction full {m.get('S1V1T1D1', {}).get('on_time_frac')} vs baseline {m.get('S0V0T0D0', {}).get('on_time_frac')}."},
+            {"key": "E024 H4", "state": st(e["H4"]["supported"]), "text": f"chip-s above target full {m.get('S1V1T1D1', {}).get('chip_s_over_target')} vs baseline {m.get('S0V0T0D0', {}).get('chip_s_over_target')}."}]

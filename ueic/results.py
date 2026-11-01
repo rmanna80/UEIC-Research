@@ -223,7 +223,7 @@ def e005(store: Store, threshold: float) -> dict[str, Any] | None:
 
 def _next(store: Store) -> dict[str, Any]:
     from . import results_next as N
-    return {"E018": N.e018(store), "E019": N.e019(store), "E020": N.e020(store), "E022": N.e022(store)}
+    return {"E018": N.e018(store), "E019": N.e019(store), "E020": N.e020(store), "E022": N.e022(store), "E024": N.e024(store)}
 
 
 def compute_all(store: Store, threshold: float = 0.01) -> dict[str, Any]:
@@ -336,7 +336,7 @@ def verdicts(R: dict[str, Any]) -> list[dict[str, Any]]:
     out += verdicts_e016(R)
     out += verdicts_e021(R)
     from . import results_next as N
-    out += N.verdicts_e018(R) + N.verdicts_e019(R) + N.verdicts_e020(R) + N.verdicts_e022(R)
+    out += N.verdicts_e018(R) + N.verdicts_e019(R) + N.verdicts_e020(R) + N.verdicts_e022(R) + N.verdicts_e024(R)
     return out
 
 
