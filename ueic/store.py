@@ -171,6 +171,19 @@ def core_hash(pkg_dir: Path | None = None) -> str:
     return h.hexdigest()
 
 
+def timeseries_csv(ts: dict[str, list[float]] | None) -> bytes | None:
+    """The exact bytes a run's time series is stored as (and hashed over); None when there is none."""
+    if not ts or not ts.get("t"):
+        return None
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    keys = list(ts.keys())
+    w.writerow(keys)
+    for row in zip(*(ts[k] for k in keys)):
+        w.writerow([f"{v:.6g}" for v in row])
+    return buf.getvalue().encode()
+
+
 def host_info() -> dict[str, Any]:
     import os
     return {"platform": platform.platform(), "python": sys.version.split()[0], "numpy": np.__version__,
@@ -272,15 +285,9 @@ class Store:
         return run_id
 
     def _write_timeseries(self, run_id: str, ts: dict[str, list[float]]) -> tuple[str | None, str | None]:
-        if not ts or not ts.get("t"):
+        raw = timeseries_csv(ts)
+        if raw is None:
             return None, None
-        buf = io.StringIO()
-        w = csv.writer(buf)
-        keys = list(ts.keys())
-        w.writerow(keys)
-        for row in zip(*(ts[k] for k in keys)):
-            w.writerow([f"{v:.6g}" for v in row])
-        raw = buf.getvalue().encode()
         p = self.ts_dir / f"{run_id}.csv.gz"
         with gzip.GzipFile(p, "wb", mtime=0) as f:
             f.write(raw)

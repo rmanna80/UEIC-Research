@@ -104,6 +104,15 @@ def main(argv: list[str] | None = None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run"); r.add_argument("spec"); r.add_argument("--workers", type=int, default=None)
     r.add_argument("--supersedes", default=None, help="experiment id this run replaces (old record is kept)")
+    r.add_argument("--max-minutes", type=float, default=None,
+                   help="start no new runs after this long; continue later with `ueic resume`")
+    rs = sub.add_parser("resume", help="continue an unfinished experiment in its own record (checked)")
+    rs.add_argument("exp_id"); rs.add_argument("--workers", type=int, default=None)
+    rs.add_argument("--max-minutes", type=float, default=None)
+    rs.add_argument("--check", type=int, default=1, help="completed runs to re-simulate and compare first")
+    qu = sub.add_parser("queue", help="run or resume specs in order within one time budget")
+    qu.add_argument("specs", nargs="+"); qu.add_argument("--workers", type=int, default=None)
+    qu.add_argument("--max-minutes", type=float, default=None); qu.add_argument("--check", type=int, default=1)
     ab = sub.add_parser("abort"); ab.add_argument("exp_id"); ab.add_argument("reason")
     sub.add_parser("list")
     sub.add_parser("verify")
@@ -355,6 +364,15 @@ def main(argv: list[str] | None = None) -> int:
         if a.cmd == "run":
             from .experiment import load_spec, run_experiment
             spec = load_spec(a.spec)
+            if a.max_minutes is not None and spec.get("kind") != "hardware_protocol" and not a.calibration:
+                from .resume import start
+                out = start(spec, store, a.workers, a.max_minutes, a.supersedes,
+                            progress=lambda d, n: print(f"  {d}/{n} runs", flush=True) if d == n or d % max(1, n // 20) == 0 else None)
+                print(out)
+                if out["status"] == "running":
+                    print(f"time budget reached; continue with: python -m ueic resume {out['exp_id']}")
+                    return 3
+                return 0
             if spec.get("kind") == "facility":
                 from .facility.experiment import run_facility_experiment
                 st = store
@@ -378,6 +396,25 @@ def main(argv: list[str] | None = None) -> int:
             exp_id = run_experiment(spec, store, workers=a.workers, progress=prog, supersedes=a.supersedes)
             exp = store.experiment(exp_id)
             print(f"{exp_id}: {exp['status']} {exp['summary']}")
+        elif a.cmd == "resume":
+            from .resume import ResumeRefused, resume
+            try:
+                out = resume(store, a.exp_id, a.workers, a.max_minutes, a.check,
+                             progress=lambda d, n: print(f"  {d}/{n} runs", flush=True) if d == n or d % max(1, n // 20) == 0 else None)
+            except ResumeRefused as err:
+                print(f"REFUSED: {err}")
+                return 2
+            print(out)
+            return 3 if out["status"] == "running" else 0
+        elif a.cmd == "queue":
+            from .resume import ResumeRefused, queue
+            try:
+                done = queue(a.specs, store, a.workers, a.max_minutes, a.check, log=lambda s: print(s, flush=True))
+            except ResumeRefused as err:
+                print(f"REFUSED: {err}")
+                return 2
+            print("queue complete" if done else "queue stopped at its time budget; run the same command again to continue")
+            return 0 if done else 3
         elif a.cmd == "abort":
             print(f"{store.abort_experiment(a.exp_id, a.reason)} unfinished runs marked failed")
         elif a.cmd == "list":
