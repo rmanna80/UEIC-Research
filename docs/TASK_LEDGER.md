@@ -6,9 +6,9 @@ Branch `research/ueic-next-generation`. Status values: **done** (code, tests, do
 |---|---|---|---|
 | 0 | Branch, baseline tests (123 passed), store verified, docs/12, this ledger | done | base commit 6096bb4 |
 | 0 | Record M003 attempt 1 | done | data not pushed by the user; outcome recorded from the console output (PHASE_REPORT) |
-| 1 | `ueic.physics` package with unchanged legacy behaviour | pending | |
-| 1 | NTU dry cooler with fan affinity; chiller part-load map; pump curve; transport delay; storage; heat reuse and heat pump; power delivery | pending | |
-| 1 | Parameter registry with uncertainty, validity ranges, extrapolation warnings | pending | |
+| 1 | `ueic.physics` package with unchanged legacy behaviour | done | legacy file moved verbatim; bitwise E001 reproduction passes |
+| 1 | NTU dry cooler with fan affinity; chiller part-load map; pump curve; transport delay; storage; heat reuse and heat pump; power delivery | done (components) | dry cooler and chiller wired in behind `plant_model = 1`; pump curve, delay, stratified tank, heat pump, reuse and power delivery tested as components, wired in when an experiment needs them |
+| 1 | Parameter registry with uncertainty, validity ranges, extrapolation warnings; identifiability; validation utilities | done | `ueic/models/`; docs/13 |
 | 3 | Forecasters, multi-step MPC, robust MPC, safety filter, fallback | pending | |
 | 3 | E015 thermal futures | pending | |
 | 2 | Identification (RLS / EKF / constrained least squares), identifiability, active experiment design, drift | pending | |

@@ -116,6 +116,20 @@ _REGISTRY: list[Param] = [
     _P("cop_max", 20.0, "-", "G", "Numerical cap on chiller COP when lift approaches zero", group="plant"),
     _P("eta_conv", 0.94, "-", "F", "Grid-to-chip power conversion efficiency (UPS, PSU, VRs)", 0.88, 0.97, "plant"),
     _P("t_reuse_min", 45.0, "degC", "F", "Return temperature needed for heat to count as reusable", 35.0, 60.0, "plant"),
+    _P("plant_model", 0, "0/1", "G",
+       "Heat-rejection model. 0 = legacy (dry cooler to T_amb + dt_drycooler, fan power = fan_ratio x heat; "
+       "used by E001-E014). 1 = effectiveness-NTU dry cooler with fan affinity law, sized to match the legacy "
+       "model at its design point (ueic/physics/dry_cooler.py, Stage 1)", group="plant"),
+    _P("dc_air_ratio", 2.0, "-", "F",
+       "Dry cooler: design air capacity rate / design water capacity rate (plant_model 1)", 1.0, 4.0, "plant"),
+    _P("dc_ua_exponent", 0.6, "-", "F",
+       "Dry cooler: UA scales with airflow to this power (air-side film; plant_model 1)", 0.4, 0.8, "plant"),
+    _P("dc_fan_min", 0.1, "-", "G", "Dry cooler: lowest fan speed fraction while running (plant_model 1)", group="plant"),
+    _P("chiller_plr_a", 0.0, "-", "F",
+       "Chiller part-load curve W/W_full = a + b PLR + c PLR^2 (plant_model 1); (0, 1, 0) = no part-load "
+       "effect, as in the legacy plant", -0.5, 0.5, "plant"),
+    _P("chiller_plr_b", 1.0, "-", "F", "Chiller part-load curve coefficient b (see chiller_plr_a)", 0.5, 1.5, "plant"),
+    _P("chiller_plr_c", 0.0, "-", "F", "Chiller part-load curve coefficient c (see chiller_plr_a)", -0.5, 0.5, "plant"),
 
     # ------------------------------------------------------------ workload
     _P("job_work_mean", 20.0, "s", "F", "Mean job size in seconds at s=1 (lognormal)", 5.0, 120.0, "workload"),
@@ -237,6 +251,10 @@ def validate(cfg: Mapping[str, Any]) -> None:
         raise ValueError(f"v_min_ratio must be in (0,1] (got {cfg['v_min_ratio']})")
     if cfg["kappa_leak"] < 0 or cfg["p_leak_ref"] < 0:
         raise ValueError("kappa_leak and p_leak_ref must be >= 0")
+    if cfg["plant_model"] not in (0, 1, 0.0, 1.0):
+        raise ValueError("plant_model must be 0 (legacy) or 1 (NTU dry cooler)")
+    if not cfg["dc_air_ratio"] > 0 or not 0 < cfg["dc_ua_exponent"] <= 1.0 or not 0 <= cfg["dc_fan_min"] < 1:
+        raise ValueError("need dc_air_ratio > 0, dc_ua_exponent in (0,1], dc_fan_min in [0,1)")
 
 
 def assumptions_table() -> list[dict[str, Any]]:

@@ -144,15 +144,21 @@ def sha256(s: str | bytes) -> str:
 
 
 def code_hash(pkg_dir: Path | None = None) -> str:
+    """SHA-256 over every .py file in the package, subpackages included (relative paths, sorted).
+    Before Stage 1 (2026-11-01) only top-level files were hashed; stored hashes are provenance labels."""
     pkg_dir = pkg_dir or Path(__file__).resolve().parent
     h = hashlib.sha256()
-    for p in sorted(pkg_dir.glob("*.py")):
-        h.update(p.name.encode())
+    for p in sorted(pkg_dir.rglob("*.py"), key=lambda q: q.relative_to(pkg_dir).as_posix()):
+        if "__pycache__" in p.parts:
+            continue
+        h.update(p.relative_to(pkg_dir).as_posix().encode())
         h.update(p.read_bytes().replace(b"\r\n", b"\n"))
     return h.hexdigest()
 
 
-CORE_MODULES = ("params.py", "physics.py", "workload.py", "twin.py", "policies.py", "sim.py", "experiment.py")
+# Modules that can change simulator outputs. physics.py became the physics/ package in Stage 1.
+CORE_MODULES = ("params.py", "physics/__init__.py", "physics/dry_cooler.py", "physics/chiller.py", "workload.py",
+                "twin.py", "policies.py", "sim.py", "experiment.py")
 
 
 def core_hash(pkg_dir: Path | None = None) -> str:
