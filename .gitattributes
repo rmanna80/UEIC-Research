@@ -1,3 +1,7 @@
 *.sqlite binary
 *.gz binary
 *.png binary
+
+# Measurement data is stored byte-for-byte: its SHA-256 is recorded when it is written, so git must not
+# convert line endings (core.autocrlf on Windows turned the CRLF written by the csv module into LF).
+data/** -text

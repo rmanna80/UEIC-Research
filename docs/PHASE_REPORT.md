@@ -275,9 +275,19 @@ What it means:
 * **One difference between the worlds is fragile.** At 35 °C ambient the RTX 5070-derived world counts 39–41% of rejected heat as reusable against 25% for the registry world. But mean return temperatures differ by only 0.4–0.5 K (44.3–44.4 vs 43.9 °C) around the 45 °C threshold, so this is threshold-sensitive. The suggested mechanism (less flow spent cooling chips) was not isolated.
 * **In the model the only temperature dependence of chip power is leakage, so this cost is set by the leakage slope.** That is the weakest measured input: one card, a 4 K window. M003 (`09` §8) would narrow it.
 
-**M003 attempt 1 (2026-10-27, user's RTX 5070): no measurement.** This is from the console output the user reported; the session data was not pushed.
-* The ten sessions (five load, five idle) ran without an active clock lock. The GPU boosted to 2670–2692 MHz at its 250 W power limit.
-* The pasted procedure ran every step back to back, so the fan speed was never changed. The two load points `calib leak` kept both report 47% fan and 73 °C.
+**M003 attempt 1 (2026-10-27, user's RTX 5070): no measurement.** First recorded from the console output the user reported. The raw sessions were pushed on 2026-11-02 (`data/calibration/20261027T*`, commit `eda028b`) and confirm that record. Physical measurement, NVML board telemetry (`experiments/analyze_m003_attempt1.py`):
+
+| Sessions | Board power | Power limit | SM clock | Fan | Die temperature |
+|---|---|---|---|---|---|
+| 5 load, labelled fan 100/80/60/45/30 %, clk 2347 | 249.97–250.01 W (session means) | 250 W | 2662–2767 MHz | 46–48 % in every session | 71–74 °C in every session |
+| 5 idle, same fan labels | 18.7–27.4 W | 250 W | 180–2647 MHz (not settled) | 0 % in every session | 33–37 °C |
+
+* The ten sessions (five load, five idle) ran without an active clock lock. The GPU boosted to 2662–2767 MHz, and every load window averaged exactly its 250 W power limit.
+* The pasted procedure ran every step back to back, so the fan speed was never changed. Under load the fan followed the card's automatic curve to 46–48 % in every session. At idle it stayed at 0 % in all five sessions (the card's zero-RPM mode), so the idle fan-power correction could not have worked either.
+* The die temperature was 71–74 °C in every load session. With no temperature range and power pinned at the limit, the data contain no leakage information. `calib leak` kept 2 of the 5 load points (both 47 % fan, 73 °C) and refused to fit.
+* Re-running the current `calib leak` on the pushed sessions leaves out all ten, each for the right reason: all five load points for power at the limit (four also because the fan setting was not applied), and all five idle points because the fan setting was not applied. The guards added after attempt 1 would have stopped this run.
+* The driver reported no clock-event reason in the load windows, even though power sat at the limit. A power-limit check therefore has to compare power with the limit rather than trust the reason flags. The fixed checks below do this.
+* **Line endings.** All 23 telemetry files in the repository (M001, M002, M003) failed their recorded SHA-256 on Linux. Git on Windows (`core.autocrlf`) had converted the CRLF line endings written by the csv module into LF on commit. Converting back to CRLF reproduced every recorded hash exactly, so the files were restored to their original bytes, and `data/` is now marked `-text` in `.gitattributes`. `tests/test_data_integrity.py` checks every recorded hash. The `workload.csv` and JSON files have no recorded hash and were left as committed.
 * `calib leak` refused to fit (2 usable points, at least 3 needed). Even with three, points at the power limit could not have measured leakage.
 * Fixes, on `main` at 6096bb4:
   * each run checks itself after ~30 s against its `clk=` and `fan=` labels and the power limit, and stops early if they disagree;

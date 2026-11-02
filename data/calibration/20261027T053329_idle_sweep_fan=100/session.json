@@ -1,0 +1,18 @@
+{
+ "kind": "idle",
+ "label": "sweep fan=100",
+ "seconds": 150.0,
+ "gpu": 0,
+ "throughput_unit": "-",
+ "idle_before_s": 0.0,
+ "device": {
+  "index": 0,
+  "name": "NVIDIA GeForce RTX 5070",
+  "uuid": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+  "max_sm_clock_MHz": 3090,
+  "max_mem_clock_MHz": 14001,
+  "power_limit_W": 250.0
+ },
+ "telemetry_sha256": "86604cf4ad7952c0d8995f288473a88c541c9fcde2b424c5cada88b3eb8b6534",
+ "provenance": "physical_measurement"
+}
