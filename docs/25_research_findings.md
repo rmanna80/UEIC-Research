@@ -1,6 +1,6 @@
 # 25 · Research findings (next generation)
 
-**Status:** E015 and E016 are complete and summarised below. E018–E022 and E024 are running in simulation; their sections are filled in only after each experiment finishes and its pre-registered analysis has been run. E017, E023 and M003 are pending hardware. Every finding here is **simulated** unless it says otherwise. Hypotheses were committed before each experiment's first run and have not been changed; "not supported" verdicts are reported as such.
+**Status:** E015, E016 and E021 are complete and summarised below. E018–E020, E022 and E024 are running in simulation; their sections are filled in only after each experiment finishes and its pre-registered analysis has been run. E017, E023 and M003 are pending hardware. Every finding here is **simulated** unless it says otherwise. Hypotheses were committed before each experiment's first run and have not been changed; "not supported" verdicts are reported as such.
 
 Per-experiment detail, with every number, is in `PHASE_REPORT.md` and `RESULTS.md`; limits are in `27_limitations_and_open_questions.md`.
 
@@ -24,11 +24,27 @@ Per-experiment detail, with every number, is in `PHASE_REPORT.md` and `RESULTS.m
   * H7: drift detection was late or missing after an abrupt step.
 * **Reading:** online resistance estimation handles gradual fouling. It does not handle an abrupt fault at high ambient. That motivates E019's residual-based supervisor.
 
+### E021 · Heat reuse with an approach-dependent dry cooler (480 runs)
+
+* **Supported:**
+  * H2 (no-floor supply stays below 35 °C at 8 and 20 °C);
+  * H5 (supply orders by fan cost);
+  * H6 (in the RTX 5070-derived world, a 44 °C floor costs 0.037–0.055 kWh_el per kWh_th of reusable heat);
+  * H7 (about 4× less than a heat pump would need).
+* **Not supported:**
+  * H1: the better dry-cooler model moved the optimum 0.8–1.9 K *colder*, not warmer;
+  * H3 and H4: no larger shift in the RTX world, and no cheaper floor with the NTU plant.
+* **Reading:**
+  * The legacy plant's optimum was its fixed 5 K approach.
+  * A dry cooler that can reach a 3–4 K approach cheaply lets the optimiser cool the chips further.
+  * The chiller never ran, so the cost of warm water is chip leakage, and warm water is justified only by the value of the heat.
+  * In the RTX-derived world it pays if heat is worth more than ~2–6% of the electricity price per kWh. In the registry world the threshold is ~5–15%.
+  * This scales with the leakage slope (M003 pending).
+
 ## 2. Running (simulation)
 
 | ID | Question | Section filled after |
 |---|---|---|
-| E021 | Heat-reuse economics with an approach-dependent dry cooler | its 480 runs finish |
 | E019 | Fault-aware vs nominal supervision under 13 faults | its 260 runs finish |
 | E022 | Demand-response cap: capping, deferral, cold storage | its 50 runs finish |
 | E018 | Thermal-credit placement vs four baselines | its 150 runs finish |

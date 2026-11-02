@@ -338,6 +338,42 @@ Plan and stage status: `12_next_generation_architecture.md`, `TASK_LEDGER.md`. E
 * It does not remove the risk from an abrupt step at high ambient. Forgetting-factor RLS needs several intervals to move, and the controller keeps running hot in the meantime.
 * A fault-aware layer that reacts to the residual directly, rather than through the twin, is the natural complement. That is what E019 tests.
 
+### E021 · Heat-reuse economics with an approach-dependent dry cooler (480 runs, 0 failed)
+
+**Run history.**
+* **First attempt** (`E021-20261101T202413-b92693`): stopped by the session's background time limit after 132 completed runs. It was aborted with its reason, and its 348 unfinished runs are kept as failed.
+* **Second record** (`…212421-8b3d80`): same spec, superseding the first. A second time limit stopped it at 302/480.
+* **Checked resumption:** rather than abort again, checked resumption was built (`ueic/resume.py`, docs/24 §1) and the record was continued twice. Before each resumption:
+  * the core hash matched registration (`f0274eb299ad`);
+  * every stored run's configuration was regenerated exactly;
+  * completed runs were re-simulated and matched bit for bit (3 distinct runs, 4 checks).
+* **Code hash:** the package hash differs from registration (`3838e5ace73b` → `7f9f80817862`) only through the resumption code, the CLI and reporting. The simulation core is unchanged.
+* **Conditions:** 2 worlds × 4 plants × 4 supply floors × 3 ambients, `joint_fb`, S1, 4 h, 5 seeds. Details are in `20_heat_reuse.md` §7.
+
+| Hypothesis | Verdict | What happened |
+|---|---|---|
+| H1 NTU plant moves the no-floor optimum ≥ 1 K warmer | not supported (opposite sign) | NTU minus legacy: −0.8 to −1.9 K in all 6 world × ambient conditions |
+| H2 but below 35 °C at 8 and 20 °C | supported | 12.2–23.7 °C; at 8 °C the supply sat on its 12 °C limit |
+| H3 larger shift in the RTX world | not supported | −0.8 vs −0.8 K (8 °C), −1.3 vs −1.9 K (20 °C) |
+| H4 40 °C floor cheaper with the NTU plant | not supported | within 0.11 percentage points of legacy in all four conditions, one in the wrong direction |
+| H5 supply orders by fan cost | supported | e.g. 24.6 / 23.7 / 23.0 °C (RTX, 20 °C) |
+| H6 44 °C floor < 0.10 kWh_el per kWh_th (RTX world) | supported | 0.037–0.055 |
+| H7 cheaper than a heat pump | supported | 0.037–0.055 vs 0.147–0.226 |
+
+**Descriptive.**
+* The legacy plant's optimum was its fixed 5 K approach (supply = ambient + 5 K exactly), not a fan-cost balance.
+* The NTU dry cooler reaches 3–4 K approaches cheaply, so the optimum moved *colder*. The chips ran cooler and leaked less.
+* The NTU plant used 1.8–1.9% less energy per success than legacy without a floor, mostly fan energy.
+* The chiller did no work in any run, and NTU fan energy was below 1% of grid energy. The cost of a warm floor is therefore almost all chip leakage: 44 °C floor +3.4–5.4% (RTX world) vs +10–16% (registry world) at 8–20 °C.
+* A 35 °C floor gave no reusable heat (return ~39 °C).
+
+**Interpretation.**
+* With an approach-dependent dry cooler, warm water does not pay for itself through cooling savings in this model. Cooling was already almost free, and warmer chips leak more.
+* Warm water is justified by the heat. In the RTX 5070-derived world, a 44 °C floor made all of the node's heat reusable at 0.02–0.055 kWh of extra electricity per kWh of heat, about a quarter of what a heat pump would need.
+* Whether that pays depends on a heat price of at least 2–6% of the electricity price, and on a real heat customer.
+* All of it scales with the leakage slope, so M003 decides how far this transfers to real silicon.
+* The pre-registered expectation behind H1 and H3–H4 was wrong. It came from a back-of-envelope estimate disclosed in the spec.
+
 ## Definition of done (charter §16), initial platform
 
 | # | Criterion | Status |

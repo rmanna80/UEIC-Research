@@ -21,7 +21,7 @@ Branch `research/ueic-next-generation`. Status values: **done** (code, tests, do
 | 6 | Multi-node facility simulator (types, racks, manifold, series plates, caps, network) | done (software) | docs/19; validated against analytic cases, conservation, 1→4 scaling, dt |
 | 6 | E020 multi-node joint control | in progress | pre-registered (5e0b172); queued |
 | 7 | Grid modules: caps, compliance, deferral, cold storage, tariffs, carbon | done (software) | docs/21 |
-| 7 | E021 heat reuse | in progress | pre-registered (2aaa6b6); first attempt interrupted by a session time limit at ~120/480 runs, aborted with reason, re-run superseding it |
+| 7 | E021 heat reuse | done | pre-registered (2aaa6b6); 480 runs, 0 failed; H2, H5, H6, H7 supported; H1, H3, H4 not. First attempt aborted after 132/480 (time limit, kept as failed); second record resumed twice under checks (`ueic/resume.py`) |
 | 7 | E022 grid coordination | in progress | pre-registered (4c14a91); queued |
 | 8 | Fault injection, sensor validation, CUSUM, degradation, recovery modes, fault-aware supervisor | done (software) | docs/22 |
 | 8 | E019 fault robustness | in progress | pre-registered (692b375); queued |

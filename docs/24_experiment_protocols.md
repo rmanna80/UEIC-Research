@@ -31,7 +31,7 @@
 | E018 | Thermal-credit vs four placement baselines, 5 conditions | simulation (facility) | 150 | see PHASE_REPORT |
 | E019 | Nominal vs fault-aware supervision under 13 faults | simulation | 260 | see PHASE_REPORT |
 | E020 | Joint supply, valves and placement vs independent control, 1–16 nodes | simulation (facility) | 120 | see PHASE_REPORT |
-| E021 | Heat-reuse economics with an approach-dependent dry cooler | simulation | 480 | first attempt interrupted (infrastructure) and aborted with its reason; re-run |
+| E021 | Heat-reuse economics with an approach-dependent dry cooler | simulation | 480 | completed; H2, H5, H6, H7 supported; H1, H3, H4 not. First attempt interrupted (infrastructure), aborted with its reason; second record superseded it and was resumed twice under checks (§1) |
 | E022 | Demand-response cap: capping, deferral, cold storage; energy vs cost vs carbon | simulation (facility) | 50 | see PHASE_REPORT |
 | E023 | Equivalent kernels: time vs GPU energy vs estimated facility energy | hardware protocol | – | **pending hardware**; ATLAS/KernelSmith sources pending access |
 | E024 | 2⁴ factorial integrated ablation on 128 GPUs with a grid cap | simulation (facility) | 80 | see PHASE_REPORT |
