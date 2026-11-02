@@ -1,0 +1,153 @@
+{
+ "kind": "ueic_leakage_sweep",
+ "created_utc": "2026-10-27T05:46:05+00:00",
+ "device": "NVIDIA GeForce RTX 5070 (GPU-91145432-3fb5-4033-dd9a-1e510e536d51)",
+ "points": [
+  {
+   "name": "20261027T050640_compute_sweep_fan=60_clk=2347",
+   "kind": "compute",
+   "label": "sweep fan=60 clk=2347",
+   "label_fan_pct": 60.0,
+   "ok": true,
+   "n": 691,
+   "clock_MHz": 2685.0,
+   "fan_pct": 47.0,
+   "fan_source": "telemetry",
+   "P_W": 250.0031635311143,
+   "P_se": 0.004613069894660751,
+   "T_C": 72.99276410998553,
+   "T_drift_K_per_min": -0.00091280147345163,
+   "window_min": 3.7648247917493185,
+   "settled": true,
+   "thermal_flag_frac": 0.0
+  },
+  {
+   "name": "20261027T052245_compute_sweep_fan=30_clk=2347",
+   "kind": "compute",
+   "label": "sweep fan=30 clk=2347",
+   "label_fan_pct": 30.0,
+   "ok": true,
+   "n": 1164,
+   "clock_MHz": 2685.0,
+   "fan_pct": 47.0,
+   "fan_source": "telemetry",
+   "P_W": 250.05161683848797,
+   "P_se": 0.004221925617716483,
+   "T_C": 72.98367697594502,
+   "T_drift_K_per_min": -0.013058545469955407,
+   "window_min": 3.9865299065907798,
+   "settled": true,
+   "thermal_flag_frac": 0.0
+  }
+ ],
+ "idle_points": [
+  {
+   "name": "20261027T053329_idle_sweep_fan=100",
+   "kind": "idle",
+   "label": "sweep fan=100",
+   "label_fan_pct": 100.0,
+   "ok": true,
+   "n": 750,
+   "clock_MHz": 787.0,
+   "fan_pct": 0.0,
+   "fan_source": "telemetry",
+   "P_W": 26.887792,
+   "P_se": 0.04290471315959963,
+   "T_C": 36.308,
+   "T_drift_K_per_min": -0.8229713600031506,
+   "window_min": 1.2483067631721496,
+   "settled": false,
+   "thermal_flag_frac": 0.0
+  },
+  {
+   "name": "20261027T053600_idle_sweep_fan=80",
+   "kind": "idle",
+   "label": "sweep fan=80",
+   "label_fan_pct": 80.0,
+   "ok": true,
+   "n": 751,
+   "clock_MHz": 247.0,
+   "fan_pct": 0.0,
+   "fan_source": "telemetry",
+   "P_W": 18.58262982689747,
+   "P_se": 0.2995651314707062,
+   "T_C": 34.354194407456724,
+   "T_drift_K_per_min": -0.18946665463432052,
+   "window_min": 1.2499424656232199,
+   "settled": true,
+   "thermal_flag_frac": 0.0
+  },
+  {
+   "name": "20261027T053831_idle_sweep_fan=60",
+   "kind": "idle",
+   "label": "sweep fan=60",
+   "label_fan_pct": 60.0,
+   "ok": true,
+   "n": 751,
+   "clock_MHz": 697.0,
+   "fan_pct": 0.0,
+   "fan_source": "telemetry",
+   "P_W": 27.405705725699065,
+   "P_se": 0.0917542038324826,
+   "T_C": 34.28362183754993,
+   "T_drift_K_per_min": 0.28850546290183837,
+   "window_min": 1.2499516248703002,
+   "settled": true,
+   "thermal_flag_frac": 0.0
+  },
+  {
+   "name": "20261027T054102_idle_sweep_fan=45",
+   "kind": "idle",
+   "label": "sweep fan=45",
+   "label_fan_pct": 45.0,
+   "ok": true,
+   "n": 751,
+   "clock_MHz": 457.0,
+   "fan_pct": 0.0,
+   "fan_source": "telemetry",
+   "P_W": 20.96478162450067,
+   "P_se": 0.23164940553392127,
+   "T_C": 33.58588548601864,
+   "T_drift_K_per_min": -0.8844683091350062,
+   "window_min": 1.249945060412089,
+   "settled": false,
+   "thermal_flag_frac": 0.0
+  },
+  {
+   "name": "20261027T054334_idle_sweep_fan=30",
+   "kind": "idle",
+   "label": "sweep fan=30",
+   "label_fan_pct": 30.0,
+   "ok": true,
+   "n": 751,
+   "clock_MHz": 435.0,
+   "fan_pct": 0.0,
+   "fan_source": "telemetry",
+   "P_W": 20.941187749667108,
+   "P_se": 0.13455136663960213,
+   "T_C": 33.0,
+   "T_drift_K_per_min": 0.0,
+   "window_min": 1.249965457121531,
+   "settled": true,
+   "thermal_flag_frac": 0.0
+  }
+ ],
+ "excluded": [
+  {
+   "name": "20261027T042726_compute_sweep_fan=100_clk=2347",
+   "reason": "clock 2670 MHz, not the sweep's 2685 MHz"
+  },
+  {
+   "name": "20261027T045838_compute_sweep_fan=80_clk=2347",
+   "reason": "clock 2692 MHz, not the sweep's 2685 MHz"
+  },
+  {
+   "name": "20261027T051443_compute_sweep_fan=45_clk=2347",
+   "reason": "clock 2692 MHz, not the sweep's 2685 MHz"
+  }
+ ],
+ "notes": [],
+ "method": "OLS of steady-state board power on die temperature across fixed fan speeds at one locked clock and constant compute load; fan power removed with idle sessions at the same fan speeds",
+ "ok": false,
+ "reason": "2 usable load points; need at least 3 fan speeds"
+}
