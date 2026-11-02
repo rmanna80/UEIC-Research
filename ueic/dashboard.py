@@ -130,6 +130,12 @@ def _slim(R: dict) -> dict:
     e14 = R.get("E014")
     D["E014"] = ({k: e14[k] for k in ("id", "conditions", "errors", "n_runs", "n_failed", "H1", "H2", "H3", "H4", "H5")}
                  | {"disclosure": e14["spec"].get("disclosure", "")}) if e14 else None
+    e15 = R.get("E015")
+    D["E015"] = ({k: e15[k] for k in ("id", "rows", "n_runs", "n_failed", "H1", "H2", "H3", "H4", "H5", "H6")}
+                 | {"disclosure": e15["spec"].get("disclosure", "")}) if e15 else None
+    e16 = R.get("E016")
+    D["E016"] = ({k: e16[k] for k in ("id", "conditions", "n_runs", "n_failed", "H1", "H2", "H3", "H4", "H5", "H6", "H7")}
+                 | {"disclosure": e16["spec"].get("disclosure", "")}) if e16 else None
     e12 = R.get("E012")
     D["E012"] = ({k: e12[k] for k in ("id", "cells", "floor_penalty", "n_runs", "n_failed", "H1", "H2", "H3", "H4", "H5")}
                  | {"disclosure": e12["spec"].get("disclosure", "")}) if e12 else None
@@ -669,6 +675,27 @@ renderers.hardware = sec => { sec.innerHTML = ''; const M = D.M001, C = D.E001C;
     const rows = E14.conditions.map(c => `<tr><td class="mono" style="white-space:nowrap">${plantName[c.plant] || c.plant}</td><td>${c.degradation}</td>${E14.errors.map(e => `<td class="n">${fmt(c.joint_lag[e].chip_s_over_target, 0)}</td>`).join('')}<td class="n">${fmt(c.joint_meas.chip_s_over_target, 0)}</td><td class="n">${pc(c.meas_vs_lag)}</td></tr>`);
     p.appendChild(el('div', {class: 'scroll'}, `<table><thead><tr><th>Loop</th><th>Cold plate</th>${head}<th class="n">joint_meas</th><th class="n">joint_meas energy vs joint_lag</th></tr></thead><tbody>${rows.join('')}</tbody></table>`));
     p.appendChild(el('p', {class: 'note'}, 'Pre-registered. Disclosure: ' + E14.disclosure.replace(/</g, '&lt;')));
+    sec.appendChild(p);
+  }
+  const E15 = D.E015;
+  if (E15) { const p = el('div', {class: 'panel'}); p.appendChild(el('h3', {}, 'E015 · Thermal futures: when does planning ahead help?'));
+    p.appendChild(el('p', {class: 'note'}, 'A multi-step MPC predicts the supply temperature each setpoint command will produce (command delay, plant ramp, loop thermal mass) and plans clocks for every step; an independent safety filter checks each action against the supply the chips can actually see. Compared with the measured-state rule (joint_meas), steady-state joint control and independent control. Late tasks are seed means; energy is paired against joint_meas. Simulation only.'));
+    const arms = [['joint_meas|base', 'meas'], ['joint|base', 'joint'], ['mpc|base', 'MPC pers.'], ['mpc|oracle', 'MPC oracle'], ['mpc_robust|oracle', 'robust']];
+    const g = (r, a, k) => (r.arms[a] || {})[k];
+    const pc = x => x && fin(x.mean) ? pct(x.mean, 1) : '–';
+    const rows = E15.rows.map(r => `<tr><td>${r.scenario}</td><td class="mono">${r.plant}</td><td class="mono">${r.delay}</td>${arms.map(([a]) => `<td class="n">${fmt(g(r, a, 'slo_violations'), 1)}</td>`).join('')}<td class="n">${pc(r.energy_vs_meas['mpc|oracle'])}</td><td class="n">${fmt(g(r, 'joint|base', 'chip_s_over_target'), 0)} / ${fmt(g(r, 'mpc|oracle', 'chip_s_over_target'), 0)}</td></tr>`);
+    p.appendChild(el('div', {class: 'scroll'}, `<table><thead><tr><th>Scenario</th><th>Plant</th><th>Delay</th>${arms.map(([, n]) => `<th class="n">late, ${n}</th>`).join('')}<th class="n">MPC oracle energy vs meas</th><th class="n">chip·s > 80 °C joint / MPC</th></tr></thead><tbody>${rows.join('')}</tbody></table>`));
+    p.appendChild(el('p', {class: 'note'}, 'Pre-registered. Disclosure: ' + E15.disclosure.replace(/</g, '&lt;')));
+    sec.appendChild(p);
+  }
+  const E16 = D.E016;
+  if (E16) { const p = el('div', {class: 'panel'}); p.appendChild(el('h3', {}, 'E016 · Learning the cold plates while they foul'));
+    p.appendChild(el('p', {class: 'note'}, 'The simulated cold plates foul during the run (plant only). A fixed twin keeps its original resistance; a periodically recalibrated twin refits every 30 min; an adaptive twin updates continuously (recursive least squares). All plan with the same controller. Seed means; simulation only.'));
+    const pols = [['joint_fixed', 'fixed'], ['joint_recal', 'recal 30 min'], ['joint_adaptive', 'adaptive'], ['joint_robust', 'bias-corrected (E008)']];
+    const g = (c, p_, k) => (c.by_policy[p_] || {})[k];
+    const rows = E16.conditions.map(c => `<tr><td>${c.drift}</td><td class="n">${c.t_amb} °C</td>${pols.map(([p_]) => `<td class="n">${fmt(g(c, p_, 'chip_s_over_target'), 0)}</td>`).join('')}<td class="n">${fmt(g(c, 'joint_fixed', 'diag_pred_peak_mae_K'), 2)} / ${fmt(g(c, 'joint_adaptive', 'diag_pred_peak_mae_K'), 2)}</td></tr>`);
+    p.appendChild(el('div', {class: 'scroll'}, `<table><thead><tr><th>Drift</th><th class="n">Ambient</th>${pols.map(([, n]) => `<th class="n">chip·s > 80 °C, ${n}</th>`).join('')}<th class="n">peak-T error K, fixed / adaptive</th></tr></thead><tbody>${rows.join('')}</tbody></table>`));
+    p.appendChild(el('p', {class: 'note'}, 'Pre-registered. Disclosure: ' + E16.disclosure.replace(/</g, '&lt;')));
     sec.appendChild(p);
   }
   const E12 = D.E012;

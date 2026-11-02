@@ -1,0 +1,58 @@
+{
+ "kind": "ueic_thermal_step_fit",
+ "evidence": "B on the measured card (RTX 5070, air-cooled); class E if transferred",
+ "fits": {
+  "M001 warm-up (2002 MHz)": {
+   "A_K": 12.6468958075941,
+   "tau_s": 0.7163264349437966,
+   "B_K_per_s": 0.23614879995663118,
+   "R_fast_K_per_W": 0.12261397471102636,
+   "se": {
+    "A_K": 0.20449045606522942,
+    "tau_s": 0.05037391811245608,
+    "B_K_per_s": 0.018700365793197147
+   },
+   "rmse_K": 0.9605818131217118,
+   "n": 175,
+   "T0_C": 36.0,
+   "dP_W": 103.14399999999998,
+   "warnings": [
+    "temperatures quantised to 1.0 K; tau below ~1 s is poorly resolved",
+    "tau is below 3x the sensor's update interval (1.75 s): not resolved; the die responds within about one or two sensor updates"
+   ],
+   "method": "T0 + A(1 - exp(-t/tau)) + B t over the first seconds after a power step",
+   "t_fit_s": 17.499876499176025,
+   "temp_update_interval_s_median": 1.7497444152832031,
+   "P_idle_W": 26.984,
+   "P_load_W": 130.128,
+   "fan_first_on_s": 17.999876499176025,
+   "session": "20261026T204001_warmup_clk=2017"
+  },
+  "M002 warm-up (2340 MHz)": {
+   "A_K": 16.416237905373027,
+   "tau_s": 0.49908362280997004,
+   "B_K_per_s": 0.3572702214809648,
+   "R_fast_K_per_W": 0.11796918520356882,
+   "se": {
+    "A_K": 0.23858183408395747,
+    "tau_s": 0.028638606954016883,
+    "B_K_per_s": 0.03592281348281179
+   },
+   "rmse_K": 0.8128136885009853,
+   "n": 105,
+   "T0_C": 37.0,
+   "dP_W": 139.157,
+   "warnings": [
+    "temperatures quantised to 1.0 K; tau below ~1 s is poorly resolved",
+    "tau is below 3x the sensor's update interval (1.00 s): not resolved; the die responds within about one or two sensor updates"
+   ],
+   "method": "T0 + A(1 - exp(-t/tau)) + B t over the first seconds after a power step",
+   "t_fit_s": 10.500048875808716,
+   "temp_update_interval_s_median": 1.000042200088501,
+   "P_idle_W": 29.052,
+   "P_load_W": 168.209,
+   "fan_first_on_s": 11.000048875808716,
+   "session": "20261026T214252_warmup_clk=2347"
+  }
+ }
+}

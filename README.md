@@ -17,6 +17,8 @@ This repository covers **Phase 0** (problem definition, evaluation criteria, arc
 | The interactive 3-D lab (API + Three.js) | run `python -m ueic serve`, open http://127.0.0.1:8765/lab/ |
 | How to measure your own GPU | `docs/09_calibration_protocol.md` |
 | First hardware results (RTX 5070) | `docs/10_calibration_results.md` |
+| The next-generation plan, stage status and experiment registry (this branch) | `docs/12_next_generation_architecture.md`, `docs/TASK_LEDGER.md`, `docs/24_experiment_protocols.md` |
+| Next-generation findings and their limits | `docs/25_research_findings.md`, `docs/27_limitations_and_open_questions.md` |
 
 ## Run it (Windows PowerShell)
 
@@ -27,7 +29,7 @@ py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
-python -m pytest                                   # 123 tests, a few minutes
+python -m pytest                                   # 234 tests, several minutes
 python -m ueic verify                              # check the results database has not been altered
 python -m ueic params                              # print the assumptions register
 ```
@@ -43,6 +45,14 @@ start results\dashboard.html
 python -m ueic export E001                         # CSV, JSON and a reproducible bundle (.zip)
 ```
 
+Long experiments can run in time-limited sessions. An unfinished experiment is continued in its own record only after the core hash, every stored run's configuration and a sample of re-simulated runs check out exactly (`docs/24` §1):
+
+```powershell
+python -m ueic run experiments\E021_heat_reuse.json --workers 2 --max-minutes 100   # exit code 3: budget reached
+python -m ueic resume <EXP_ID> --workers 2 --max-minutes 100 --check 2
+python -m ueic queue experiments\E021_heat_reuse.json experiments\E019_fault_robustness.json --workers 2 --max-minutes 100
+```
+
 Phase 2 lab and API (local only, binds to 127.0.0.1):
 
 ```powershell
@@ -56,7 +66,7 @@ To test your own idea, copy a spec in `experiments\`, change the `design` block 
 ## How the code is organised (suggested reading order)
 
 1. `ueic/params.py`: every number, with unit, evidence class (A–G), source and sensitivity range.
-2. `ueic/physics.py`: power, thermal, pump, plant, exergy. Short pure functions with the equations in the docstring.
+2. `ueic/physics/`: power, thermal, pump, plant, exergy (`__init__.py`, the legacy model unchanged), plus the dry cooler, chiller, heat pump, heat reuse, storage, hydraulics and power delivery added on this branch. Short pure functions with the equations in the docstring.
 3. `ueic/sim.py`: the time-stepped simulator and its energy accounting.
 4. `ueic/policies.py` and `ueic/twin.py`: the five controllers and the digital twin they plan with.
 5. `ueic/store.py` and `ueic/experiment.py`: append-only experiment database, hash chain, runner.

@@ -221,6 +221,11 @@ def e005(store: Store, threshold: float) -> dict[str, Any] | None:
             "n_runs": len(runs), "n_failed": sum(r["status"] != "completed" for r in runs)}
 
 
+def _next(store: Store) -> dict[str, Any]:
+    from . import results_next as N
+    return {"E018": N.e018(store), "E019": N.e019(store), "E020": N.e020(store), "E022": N.e022(store), "E024": N.e024(store)}
+
+
 def compute_all(store: Store, threshold: float = 0.01) -> dict[str, Any]:
     from datetime import datetime, timezone
     from .params import assumptions_table
@@ -233,7 +238,7 @@ def compute_all(store: Store, threshold: float = 0.01) -> dict[str, Any]:
         "E001": e001(store, threshold), "E002": e002(store, threshold), "E003": e003(store, threshold),
         "E004": e004(store), "E005": e005(store, threshold),
         "E006": e006(store, threshold), "E007": e007(store, threshold), "E008": e008(store, threshold),
-        "M001": m001(store), "E001C": e001c(store, threshold), "E009": e009(store, threshold), "E010": e010(store, threshold), "E011": e011(store, threshold), "E011B": e011b(store, threshold), "E012": e012(store, threshold), "E013": e013(store, threshold), "E014": e014(store, threshold),
+        "M001": m001(store), "E001C": e001c(store, threshold), "E009": e009(store, threshold), "E010": e010(store, threshold), "E011": e011(store, threshold), "E011B": e011b(store, threshold), "E012": e012(store, threshold), "E013": e013(store, threshold), "E014": e014(store, threshold), "E015": e015(store, threshold), "E016": e016(store, threshold), "E021": e021(store, threshold), **_next(store),
         "assumptions": assumptions_table(),
         "research_log": store.research_log(),
         "experiments": [{"id": x["id"], "key": x["key"], "status": x["status"], "title": x["spec"]["title"],
@@ -327,6 +332,11 @@ def verdicts(R: dict[str, Any]) -> list[dict[str, Any]]:
     out += verdicts_e012(R)
     out += verdicts_e013(R)
     out += verdicts_e014(R)
+    out += verdicts_e015(R)
+    out += verdicts_e016(R)
+    out += verdicts_e021(R)
+    from . import results_next as N
+    out += N.verdicts_e018(R) + N.verdicts_e019(R) + N.verdicts_e020(R) + N.verdicts_e022(R) + N.verdicts_e024(R)
     return out
 
 
@@ -1062,6 +1072,298 @@ def verdicts_e014(R: dict[str, Any]) -> list[dict[str, Any]]:
         {"key": "E014 H5", "state": st(e["H5"]["supported"]),
          "text": (f"Wrong-model vs exact-model joint_lag energy {100 * min(ev):+.2f}% to {100 * max(ev):+.2f}%" if ev else "no pairs")
                  + f"; CI outside +/-1% in {len(e['H5']['failures'])}{fl(e['H5']['failures'][:4])}."},
+    ]
+
+
+E015_ARMS = (("joint_meas", "base"), ("independent", "base"), ("joint", "base"), ("joint_lag", "base"),
+             ("mpc", "base"), ("mpc", "oracle"), ("mpc", "noisy"), ("mpc", "biased"), ("mpc", "blind"),
+             ("mpc_robust", "base"), ("mpc_robust", "oracle"))
+E015_METRICS = ("slo_violations", "E_per_success_kJ", "chip_s_over_target", "chip_s_throttled", "peak_T_j_C",
+                "decisions_fallback", "decisions_filtered", "tsup_changes", "success_rate")
+
+
+def e015(store: Store, threshold: float) -> dict[str, Any] | None:
+    """E015 thermal futures: arms are (policy, forecast variant) within each (scenario, plant, delay) condition."""
+    eid = store.latest_experiment("E015")
+    if not eid:
+        return None
+    exp = store.experiment(eid)
+    runs = store.runs(eid)
+    sc0 = exp["spec"]["design"]["scenarios"][0]
+    idx = A.index_runs(runs)
+    conds = list(dict.fromkeys(v["label"].rsplit("|", 1)[0] for v in exp["spec"]["design"]["variants"]))
+    arm = lambda c, pol, fc: idx.get((sc0, f"{c}|{fc}"), {}).get(pol, {})
+    mean = lambda d, k: _f(float(np.mean([x[k] for x in d.values()]))) if d else None
+
+    def rel(a, b, k="E_per_success_kJ"):
+        seeds = sorted(set(a) & set(b))
+        if not seeds:
+            return None
+        m_, lo, hi = A.t_ci(np.array([a[x][k] / b[x][k] - 1.0 for x in seeds]))
+        return {"mean": _f(m_), "lo": _f(lo), "hi": _f(hi), "n": len(seeds)}
+    rows = []
+    for c in conds:
+        scen, plant, delay = c.split("|")
+        r = {"cond": c, "scenario": scen, "plant": plant, "delay": delay, "arms": {}, "energy_vs_meas": {}}
+        ref = arm(c, "joint_meas", "base")
+        for pol, fc in E015_ARMS:
+            d = arm(c, pol, fc)
+            r["arms"][f"{pol}|{fc}"] = {k: mean(d, k) for k in E015_METRICS} if d else None
+            if d and (pol, fc) != ("joint_meas", "base"):
+                r["energy_vs_meas"][f"{pol}|{fc}"] = rel(d, ref)
+        r["robust_vs_mpc_oracle"] = rel(arm(c, "mpc_robust", "oracle"), arm(c, "mpc", "oracle"))
+        r["fallback_runs"] = sum(1 for pol, fc in E015_ARMS if pol.startswith("mpc")
+                                 for x in arm(c, pol, fc).values() if (x.get("decisions_fallback") or 0) > 0)
+        rows.append(r)
+    g = lambda r, a, k: (r["arms"].get(a) or {}).get(k)
+    late = lambda r, a: g(r, a, "slo_violations") or 0.0
+    slow = lambda r: r["plant"] != "instant"
+    # H1
+    h1 = [f"{r['cond']}/{a}" for r in rows for a in r["arms"] if a.startswith("mpc") and r["arms"][a]
+          and (r["arms"][a]["chip_s_over_target"] or 0) > 0]
+    h1_fb = [r["cond"] for r in rows if r["fallback_runs"]]
+    # H2
+    h2_rows = [r for r in rows if r["scenario"] == "burst" and slow(r)]
+    h2_pass = []
+    for r in h2_rows:
+        lm, lo_ = late(r, "joint_meas|base"), late(r, "mpc|oracle")
+        e = r["energy_vs_meas"].get("mpc|oracle")
+        ok = (lm - lo_ >= max(1.0, 0.25 * lm)) and e is not None and e["hi"] is not None and e["hi"] <= 0.02
+        h2_pass.append({"cond": r["cond"], "late_meas": lm, "late_mpc_oracle": lo_, "energy": e, "pass": bool(ok)})
+    # H3
+    h3 = []
+    for r in rows:
+        if r["plant"] == "instant" and r["delay"] == "d0":
+            lm, lo_ = late(r, "joint_meas|base"), late(r, "mpc|oracle")
+            e = r["energy_vs_meas"].get("mpc|oracle")
+            ok = abs(lm - lo_) <= max(1.0, 0.1 * lm) and e is not None and e["lo"] is not None and e["lo"] >= -0.01 and e["hi"] <= 0.01
+            h3.append({"cond": r["cond"], "late_meas": lm, "late_mpc_oracle": lo_, "energy": e, "pass": bool(ok)})
+    # H4
+    tot = lambda a: float(sum(late(r, a) for r in h2_rows))
+    L = {k: tot(f"mpc|{k}") for k in ("oracle", "noisy", "base", "blind")}
+    h4 = L["oracle"] <= L["noisy"] and L["oracle"] < L["base"] and abs(L["blind"] - L["base"]) <= max(1.0, 0.2 * L["base"])
+    # H5
+    over = [r for r in rows if r["scenario"] == "overload"]
+    h5_zero = [f"{r['cond']}/{a}" for r in over for a, v in r["arms"].items() if v and (v["slo_violations"] or 0) <= 0]
+    h5_far = [r["cond"] for r in over if abs(late(r, "mpc|oracle") - late(r, "joint_meas|base"))
+              > 0.15 * max(late(r, "joint_meas|base"), 1e-9)]
+    # H6
+    h6 = [r["cond"] for r in rows if ((g(r, "mpc|oracle", "chip_s_over_target") or 0) == 0
+                                     and (g(r, "mpc_robust|oracle", "chip_s_over_target") or 0) > 0)
+          or not (r["robust_vs_mpc_oracle"] and r["robust_vs_mpc_oracle"]["hi"] is not None
+                  and r["robust_vs_mpc_oracle"]["hi"] <= 0.03)]
+    return {"id": eid, "spec": exp["spec"], "rows": rows, "n_runs": len(runs),
+            "n_failed": sum(r["status"] != "completed" for r in runs),
+            "H1": {"supported": not h1 and not h1_fb, "over": h1, "fallback_conditions": h1_fb},
+            "H2": {"supported": sum(x["pass"] for x in h2_pass) >= 3, "rows": h2_pass},
+            "H3": {"supported": all(x["pass"] for x in h3) and len(h3) == 4, "rows": h3},
+            "H4": {"supported": bool(h4), "late_totals": L},
+            "H5": {"supported": not h5_zero and not h5_far, "no_late": h5_zero, "beyond_15pct": h5_far},
+            "H6": {"supported": not h6, "failures": h6}}
+
+
+def verdicts_e015(R: dict[str, Any]) -> list[dict[str, Any]]:
+    e = R.get("E015")
+    if not e:
+        return []
+    st = lambda ok: "supported" if ok else "not supported"
+    fl = lambda xs: (": " + ", ".join(xs[:6]) + (" ..." if len(xs) > 6 else "")) if xs else ""
+    h2 = e["H2"]["rows"]
+    h3 = e["H3"]["rows"]
+    pe = lambda x: "n/a" if not x else f"{100 * x['mean']:+.2f}%"
+    return [
+        {"key": "E015 H1", "state": st(e["H1"]["supported"]),
+         "text": f"MPC arms above 80 C in {len(e['H1']['over'])} condition-arms{fl(e['H1']['over'])}; conditions with any "
+                 f"fallback decision: {len(e['H1']['fallback_conditions'])}{fl(e['H1']['fallback_conditions'])}."},
+        {"key": "E015 H2", "state": st(e["H2"]["supported"]),
+         "text": "Burst, slow loops, late tasks joint_meas -> mpc(oracle), energy: " + "; ".join(
+             f"{x['cond'].split('|', 1)[1]} {x['late_meas']:.1f} -> {x['late_mpc_oracle']:.1f}, {pe(x['energy'])}"
+             + ("" if x["pass"] else " (fails)") for x in h2) + f". Passing: {sum(x['pass'] for x in h2)}/4 (needed 3)."},
+        {"key": "E015 H3", "state": st(e["H3"]["supported"]),
+         "text": "Instant plant, no delay, late tasks joint_meas / mpc(oracle), energy: " + "; ".join(
+             f"{x['cond'].split('|')[0]} {x['late_meas']:.1f} / {x['late_mpc_oracle']:.1f}, {pe(x['energy'])}"
+             + ("" if x["pass"] else " (fails)") for x in h3) + "."},
+        {"key": "E015 H4", "state": st(e["H4"]["supported"]),
+         "text": "Late tasks summed over the 4 slow-loop burst conditions: " + ", ".join(
+             f"{k} {v:.1f}" for k, v in e["H4"]["late_totals"].items()) + " (base = persistence)."},
+        {"key": "E015 H5", "state": st(e["H5"]["supported"]),
+         "text": f"Overload: arms with no late tasks {len(e['H5']['no_late'])}{fl(e['H5']['no_late'])}; conditions where "
+                 f"mpc(oracle) differs from joint_meas by > 15%: {len(e['H5']['beyond_15pct'])}{fl(e['H5']['beyond_15pct'])}."},
+        {"key": "E015 H6", "state": st(e["H6"]["supported"]),
+         "text": f"mpc_robust(oracle) less safe or > +3% energy vs mpc(oracle) in {len(e['H6']['failures'])} "
+                 f"conditions{fl(e['H6']['failures'])}."},
+    ]
+
+
+E016_POL = ("joint_fixed", "joint_recal", "joint_adaptive", "joint_robust")
+E016_METRICS = ("chip_s_over_target", "chip_s_throttled", "E_per_success_kJ", "slo_violations", "diag_pred_peak_mae_K",
+                "diag_pred_peak_bias_K", "diag_model_dR_final", "diag_drift_alarm_t_s", "peak_T_j_C")
+
+
+def e016(store: Store, threshold: float) -> dict[str, Any] | None:
+    eid = store.latest_experiment("E016")
+    if not eid:
+        return None
+    exp = store.experiment(eid)
+    runs = store.runs(eid)
+    sc0 = exp["spec"]["design"]["scenarios"][0]
+    idx = A.index_runs(runs)
+    labels = [v["label"] for v in exp["spec"]["design"]["variants"]]
+    get = lambda lab, pol: idx.get((sc0, lab), {}).get(pol, {})
+    mean = lambda d, k: _f(float(np.mean([x[k] for x in d.values() if k in x]))) if d and any(k in x for x in d.values()) else None
+
+    def rel(a, b, k="E_per_success_kJ"):
+        seeds = sorted(set(a) & set(b))
+        if not seeds:
+            return None
+        m_, lo, hi = A.t_ci(np.array([a[x][k] / b[x][k] - 1.0 for x in seeds]))
+        return {"mean": _f(m_), "lo": _f(lo), "hi": _f(hi), "n": len(seeds)}
+    conds = []
+    for lab in labels:
+        drift, amb = lab.split("|")
+        c = {"label": lab, "drift": drift, "t_amb": float(amb[3:]),
+             "by_policy": {p_: {k: mean(get(lab, p_), k) for k in E016_METRICS} for p_ in E016_POL},
+             "energy_vs_fixed": {p_: rel(get(lab, p_), get(lab, "joint_fixed")) for p_ in E016_POL[1:]},
+             "alarms_fixed": [get(lab, "joint_fixed")[sd].get("diag_drift_alarm_t_s") for sd in sorted(get(lab, "joint_fixed"))]}
+        conds.append(c)
+    g = lambda c, p_, k: (c["by_policy"][p_].get(k) or 0.0)
+    nod = [c for c in conds if c["drift"] == "none"]
+    dr = [c for c in conds if c["drift"] != "none"]
+    inside = lambda r, tol: bool(r and r["lo"] is not None and r["lo"] >= -tol and r["hi"] <= tol)
+    h1 = [c["label"] for c in nod for p_ in ("joint_recal", "joint_adaptive")
+          if not inside(c["energy_vs_fixed"][p_], 0.005) or g(c, p_, "chip_s_over_target") > g(c, "joint_fixed", "chip_s_over_target")]
+    unsafe_fixed = [c for c in dr if g(c, "joint_fixed", "chip_s_over_target") > 0]
+    h3 = [c["label"] for c in unsafe_fixed if g(c, "joint_adaptive", "chip_s_over_target") > 0.2 * g(c, "joint_fixed", "chip_s_over_target")]
+    h4 = [c["label"] for c in dr if c["drift"] == "step"
+          and not g(c, "joint_adaptive", "chip_s_over_target") < g(c, "joint_recal", "chip_s_over_target")]
+    h5 = [c["label"] for c in dr if not g(c, "joint_adaptive", "diag_pred_peak_mae_K") <= 0.5 * g(c, "joint_fixed", "diag_pred_peak_mae_K")]
+    h6 = [c["label"] for c in conds if g(c, "joint_fixed", "chip_s_over_target") == 0
+          and not (c["energy_vs_fixed"]["joint_adaptive"] and c["energy_vs_fixed"]["joint_adaptive"]["hi"] is not None
+                   and c["energy_vs_fixed"]["joint_adaptive"]["hi"] <= 0.02)]
+    h7_step = [c["label"] for c in dr if c["drift"] == "step"
+               and not all(a is not None and 5400.0 <= a <= 5400.0 + 1800.0 for a in c["alarms_fixed"])]
+    h7_false = [c["label"] for c in nod if any(a is not None and a >= 0 for a in c["alarms_fixed"])]
+    return {"id": eid, "spec": exp["spec"], "conditions": conds, "n_runs": len(runs),
+            "n_failed": sum(r["status"] != "completed" for r in runs),
+            "H1": {"supported": not h1, "failures": h1}, "H2": {"supported": len(unsafe_fixed) >= 4, "n_unsafe": len(unsafe_fixed),
+                                                               "conditions": [c["label"] for c in unsafe_fixed]},
+            "H3": {"supported": bool(unsafe_fixed) and not h3, "failures": h3}, "H4": {"supported": not h4, "failures": h4},
+            "H5": {"supported": not h5, "failures": h5}, "H6": {"supported": not h6, "failures": h6},
+            "H7": {"supported": not h7_step and not h7_false, "late_or_missed": h7_step, "false_alarms": h7_false}}
+
+
+def verdicts_e016(R: dict[str, Any]) -> list[dict[str, Any]]:
+    e = R.get("E016")
+    if not e:
+        return []
+    st = lambda ok: "supported" if ok else "not supported"
+    fl = lambda xs: (": " + ", ".join(xs)) if xs else ""
+    g = lambda c, p_, k: (c["by_policy"][p_].get(k) or 0.0)
+    ov = "; ".join(f"{c['label']} {g(c, 'joint_fixed', 'chip_s_over_target'):.0f}/{g(c, 'joint_recal', 'chip_s_over_target'):.0f}/"
+                   f"{g(c, 'joint_adaptive', 'chip_s_over_target'):.0f}" for c in e["conditions"])
+    mae = "; ".join(f"{c['label']} {g(c, 'joint_fixed', 'diag_pred_peak_mae_K'):.2f}/{g(c, 'joint_adaptive', 'diag_pred_peak_mae_K'):.2f}"
+                    for c in e["conditions"] if c["drift"] != "none")
+    return [
+        {"key": "E016 H1", "state": st(e["H1"]["supported"]), "text": f"No-drift harm checks failing{fl(e['H1']['failures']) or ': none'}."},
+        {"key": "E016 H2", "state": st(e["H2"]["supported"]),
+         "text": f"joint_fixed above 80 C in {e['H2']['n_unsafe']}/6 drift conditions{fl(e['H2']['conditions'])}."},
+        {"key": "E016 H3", "state": st(e["H3"]["supported"]),
+         "text": f"chip-s above 80 C, fixed/recal/adaptive: {ov}. Adaptive not >= 80% lower in{fl(e['H3']['failures']) or ' none'}."},
+        {"key": "E016 H4", "state": st(e["H4"]["supported"]), "text": f"Adaptive not better than periodic after a step in{fl(e['H4']['failures']) or ' none'}."},
+        {"key": "E016 H5", "state": st(e["H5"]["supported"]), "text": f"Peak-temperature MAE fixed/adaptive (K): {mae}."},
+        {"key": "E016 H6", "state": st(e["H6"]["supported"]), "text": f"Adaptive > +2% energy where fixed was safe in{fl(e['H6']['failures']) or ' none'}."},
+        {"key": "E016 H7", "state": st(e["H7"]["supported"]),
+         "text": f"Step conditions with a late or missed alarm{fl(e['H7']['late_or_missed']) or ': none'}; false alarms without drift"
+                 f"{fl(e['H7']['false_alarms']) or ': none'}."},
+    ]
+
+
+E021_METRICS = ("T_sup_mean_C", "T_ret_mean_C", "E_per_success_kJ", "E_grid_kWh", "E_it_kWh", "E_fan_kWh", "E_chiller_kWh",
+                "E_pump_kWh", "Q_reusable_kWh", "Q_rejected_kWh", "chip_s_over_target")
+
+
+def e021(store: Store, threshold: float) -> dict[str, Any] | None:
+    from .physics.heat_pump import upgrade
+    eid = store.latest_experiment("E021")
+    if not eid:
+        return None
+    exp = store.experiment(eid)
+    runs = store.runs(eid)
+    sc0 = exp["spec"]["design"]["scenarios"][0]
+    idx = A.index_runs(runs)
+    get = lambda w, pl, fl, a: idx.get((sc0, f"{w}|{pl}|{fl}|amb{a:.0f}"), {}).get("joint_fb", {})
+    mean = lambda d, k: _f(float(np.mean([x[k] for x in d.values()]))) if d else None
+    worlds, plants = ["registry", "rtx5070"], ["legacy", "ntu", "ntu_fan_hi", "ntu_fan_lo"]
+    floors, ambs = ["none", "f35", "f40", "f44"], [8.0, 20.0, 30.0]
+    cells = []
+    for w in worlds:
+        for pl in plants:
+            for a in ambs:
+                base = get(w, pl, "none", a)
+                for fl in floors:
+                    d = get(w, pl, fl, a)
+                    c = {"world": w, "plant": pl, "floor": fl, "t_amb": a, **{k: mean(d, k) for k in E021_METRICS}}
+                    seeds = sorted(set(d) & set(base))
+                    if fl != "none" and seeds:
+                        m_, lo, hi = A.t_ci(np.array([d[x]["E_per_success_kJ"] / base[x]["E_per_success_kJ"] - 1 for x in seeds]))
+                        c["floor_cost"] = {"mean": _f(m_), "lo": _f(lo), "hi": _f(hi)}
+                        dE = (mean(d, "E_grid_kWh") or 0) - (mean(base, "E_grid_kWh") or 0)
+                        dQ = (mean(d, "Q_reusable_kWh") or 0) - (mean(base, "Q_reusable_kWh") or 0)
+                        c["el_per_reused_heat"] = _f(dE / dQ) if dQ > 1e-9 else None
+                    if fl == "none" and d:
+                        T_src = mean(d, "T_ret_mean_C")
+                        hp = upgrade(1.0, T_src, 47.0)
+                        c["hp_el_per_heat"] = _f(float(hp["W"] / hp["Q_delivered"]))
+                    cells.append(c)
+    cell = {(c["world"], c["plant"], c["floor"], c["t_amb"]): c for c in cells}
+    T = lambda w, pl, fl, a: cell[(w, pl, fl, a)]["T_sup_mean_C"] or float("nan")
+    h1 = [(w, a, T(w, "ntu", "none", a) - T(w, "legacy", "none", a)) for w in worlds for a in ambs]
+    h2 = [(w, a, T(w, "ntu", "none", a)) for w in worlds for a in (8.0, 20.0)]
+    h3 = [(a, T("rtx5070", "ntu", "none", a) - T("rtx5070", "legacy", "none", a),
+           T("registry", "ntu", "none", a) - T("registry", "legacy", "none", a)) for a in (8.0, 20.0)]
+    fc = lambda w, pl, a: (cell[(w, pl, "f40", a)].get("floor_cost") or {}).get("mean")
+    h4 = [(w, a, fc(w, "ntu", a), fc(w, "legacy", a)) for w in worlds for a in (8.0, 20.0)]
+    h5 = [(w, a, T(w, "ntu_fan_hi", "none", a), T(w, "ntu", "none", a), T(w, "ntu_fan_lo", "none", a))
+          for w in worlds for a in (8.0, 20.0)]
+    h6 = [(pl, a, cell[("rtx5070", pl, "f44", a)].get("el_per_reused_heat"), cell[("rtx5070", pl, "none", a)].get("hp_el_per_heat"))
+          for pl in ("ntu", "legacy") for a in (8.0, 20.0)]
+    ok = lambda v: v is not None and np.isfinite(v)
+    return {"id": eid, "spec": exp["spec"], "cells": cells, "n_runs": len(runs),
+            "n_failed": sum(r["status"] != "completed" for r in runs),
+            "H1": {"supported": all(ok(d) and d >= 1.0 for *_, d in h1), "values": h1},
+            "H2": {"supported": all(ok(v) and v < 35.0 for *_, v in h2), "values": h2},
+            "H3": {"supported": all(ok(r_) and ok(g_) and r_ > g_ for _, r_, g_ in h3), "values": h3},
+            "H4": {"supported": all(ok(n_) and ok(l_) and n_ < l_ for *_, n_, l_ in h4), "values": h4},
+            "H5": {"supported": all(ok(hi) and ok(mid) and ok(lo) and hi >= mid - 1e-9 and mid >= lo - 1e-9 for *_, hi, mid, lo in h5),
+                   "values": h5},
+            "H6": {"supported": all(ok(r_) and r_ < 0.10 for _, _, r_, _ in h6), "values": h6},
+            "H7": {"supported": all(ok(r_) and ok(hp) and r_ < hp for _, _, r_, hp in h6), "values": h6}}
+
+
+def verdicts_e021(R: dict[str, Any]) -> list[dict[str, Any]]:
+    e = R.get("E021")
+    if not e:
+        return []
+    st = lambda ok: "supported" if ok else "not supported"
+    f = lambda v, d=1: "n/a" if v is None or not np.isfinite(v) else f"{v:.{d}f}"
+    return [
+        {"key": "E021 H1", "state": st(e["H1"]["supported"]),
+         "text": "Mean supply NTU minus legacy, no floor: " + "; ".join(f"{w}/{a:.0f} C {f(d)} K" for w, a, d in e["H1"]["values"]) + "."},
+        {"key": "E021 H2", "state": st(e["H2"]["supported"]),
+         "text": "Mean supply with the NTU plant, no floor: " + "; ".join(f"{w}/{a:.0f} C {f(v)} C" for w, a, v in e["H2"]["values"]) + "."},
+        {"key": "E021 H3", "state": st(e["H3"]["supported"]),
+         "text": "Warming RTX vs registry world: " + "; ".join(f"{a:.0f} C {f(r_)} vs {f(g_)} K" for a, r_, g_ in e["H3"]["values"]) + "."},
+        {"key": "E021 H4", "state": st(e["H4"]["supported"]),
+         "text": "40 C floor cost NTU vs legacy: " + "; ".join(f"{w}/{a:.0f} C {f(100 * n_ if n_ is not None else None, 2)}% vs "
+                                                               f"{f(100 * l_ if l_ is not None else None, 2)}%" for w, a, n_, l_ in e["H4"]["values"]) + "."},
+        {"key": "E021 H5", "state": st(e["H5"]["supported"]),
+         "text": "Mean supply fan 0.04 / 0.02 / 0.01: " + "; ".join(f"{w}/{a:.0f} C {f(hi)}/{f(m)}/{f(lo)}" for w, a, hi, m, lo in e["H5"]["values"]) + "."},
+        {"key": "E021 H6", "state": st(e["H6"]["supported"]),
+         "text": "RTX world, 44 C floor: kWh_el per kWh_th of reusable heat gained: " + "; ".join(
+             f"{pl}/{a:.0f} C {f(r_, 3)}" for pl, a, r_, _ in e["H6"]["values"]) + " (needed < 0.10)."},
+        {"key": "E021 H7", "state": st(e["H7"]["supported"]),
+         "text": "Warm loop vs heat pump (kWh_el per kWh_th): " + "; ".join(
+             f"{pl}/{a:.0f} C {f(r_, 3)} vs {f(hp, 3)}" for pl, a, r_, hp in e["H7"]["values"]) + "."},
     ]
 
 

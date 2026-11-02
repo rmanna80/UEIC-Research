@@ -116,6 +116,20 @@ _REGISTRY: list[Param] = [
     _P("cop_max", 20.0, "-", "G", "Numerical cap on chiller COP when lift approaches zero", group="plant"),
     _P("eta_conv", 0.94, "-", "F", "Grid-to-chip power conversion efficiency (UPS, PSU, VRs)", 0.88, 0.97, "plant"),
     _P("t_reuse_min", 45.0, "degC", "F", "Return temperature needed for heat to count as reusable", 35.0, 60.0, "plant"),
+    _P("plant_model", 0, "0/1", "G",
+       "Heat-rejection model. 0 = legacy (dry cooler to T_amb + dt_drycooler, fan power = fan_ratio x heat; "
+       "used by E001-E014). 1 = effectiveness-NTU dry cooler with fan affinity law, sized to match the legacy "
+       "model at its design point (ueic/physics/dry_cooler.py, Stage 1)", group="plant"),
+    _P("dc_air_ratio", 2.0, "-", "F",
+       "Dry cooler: design air capacity rate / design water capacity rate (plant_model 1)", 1.0, 4.0, "plant"),
+    _P("dc_ua_exponent", 0.6, "-", "F",
+       "Dry cooler: UA scales with airflow to this power (air-side film; plant_model 1)", 0.4, 0.8, "plant"),
+    _P("dc_fan_min", 0.1, "-", "G", "Dry cooler: lowest fan speed fraction while running (plant_model 1)", group="plant"),
+    _P("chiller_plr_a", 0.0, "-", "F",
+       "Chiller part-load curve W/W_full = a + b PLR + c PLR^2 (plant_model 1); (0, 1, 0) = no part-load "
+       "effect, as in the legacy plant", -0.5, 0.5, "plant"),
+    _P("chiller_plr_b", 1.0, "-", "F", "Chiller part-load curve coefficient b (see chiller_plr_a)", 0.5, 1.5, "plant"),
+    _P("chiller_plr_c", 0.0, "-", "F", "Chiller part-load curve coefficient c (see chiller_plr_a)", -0.5, 0.5, "plant"),
 
     # ------------------------------------------------------------ workload
     _P("job_work_mean", 20.0, "s", "F", "Mean job size in seconds at s=1 (lognormal)", 5.0, 120.0, "workload"),
@@ -147,6 +161,15 @@ _REGISTRY: list[Param] = [
     _P("tsup_ramp_K_per_min", 0.0, "K/min", "G",
        "Max rate at which the plant can move its outlet temperature. 0 = instantaneous (E001-E005). "
        "E006 uses 1.0 and 0.25 (class F placeholders)", group="loop"),
+    _P("r_fouling_per_h", 0.0, "K/W per h", "G",
+       "Plant-only cold-plate degradation: junction-to-coolant resistance grows at this rate after "
+       "r_fouling_start_s (E016). The controllers' models do not include it", group="loop"),
+    _P("r_fouling_step", 0.0, "K/W", "G", "Plant-only step increase of the resistance at r_fouling_start_s (E016)",
+       group="loop"),
+    _P("r_fouling_start_s", 0.0, "s", "G", "Onset time of plant-only fouling (E016)", group="loop"),
+    _P("tsup_cmd_delay_s", 0.0, "s", "G",
+       "Delay before a supply-setpoint command reaches the plant (communication, valve and controller "
+       "latency; Stage 3). 0 = immediate, as in E001-E014", group="loop"),
 
     # ------------------------------------------------------------- policies
     _P("fixed_t_sup", 18.0, "degC", "G",
@@ -158,6 +181,31 @@ _REGISTRY: list[Param] = [
     _P("joint_switch_rel", 0.0, "-", "G",
        "Move suppression: the joint controller keeps its previous action unless the new optimum is predicted "
        "to use this fraction less grid power (0 = always switch, as in E001-E005)", group="policy"),
+    _P("mpc_horizon_steps", 15, "control intervals", "G",
+       "Prediction horizon of the multi-step MPC (Stage 3)", group="policy"),
+    _P("mpc_backlog_weight", 20.0, "W per work-second", "G",
+       "MPC objective weight on queued work (energy-equivalent cost of holding one nominal work-second of "
+       "backlog for one second); trades service against energy", 5.0, 80.0, "policy"),
+    _P("mpc_time_budget_s", 5.0, "s", "G",
+       "Wall-clock budget per MPC decision; over budget the safety fallback acts instead (Stage 3)", group="policy"),
+    _P("mpc_forecast_mode", 0, "code", "G",
+       "MPC demand forecast: 0 persistence of the recent-arrival estimate; 1 the scenario's load function "
+       "(scheduled bursts visible) with mpc_forecast_bias and mpc_forecast_noise; 2 as 1 but bursts invisible",
+       group="policy"),
+    _P("mpc_forecast_bias", 0.0, "-", "G", "Multiplicative forecast bias for modes 1-2 (-0.3 = 30% under-forecast)",
+       group="policy"),
+    _P("mpc_forecast_noise", 0.0, "-", "G", "Log-sd of i.i.d. lognormal forecast noise per step, modes 1-2", group="policy"),
+    _P("mpc_robust_margin_K", 2.0, "K", "G",
+       "Robust MPC: extra margin below t_target for cold-plate and leakage model error", group="policy"),
+    _P("safety_margin_K", 0.0, "K", "G",
+       "Independent safety filter: required margin below t_target when validating an action", group="policy"),
+    _P("fault_kind", 0, "code", "G",
+       "Stage 8 fault injection (E019): 0 none, 1 sensor dropout, 2 junction bias, 3 stuck sensors, 4 clock stuck, "
+       "5 communication failure, 6 controller crash, 7 solver infeasible, 8 supply-sensor bias; read only by "
+       "reliability.fault_injection wrappers (simulation)", group="fault"),
+    _P("fault_t_start", 3600.0, "s", "G", "Start of the injected fault window", group="fault"),
+    _P("fault_t_end", 5400.0, "s", "G", "End of the injected fault window", group="fault"),
+    _P("fault_magnitude", 0.0, "K", "G", "Bias added to the faulted reading (kinds 2 and 8)", group="fault"),
     _P("joint_bias_gain", 0.5, "-", "G",
        "EWMA gain of the joint_robust controller's temperature-bias estimate (measured minus predicted peak "
        "junction temperature, clipped at 0); used only by joint_robust", group="policy"),
@@ -220,7 +268,8 @@ def validate(cfg: Mapping[str, Any]) -> None:
         raise ValueError("t_sup_min must be below t_sup_max")
     if cfg["dt"] > cfg["control_interval"]:
         raise ValueError("dt must not exceed control_interval")
-    for k in ("loop_mass_kg", "tsup_ramp_K_per_min", "joint_switch_rel"):
+    for k in ("loop_mass_kg", "tsup_ramp_K_per_min", "joint_switch_rel", "tsup_cmd_delay_s", "mpc_robust_margin_K",
+              "safety_margin_K", "r_fouling_per_h", "r_fouling_step", "r_fouling_start_s"):
         if cfg[k] < 0:
             raise ValueError(f"{k} must be >= 0")
     if cfg["warm_start"] not in (0, 0.0, 1, 1.0):
@@ -237,6 +286,14 @@ def validate(cfg: Mapping[str, Any]) -> None:
         raise ValueError(f"v_min_ratio must be in (0,1] (got {cfg['v_min_ratio']})")
     if cfg["kappa_leak"] < 0 or cfg["p_leak_ref"] < 0:
         raise ValueError("kappa_leak and p_leak_ref must be >= 0")
+    if cfg["mpc_forecast_mode"] not in (0, 1, 2) or not cfg["mpc_forecast_bias"] > -1 or cfg["mpc_forecast_noise"] < 0:
+        raise ValueError("mpc_forecast_mode must be 0, 1 or 2; bias > -1; noise >= 0")
+    if not cfg["mpc_horizon_steps"] >= 1 or not cfg["mpc_backlog_weight"] >= 0 or not cfg["mpc_time_budget_s"] > 0:
+        raise ValueError("need mpc_horizon_steps >= 1, mpc_backlog_weight >= 0, mpc_time_budget_s > 0")
+    if cfg["plant_model"] not in (0, 1, 0.0, 1.0):
+        raise ValueError("plant_model must be 0 (legacy) or 1 (NTU dry cooler)")
+    if not cfg["dc_air_ratio"] > 0 or not 0 < cfg["dc_ua_exponent"] <= 1.0 or not 0 <= cfg["dc_fan_min"] < 1:
+        raise ValueError("need dc_air_ratio > 0, dc_ua_exponent in (0,1], dc_fan_min in [0,1)")
 
 
 def assumptions_table() -> list[dict[str, Any]]:

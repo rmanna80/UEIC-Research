@@ -19,6 +19,10 @@ Classes E and F are *not measurements*. Every E/F value with a range is swept in
 | accelerator | `t_leak_ref` | 60 | degC | G |  | Reference junction temperature for leakage |
 | accelerator | `v_min_ratio` | 0.7 | - | E | 0.6 – 0.85 | Vmin/Vmax at s_min; voltage assumed linear in frequency between s_min and 1 |
 | accelerator | `vf_knee` | 0 | - | G |  | Voltage-floor form of the V-f curve (Phase 4): voltage stays at v_min_ratio up to clock ratio vf_knee, then rises linearly to 1 at s = 1. 0 = registry linear form from s_min (E001-E011). A value fitted to the RTX 5070's measured power-vs-clock shape is a shape transfer (class E), see docs/10 |
+| fault | `fault_kind` | 0 | code | G |  | Stage 8 fault injection (E019): 0 none, 1 sensor dropout, 2 junction bias, 3 stuck sensors, 4 clock stuck, 5 communication failure, 6 controller crash, 7 solver infeasible, 8 supply-sensor bias; read only by reliability.fault_injection wrappers (simulation) |
+| fault | `fault_magnitude` | 0 | K | G |  | Bias added to the faulted reading (kinds 2 and 8) |
+| fault | `fault_t_end` | 5400 | s | G |  | End of the injected fault window |
+| fault | `fault_t_start` | 3600 | s | G |  | Start of the injected fault window |
 | loop | `dp_ref` | 150000 | Pa | F | 50000 – 300000 | Loop pressure drop at design flow |
 | loop | `eta_pump` | 0.5 | - | F | 0.3 – 0.7 | Pump wire-to-water efficiency |
 | loop | `flow_design_lpm` | 1.2 | L/min per accelerator | E |  | Gives ~8 K coolant rise at ~650 W (Q = m_dot*cp*dT) |
@@ -26,25 +30,44 @@ Classes E and F are *not measurements*. Every E/F value with a range is swept in
 | loop | `flow_min_factor` | 0.5 | - | G |  | Lowest allowed flow / design flow |
 | loop | `loop_mass_kg` | 0 | kg water | G |  | 0 selects the quasi-steady plant of E001-E005 (no loop thermal mass). E006 uses 40 kg and 150 kg; those values are placeholders (class F) for a CDU tank + piping, not measurements |
 | loop | `m_dp` | 1.8 | - | E | 1 – 2 | dP ~ flow**m. m=1 laminar (Hagen-Poiseuille), ~1.75-2 turbulent (Darcy-Weisbach) |
+| loop | `r_fouling_per_h` | 0 | K/W per h | G |  | Plant-only cold-plate degradation: junction-to-coolant resistance grows at this rate after r_fouling_start_s (E016). The controllers' models do not include it |
+| loop | `r_fouling_start_s` | 0 | s | G |  | Onset time of plant-only fouling (E016) |
+| loop | `r_fouling_step` | 0 | K/W | G |  | Plant-only step increase of the resistance at r_fouling_start_s (E016) |
 | loop | `t_sup_max` | 45 | degC | G |  | Highest supply temperature allowed; ASHRAE class W45 upper supply limit (reference_values.md) |
 | loop | `t_sup_min` | 12 | degC | G |  | Lowest supply temperature the plant can deliver |
+| loop | `tsup_cmd_delay_s` | 0 | s | G |  | Delay before a supply-setpoint command reaches the plant (communication, valve and controller latency; Stage 3). 0 = immediate, as in E001-E014 |
 | loop | `tsup_ramp_K_per_min` | 0 | K/min | G |  | Max rate at which the plant can move its outlet temperature. 0 = instantaneous (E001-E005). E006 uses 1.0 and 0.25 (class F placeholders) |
 | loop | `warm_start` | 0 | 0/1 | G |  | 1 = controllers start with the demand estimate and chip-heat estimate of the initial offered load, as if the system had been running, so each policy starts in its own steady state. 0 = cold start with zero demand estimate (E001-E005, E006 v1). Needed with a loop thermal mass: in E006 v1 a cold start let the first (zero-demand) decision set the initial tank temperature, a confound found in analysis |
 | physics | `k_boltzmann` | 1.38065e-23 | J/K | A |  | SI exact value (NIST); see reference_values.md |
 | physics | `water_cp` | 4180 | J/(kg*K) | A |  | Liquid water near 25 C. NIST WebBook (Shomate eq.) gives ~4.184 J/(g K) at 25 C and ~4.178 at 40-45 C; see reference_values.md |
 | physics | `water_rho` | 997 | kg/m^3 | A |  | Density of liquid water near 25 C |
+| plant | `chiller_plr_a` | 0 | - | F | -0.5 – 0.5 | Chiller part-load curve W/W_full = a + b PLR + c PLR^2 (plant_model 1); (0, 1, 0) = no part-load effect, as in the legacy plant |
+| plant | `chiller_plr_b` | 1 | - | F | 0.5 – 1.5 | Chiller part-load curve coefficient b (see chiller_plr_a) |
+| plant | `chiller_plr_c` | 0 | - | F | -0.5 – 0.5 | Chiller part-load curve coefficient c (see chiller_plr_a) |
 | plant | `cop_max` | 20 | - | G |  | Numerical cap on chiller COP when lift approaches zero |
+| plant | `dc_air_ratio` | 2 | - | F | 1 – 4 | Dry cooler: design air capacity rate / design water capacity rate (plant_model 1) |
+| plant | `dc_fan_min` | 0.1 | - | G |  | Dry cooler: lowest fan speed fraction while running (plant_model 1) |
+| plant | `dc_ua_exponent` | 0.6 | - | F | 0.4 – 0.8 | Dry cooler: UA scales with airflow to this power (air-side film; plant_model 1) |
 | plant | `dt_cond` | 8 | K | F | 4 – 15 | Condenser approach (T_cond = T_amb + dt_cond) |
 | plant | `dt_drycooler` | 5 | K | F | 3 – 10 | Dry-cooler approach to ambient |
 | plant | `dt_evap` | 3 | K | F | 1 – 6 | Evaporator approach (T_evap = T_sup - dt_evap) |
 | plant | `eta_conv` | 0.94 | - | F | 0.88 – 0.97 | Grid-to-chip power conversion efficiency (UPS, PSU, VRs) |
 | plant | `eta_ii_chiller` | 0.5 | - | E | 0.3 – 0.65 | Chiller second-law efficiency: COP = eta_II * COP_Carnot |
 | plant | `fan_ratio` | 0.02 | W/W | F | 0.005 – 0.05 | Heat-rejection fan power per W of heat rejected to ambient |
+| plant | `plant_model` | 0 | 0/1 | G |  | Heat-rejection model. 0 = legacy (dry cooler to T_amb + dt_drycooler, fan power = fan_ratio x heat; used by E001-E014). 1 = effectiveness-NTU dry cooler with fan affinity law, sized to match the legacy model at its design point (ueic/physics/dry_cooler.py, Stage 1) |
 | plant | `t_reuse_min` | 45 | degC | F | 35 – 60 | Return temperature needed for heat to count as reusable |
 | policy | `fixed_flow` | 1 | x design | G |  | Flow factor of the fixed baseline policy |
 | policy | `fixed_t_sup` | 18 | degC | G | 12 – 27 | Supply temperature of the fixed (conventional) baseline; within ASHRAE W17/W27-class supply ranges |
 | policy | `joint_bias_gain` | 0.5 | - | G |  | EWMA gain of the joint_robust controller's temperature-bias estimate (measured minus predicted peak junction temperature, clipped at 0); used only by joint_robust |
 | policy | `joint_switch_rel` | 0 | - | G |  | Move suppression: the joint controller keeps its previous action unless the new optimum is predicted to use this fraction less grid power (0 = always switch, as in E001-E005) |
+| policy | `mpc_backlog_weight` | 20 | W per work-second | G | 5 – 80 | MPC objective weight on queued work (energy-equivalent cost of holding one nominal work-second of backlog for one second); trades service against energy |
+| policy | `mpc_forecast_bias` | 0 | - | G |  | Multiplicative forecast bias for modes 1-2 (-0.3 = 30% under-forecast) |
+| policy | `mpc_forecast_mode` | 0 | code | G |  | MPC demand forecast: 0 persistence of the recent-arrival estimate; 1 the scenario's load function (scheduled bursts visible) with mpc_forecast_bias and mpc_forecast_noise; 2 as 1 but bursts invisible |
+| policy | `mpc_forecast_noise` | 0 | - | G |  | Log-sd of i.i.d. lognormal forecast noise per step, modes 1-2 |
+| policy | `mpc_horizon_steps` | 15 | control intervals | G |  | Prediction horizon of the multi-step MPC (Stage 3) |
+| policy | `mpc_robust_margin_K` | 2 | K | G |  | Robust MPC: extra margin below t_target for cold-plate and leakage model error |
+| policy | `mpc_time_budget_s` | 5 | s | G |  | Wall-clock budget per MPC decision; over budget the safety fallback acts instead (Stage 3) |
+| policy | `safety_margin_K` | 0 | K | G |  | Independent safety filter: required margin below t_target when validating an action |
 | policy | `t_assume_compute` | 65 | degC | G |  | Junction temperature a compute-only controller (no thermal model) assumes |
 | policy | `t_sup_step` | 1 | K | G |  | Supply-temperature grid resolution for optimizing controllers |
 | routing | `frac_easy` | 0.6 | - | F | 0.2 – 0.9 | Fraction of tasks a small model can handle |
@@ -77,4 +100,4 @@ Classes E and F are *not measurements*. Every E/F value with a range is swept in
 | workload | `slo_factor` | 5 | - | G |  | Latency SLO multiplier on nominal work |
 | workload | `u_max` | 0.85 | - | G |  | Max planned utilization (queueing headroom) for optimizing controllers |
 
-Counts by class: A: 3, E: 8, F: 27, G: 30
+Counts by class: A: 3, E: 8, F: 32, G: 48

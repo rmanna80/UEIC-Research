@@ -25,6 +25,9 @@ class Scenario:
     routing: bool = False           # small-model cascade with verification
     param_overrides: dict = field(default_factory=dict)
     description: str = ""
+    # Stage 3 additions; the defaults leave every earlier scenario unchanged
+    bursts: tuple = ()              # ((t_start_s, duration_s, extra_load), ...) added to offered load
+    t_amb_profile: tuple = ()       # ((t_s, T_amb_degC), ...) linear interpolation; () = constant t_amb
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -47,7 +50,24 @@ class Workload:
 
 
 def offered_load(t, sc: Scenario):
-    return np.clip(sc.load_mean + sc.load_amp * np.sin(2 * np.pi * np.asarray(t) / sc.load_period_s), 0.0, None)
+    t = np.asarray(t, dtype=float)
+    base = sc.load_mean + sc.load_amp * np.sin(2 * np.pi * t / sc.load_period_s)
+    for t0, dur, extra in sc.bursts:
+        base = base + extra * ((t >= t0) & (t < t0 + dur))
+    return np.clip(base, 0.0, None)
+
+
+def ambient(t, sc: Scenario):
+    """Ambient dry-bulb temperature at time t (degC)."""
+    if not sc.t_amb_profile:
+        return float(sc.t_amb)
+    ts, Ts = zip(*sc.t_amb_profile)
+    return float(np.interp(t, ts, Ts))
+
+
+def max_offered_load(sc: Scenario) -> float:
+    """Upper bound of offered_load over the scenario (used for thinning)."""
+    return sc.load_mean + abs(sc.load_amp) + sum(max(0.0, e) for _, _, e in sc.bursts)
 
 
 def generate(cfg, sc: Scenario, seed: int) -> Workload:
@@ -55,7 +75,7 @@ def generate(cfg, sc: Scenario, seed: int) -> Workload:
     rng = np.random.default_rng(seed)
     mean_w = cfg.job_work_mean
     lam_scale = cfg.n_accel / mean_w            # tasks/s per unit offered utilisation
-    lam_max = (sc.load_mean + abs(sc.load_amp)) * lam_scale
+    lam_max = max_offered_load(sc) * lam_scale
     if lam_max <= 0:
         raise ValueError("Scenario has zero load")
     # thinning

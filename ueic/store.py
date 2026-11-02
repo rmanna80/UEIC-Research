@@ -144,15 +144,21 @@ def sha256(s: str | bytes) -> str:
 
 
 def code_hash(pkg_dir: Path | None = None) -> str:
+    """SHA-256 over every .py file in the package, subpackages included (relative paths, sorted).
+    Before Stage 1 (2026-11-01) only top-level files were hashed; stored hashes are provenance labels."""
     pkg_dir = pkg_dir or Path(__file__).resolve().parent
     h = hashlib.sha256()
-    for p in sorted(pkg_dir.glob("*.py")):
-        h.update(p.name.encode())
+    for p in sorted(pkg_dir.rglob("*.py"), key=lambda q: q.relative_to(pkg_dir).as_posix()):
+        if "__pycache__" in p.parts:
+            continue
+        h.update(p.relative_to(pkg_dir).as_posix().encode())
         h.update(p.read_bytes().replace(b"\r\n", b"\n"))
     return h.hexdigest()
 
 
-CORE_MODULES = ("params.py", "physics.py", "workload.py", "twin.py", "policies.py", "sim.py", "experiment.py")
+# Modules that can change simulator outputs. physics.py became the physics/ package in Stage 1.
+CORE_MODULES = ("params.py", "physics/__init__.py", "physics/dry_cooler.py", "physics/chiller.py", "workload.py",
+                "twin.py", "policies.py", "sim.py", "experiment.py")
 
 
 def core_hash(pkg_dir: Path | None = None) -> str:
@@ -163,6 +169,19 @@ def core_hash(pkg_dir: Path | None = None) -> str:
         h.update(name.encode())
         h.update((pkg_dir / name).read_bytes().replace(b"\r\n", b"\n"))
     return h.hexdigest()
+
+
+def timeseries_csv(ts: dict[str, list[float]] | None) -> bytes | None:
+    """The exact bytes a run's time series is stored as (and hashed over); None when there is none."""
+    if not ts or not ts.get("t"):
+        return None
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    keys = list(ts.keys())
+    w.writerow(keys)
+    for row in zip(*(ts[k] for k in keys)):
+        w.writerow([f"{v:.6g}" for v in row])
+    return buf.getvalue().encode()
 
 
 def host_info() -> dict[str, Any]:
@@ -266,15 +285,9 @@ class Store:
         return run_id
 
     def _write_timeseries(self, run_id: str, ts: dict[str, list[float]]) -> tuple[str | None, str | None]:
-        if not ts or not ts.get("t"):
+        raw = timeseries_csv(ts)
+        if raw is None:
             return None, None
-        buf = io.StringIO()
-        w = csv.writer(buf)
-        keys = list(ts.keys())
-        w.writerow(keys)
-        for row in zip(*(ts[k] for k in keys)):
-            w.writerow([f"{v:.6g}" for v in row])
-        raw = buf.getvalue().encode()
         p = self.ts_dir / f"{run_id}.csv.gz"
         with gzip.GzipFile(p, "wb", mtime=0) as f:
             f.write(raw)

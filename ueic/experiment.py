@@ -79,6 +79,8 @@ def run_cell(cell: dict[str, Any]) -> dict[str, Any]:
     try:
         sc, cfg, model_cfg = build(cell)
         policy = POLICIES[cell["policy"]](model_cfg)
+        if hasattr(policy, "attach_scenario"):          # Stage 3: forecasting controllers see the scenario
+            policy.attach_scenario(sc, cell["seed"])
         res = simulate(cfg, sc, policy, cell["seed"], record_timeseries=cell["record_timeseries"])
         return {"ok": True, "metrics": res.metrics, "warnings": res.warnings, "timeseries": res.timeseries}
     except Exception:  # noqa: BLE001 - preserve failed runs

@@ -1,5 +1,10 @@
 """Physical models: accelerator power, thermal network, pump, heat-rejection plant.
 
+This file is the legacy module (``ueic/physics.py`` until Stage 1), moved unchanged into the
+package except for the opt-in ``plant_model`` dispatch in ``plant`` and ``plant_split``. New
+components live in submodules: dry_cooler, chiller, hydraulics, coolant, thermal_storage,
+heat_pump, heat_reuse, power_delivery, gpu, thermal.
+
 All functions are vectorised with NumPy so the same code serves the time-stepped
 simulator and the steady-state digital twin used by the controllers.
 
@@ -166,6 +171,9 @@ def plant(Q_in, T_sup, flow_factor, T_amb, cfg):
     The dry cooler cools return water toward T_amb + dt_drycooler; the chiller
     removes whatever is left to reach T_sup. Fans run on all heat rejected outdoors.
     """
+    if getattr(cfg, "plant_model", 0):                     # Stage 1 opt-in: NTU dry cooler (dry_cooler.py)
+        from .dry_cooler import plant_ntu
+        return plant_ntu(Q_in, T_sup, flow_factor, T_amb, cfg)
     Q_raw = np.asarray(Q_in, dtype=float)
     T_sup = np.asarray(T_sup, dtype=float)
     Cdot = cfg.n_accel * mass_flow_per_accel(flow_factor, cfg) * cfg.water_cp  # W/K
@@ -195,6 +203,9 @@ def plant_split(Q_plant, T_out, flow_factor, T_amb, cfg):
     """Heat-rejection plant for the dynamic loop (Phase 3): the plant removes Q_plant (>= 0, W)
     from water leaving at T_out. Same dry-cooler-then-chiller logic as `plant`; the water
     enters the plant at T_hot = T_out + Q_plant / Cdot."""
+    if getattr(cfg, "plant_model", 0):                     # Stage 1 opt-in: NTU dry cooler (dry_cooler.py)
+        from .dry_cooler import plant_split_ntu
+        return plant_split_ntu(Q_plant, T_out, flow_factor, T_amb, cfg)
     Q_plant = np.maximum(np.asarray(Q_plant, dtype=float), 0.0)
     T_out = np.asarray(T_out, dtype=float)
     Cdot = cfg.n_accel * mass_flow_per_accel(flow_factor, cfg) * cfg.water_cp

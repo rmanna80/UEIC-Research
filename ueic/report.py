@@ -426,6 +426,42 @@ def fig_e013(R, out):
     plt.close(fig)
 
 
+def fig_e015(R, out):
+    e = R["E015"]
+    scen = ["burst", "ambient_ramp", "overload", "degraded"]
+    arms = [("joint_meas|base", "Measured-state rule (joint_meas)", SLOTS[0]), ("joint|base", "Steady-state joint", SLOTS[1]),
+            ("mpc|base", "MPC, persistence forecast", SLOTS[2]), ("mpc|oracle", "MPC, oracle forecast", SLOTS[3]),
+            ("mpc_robust|oracle", "Robust MPC, oracle", SLOTS[4])]
+    fig, axes = plt.subplots(4, 2, figsize=(11, 11), dpi=150)
+    fig.patch.set_facecolor(SURF)
+    for row, sn in zip(axes, scen):
+        rs = [r for r in e["rows"] if r["scenario"] == sn]
+        labels = [f"{r['plant']}\n{r['delay']}" for r in rs]
+        for ax in row:
+            _style(ax)
+        for j, (a, name, col) in enumerate(arms):
+            xs = [i + (j - 2) * 0.16 for i in range(len(rs))]
+            ys = [(r["arms"].get(a) or {}).get("slo_violations") or 0 for r in rs]
+            row[0].bar(xs, ys, width=0.15, color=col, label=name if sn == "burst" else None)
+            if a != "joint_meas|base":
+                es = [100 * ((r["energy_vs_meas"].get(a) or {}).get("mean") or np.nan) for r in rs]
+                row[1].bar(xs, es, width=0.15, color=col)
+        for ax in row:
+            ax.set_xticks(range(len(rs)), labels, fontsize=7.5)
+        row[0].set_ylabel("late tasks / run", color=INK2, fontsize=8.5)
+        row[1].set_ylabel("energy vs joint_meas, %", color=INK2, fontsize=8.5)
+        row[1].axhline(0, color=INK2, lw=0.6)
+        row[0].set_title(f"{sn}: late tasks (seed means)", fontsize=9.5, color=INK, loc="left")
+        row[1].set_title(f"{sn}: energy per successful task (paired)", fontsize=9.5, color=INK, loc="left")
+    h, l = axes[0][0].get_legend_handles_labels()
+    fig.legend(h, l, frameon=False, fontsize=8, loc="upper left", bbox_to_anchor=(0.005, 0.975), ncol=3, labelcolor=INK)
+    fig.suptitle("E015 · Thermal futures: anticipatory control vs the measured-state rule (simulation, 5 seeds)",
+                 fontsize=10, color=INK, x=0.01, ha="left")
+    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    fig.savefig(out / "e015_thermal_futures.png", facecolor=SURF)
+    plt.close(fig)
+
+
 def fig_e012(R, out):
     e = R["E012"]
     cell = {(c["scenario"], c["world"], c["floor"], c["plant"]): c["by_policy"].get("joint_lag", {}) for c in e["cells"]}
@@ -845,6 +881,41 @@ def md_results(R) -> str:
                      + (f"{pct(min(ev), 2)} to {pct(max(ev), 2)}" if ev else "n/a") + " |")
         L.append("")
 
+    e15 = R.get("E015")
+    if e15:
+        L += ["## E015 · Thermal futures (multi-step MPC)", "",
+              f"Experiment `{e15['id']}`: {e15['n_runs']} runs, {e15['n_failed']} failed. Late tasks are seed means; energy "
+              "is paired against joint_meas (the measured-state rule) within each condition. All simulated.", "",
+              "![E015](../results/figures/e015_thermal_futures.png)", "",
+              "| Scenario | Plant | Delay | late: meas / joint / indep / MPC pers / MPC oracle / robust oracle | MPC oracle energy vs meas | chip·s > 80 °C: joint / MPC oracle |",
+              "|---|---|---|---|---|---|"]
+        for r in e15["rows"]:
+            g = lambda a, k: (r["arms"].get(a) or {}).get(k)
+            lt = " / ".join(num(g(a, "slo_violations"), 1) for a in ("joint_meas|base", "joint|base", "independent|base",
+                                                                      "mpc|base", "mpc|oracle", "mpc_robust|oracle"))
+            e = r["energy_vs_meas"].get("mpc|oracle")
+            L.append(f"| {r['scenario']} | {r['plant']} | {r['delay']} | {lt} | "
+                     + (f"{pct(e['mean'], 2)} [{pct(e['lo'], 2)}, {pct(e['hi'], 2)}]" if e else "n/a")
+                     + f" | {num(g('joint|base', 'chip_s_over_target'), 0)} / {num(g('mpc|oracle', 'chip_s_over_target'), 0)} |")
+        L.append("")
+
+    e16 = R.get("E016")
+    if e16:
+        L += ["## E016 · Adaptive system identification under cold-plate drift", "",
+              f"Experiment `{e16['id']}`: {e16['n_runs']} runs, {e16['n_failed']} failed. Drift exists only in the simulated "
+              "plant. Seed means; energy paired against joint_fixed.", "",
+              "| Drift | Ambient | chip·s > 80 °C (fixed / recal / adaptive / robust) | peak-T MAE K (fixed / adaptive) | final ΔR K/W (adaptive) | adaptive energy vs fixed | fixed alarm times (s) |",
+              "|---|---|---|---|---|---|---|"]
+        for c in e16["conditions"]:
+            g = lambda p_, k: c["by_policy"][p_].get(k)
+            ov = " / ".join(num(g(p_, "chip_s_over_target"), 0) for p_ in ("joint_fixed", "joint_recal", "joint_adaptive", "joint_robust"))
+            e_ = c["energy_vs_fixed"]["joint_adaptive"]
+            al = ", ".join("none" if (a is None or a < 0) else f"{a:.0f}" for a in c["alarms_fixed"])
+            L.append(f"| {c['drift']} | {c['t_amb']:.0f} °C | {ov} | {num(g('joint_fixed', 'diag_pred_peak_mae_K'), 2)} / "
+                     f"{num(g('joint_adaptive', 'diag_pred_peak_mae_K'), 2)} | {num(g('joint_adaptive', 'diag_model_dR_final'), 4)} | "
+                     + (f"{pct(e_['mean'], 2)} [{pct(e_['lo'], 2)}, {pct(e_['hi'], 2)}]" if e_ else "n/a") + f" | {al} |")
+        L.append("")
+
     L += ["## Experiment register (including superseded and failed)", "",
           "| Id | Status | Runs | Title |", "|---|---|---|---|"]
     for x in R["experiments"]:
@@ -892,6 +963,8 @@ def build_report(store, root: Path) -> str:
         fig_e012(R, figs)
     if R.get("E013"):
         fig_e013(R, figs)
+    if R.get("E015"):
+        fig_e015(R, figs)
     docs = root / "docs"
     (docs / "RESULTS.md").write_text(md_results(R))
     (docs / "04_assumptions_register.md").write_text(md_assumptions(R))
