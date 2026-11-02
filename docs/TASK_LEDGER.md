@@ -5,7 +5,7 @@ Branch `research/ueic-next-generation`. Status values: **done** (code, tests, do
 | Stage | Item | Status | Notes |
 |---|---|---|---|
 | 0 | Branch, baseline tests (123 passed), store verified, docs/12, this ledger | done | base commit 6096bb4 |
-| 0 | Record M003 attempt 1 | done | data not pushed by the user; outcome recorded from the console output (PHASE_REPORT) |
+| 0 | Record M003 attempt 1 | done | raw sessions pushed 2026-11-02 (`eda028b`) and checked: no clock lock, power at the 250 W limit, fan never changed (46–48% under load, 0% idle); no leakage information. Line-ending damage to all 23 telemetry files found and reversed under hash proof |
 | 1 | `ueic.physics` package with unchanged legacy behaviour | done | legacy file moved verbatim; bitwise E001 reproduction passes |
 | 1 | NTU dry cooler with fan affinity; chiller part-load map; pump curve; transport delay; storage; heat reuse and heat pump; power delivery | done (components) | dry cooler and chiller wired in behind `plant_model = 1`; pump curve, delay, stratified tank, heat pump, reuse and power delivery tested as components, wired in when an experiment needs them |
 | 1 | Parameter registry with uncertainty, validity ranges, extrapolation warnings; identifiability; validation utilities | done | `ueic/models/`; docs/13 |
