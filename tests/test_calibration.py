@@ -499,7 +499,7 @@ def _fan_power(f):
 
 
 def _write_sweep(root, kind, fan, rng, clk=2017, slope=0.25, seconds=480.0, ramp=False, reasons=0, label=None,
-                 report_fan=True):
+                 report_fan=True, mem=9000, load=1.0):
     d = Path(root) / f"sweep_{kind}_{fan}_{clk}"
     d.mkdir()
     t = np.arange(0, seconds, 0.5)
@@ -510,14 +510,14 @@ def _write_sweep(root, kind, fan, rng, clk=2017, slope=0.25, seconds=480.0, ramp
     else:
         T_ss = 50.0 + 0.4 * (100 - fan)                       # 100% fan -> 50 C, 40% -> 74 C
         T = T_ss - (12.0 * (1 - t / seconds) if ramp else 15.0 * np.exp(-t / 40.0))
-        P = 180.0 + slope * (T - 60.0) + _fan_power(fan) + rng.normal(0, 0.8, t.size)
+        P = 180.0 * load + slope * (T - 60.0) + _fan_power(fan) + rng.normal(0, 0.8, t.size)
         clks = np.full(t.size, float(clk))
     T = np.round(T)                                           # NVML reports whole degrees
     with open(d / "telemetry.csv", "w", encoding="utf-8") as f:
         f.write(",".join(telemetry.FIELDS) + "\n")
         for ti, Ti, Pi, ci in zip(t, T, P, clks):
-            f.write(f"{1000 + ti},0,{Pi},,{Ti},{ci:g},9000,99,50,0,{reasons},{fan if report_fan else ''},{kind},250\n")
-    thr = np.zeros(t.size) if kind == "idle" else 100.0 * (1 + rng.normal(0, 0.003, t.size))
+            f.write(f"{1000 + ti},0,{Pi},,{Ti},{ci:g},{mem},99,50,0,{reasons},{fan if report_fan else ''},{kind},250\n")
+    thr = np.zeros(t.size) if kind == "idle" else 100.0 * load * (1 + rng.normal(0, 0.003, t.size))
     np.savetxt(d / "workload.csv", np.column_stack([1000 + t, thr]), delimiter=",", header="t_unix,throughput", comments="")
     lab = label or (f"sweep fan={fan}" + ("" if kind == "idle" else f" clk={clk}"))
     (d / "session.json").write_text(json.dumps({"kind": kind, "label": lab, "device": {
@@ -641,3 +641,28 @@ def test_leakage_sweep_plan_pauses_before_every_fan_change():
     runs = [i for i, l in enumerate(lines) if l.startswith("python -m ueic calib run")]
     assert len(runs) == 6 and all(lines[i - 1].startswith("Read-Host") for i in runs)
     assert "-lgc 2347,2347" in txt and "Administrator" in txt
+
+
+def test_sweep_fit_leaves_out_sessions_that_ran_a_different_load(tmp_path):
+    """M003 attempt 2: one session in a lower memory P-state, others 6-9% slower at the same SM clock."""
+    rng = np.random.default_rng(11)
+    ds = [_write_sweep(tmp_path, "compute", f, rng) for f in (100, 85, 70)]
+    ds.append(_write_sweep(tmp_path, "compute", 55, rng, mem=8800))            # dropped to a lower memory clock
+    ds.append(_write_sweep(tmp_path, "compute", 40, rng, load=0.92))           # 8% less work per second
+    r = cal.fit_leakage_sweep(ds)
+    why = {x["name"]: x["reason"] for x in r["excluded"]}
+    assert "memory clock 8800" in why["sweep_compute_55_2017"]
+    assert "throughput" in why["sweep_compute_40_2017"] and "-8" in why["sweep_compute_40_2017"]
+    assert r["ok"] and len(r["points"]) == 3
+    assert all(p["throughput"] == pytest.approx(100.0, rel=0.01) for p in r["points"])
+
+
+def test_guard_stops_a_sweep_load_step_outside_p0():
+    rows = [{"power_W": 158.0, "sm_clock_MHz": 2340.0, "fan_pct": 45.0, "power_limit_W": 250.0, "pstate": 1,
+             "mem_clock_MHz": 13801.0} for _ in range(20)]
+    probs = cal.guard_problems(rows, "sweep fan=45 clk=2347", "compute")
+    assert len(probs) == 1 and "P1" in probs[0] and "Prefer maximum performance" in probs[0]
+    p0 = [dict(r, pstate=0, mem_clock_MHz=14001.0) for r in rows]
+    assert cal.guard_problems(p0, "sweep fan=45 clk=2347", "compute") == []
+    assert cal.guard_problems(rows, "sweep fan=45", "idle") == []              # idle steps are not held to P0
+    assert cal.guard_problems(rows, "clk=2347", "compute") == []               # nor ordinary clock sweeps

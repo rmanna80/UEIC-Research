@@ -294,6 +294,36 @@ What it means:
   * `calib leak` drops power-limited and unapplied-fan points;
   * the procedure pauses before every fan change.
 
+**M003 attempt 2 (2026-11-02, user's RTX 5070): the procedure worked; the load did not stay constant, so no leakage slope.** Physical measurement, NVML board telemetry, 11 sessions (`data/calibration/20261102T*`, commit `0c8dcbc`); every telemetry file matches its recorded SHA-256. Last half of each session (`experiments/analyze_m003.py`):
+
+| Fan | Die °C | Board power W | P-state | Memory MHz | Throughput (TFLOP/s) |
+|---|---|---|---|---|---|
+| 100% (first try) | 53–56 | 164.1 | P1 | 13,801 | stopped at 30 s by the guard: the fan read 30% |
+| 80% | 50–51 | 168.9 | P0 | 14,001 | 55.3 |
+| 60% | 52–53 | 167.1 | P0 | 14,001 | 55.4 |
+| 45% | 53–56 | 158.3 | **P1** | **13,801** | **50.1** |
+| 30% | 60–62 | 161.3 | P0 | 14,001 | **50.7** |
+| 100% (redone last) | 47–49 | 167.2 | P0 | 14,001 | **52.5** |
+
+* **What worked.**
+  * The clock lock held (2340 MHz, the card's step for 2347).
+  * Every fan setting was applied, and power stayed 80 W below the limit.
+  * The die spanned 48–61 °C, against 4 K in M002 and none in attempt 1.
+  * The guard stopped the first 100% step after 30 s, because the fan read 30%.
+* **What did not.** The work per second was not the same in every step:
+  * the 45% step ran in performance state P1 (memory 13,801 MHz) from its first second;
+  * the 30% and the redone 100% steps ran 8% and 5% slower than the 80% and 60% steps, in P0 at the same SM clock. The cause is not in the telemetry. Other work on the PC is the likely explanation; the 30% step started 30 minutes after the 45% step.
+
+  Power at a fixed clock also follows the work done, so these steps look like a chip that leaks *less* when warmer.
+* **The fit as the tool stood** (saved as `M003_attempt2_fit_before_load_check.json`) used all five load points: 0.34 W/K (95% CI −1.30 to +1.97), 0.21% per K over 48–61 °C. The interval includes zero, so the slope is **not identified**. Without the P1 step: 0.39 W/K (CI −1.79 to +2.57), also not identified.
+* **A cross-session load check was added after seeing this data** (disclosed; `_same_load` in `calibrate.py`). It keeps only steps with the sweep's most common memory clock and throughput within 2% of the largest agreeing group, the same 2% the within-session rule already used. Under it, two steps remain (80% and 60%, 2.8 K apart) and the fit refuses (`M003_leakage_sweep_attempt2.json`). Both routes give the same answer: attempt 2 does not measure the leakage slope, and the 0.12–0.14%/K from M002 remains the working value.
+* **The idle correction was confounded too.** The first idle step (100% fan) stayed in P0 at full memory clock for all 150 s, while the later ones dropped to P3–P8. Part of the 14.5 W "fan power" between 100% and 30% is therefore the GPU's idle state, not the fans.
+* **Changes for attempt 3** (all in `calib plan-leak`):
+  * the 30-second guard now also stops a load step that is not in P0;
+  * `calib leak` leaves out steps whose memory clock or throughput differs;
+  * the procedure asks for NVIDIA's "Prefer maximum performance" power mode and an idle PC;
+  * each idle step waits 60 s before recording.
+
 **Failures and corrections during this measurement:**
 * The first desktop fit reported two failed fits (`v_min_ratio` = 0.3 and `kappa_leak` = 0.2, both exactly at their bounds) as class-B measurements. Acceptance rules R1–R3 now stop that. They were set after seeing that fit summary and before examining the raw data, and this is disclosed.
 * The tool reported "clock held down by a power cap" at 35% of the power limit. On this GPU the driver sets that flag whenever clocks are locked. A flag now counts as a limit only if the clock was not held or power was near the limit.
