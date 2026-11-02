@@ -1,0 +1,21 @@
+{
+ "kind": "compute",
+ "label": "sweep fan=100 clk=2347",
+ "seconds": 480.0,
+ "gpu": 0,
+ "throughput_unit": "TFLOP/s",
+ "idle_before_s": 0.0,
+ "device": {
+  "index": 0,
+  "name": "NVIDIA GeForce RTX 5070",
+  "uuid": "GPU-91145432-3fb5-4033-dd9a-1e510e536d51",
+  "max_sm_clock_MHz": 3090,
+  "max_mem_clock_MHz": 14001,
+  "power_limit_W": 250.0
+ },
+ "telemetry_sha256": "7784f00d60b2472ff98f197c2c964a8b30735ffa3607b19cfc2d3f3f9950d7ed",
+ "provenance": "physical_measurement",
+ "guard_failed": [
+  "the label says fan=100 but the GPU reports 30%: the fan speed was not applied (set a fixed speed in your fan tool and wait until it shows it)"
+ ]
+}
