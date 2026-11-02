@@ -187,5 +187,5 @@ if __name__ == "__main__":
     for spec, fname in ((E001, "E001_policy_benchmark.json"), (E002, "E002_sensitivity.json"),
                         (E003, "E003_routing_cascade.json"), (E004, "E004_timestep_convergence.json"),
                         (E005, "E005_model_mismatch.json")):
-        (HERE / fname).write_text(json.dumps(spec, indent=2))
+        (HERE / fname).write_text(json.dumps(spec, indent=2), encoding="utf-8")
         print("wrote", fname)

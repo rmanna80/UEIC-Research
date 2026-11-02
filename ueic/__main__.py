@@ -58,11 +58,11 @@ def _infer(a) -> int:
     from .inference import protocol
     from .inference.adapters import make_adapter
     if a.icmd == "plan":
-        spec = json.loads(Path(a.spec).read_text())
+        spec = json.loads(Path(a.spec).read_text(encoding="utf-8"))
         print(protocol.plan_e017(spec, a.models.split(","), a.f_sus, a.f_low, a.dataset))
         return 0
     if a.icmd == "analyze-e017":
-        spec = json.loads(Path(a.spec).read_text())
+        spec = json.loads(Path(a.spec).read_text(encoding="utf-8"))
         ss = protocol._sessions(a.root)
         sel = protocol.select_arms(ss, spec, a.larger_model)
         print(json.dumps(sel, indent=1, default=str))
@@ -242,7 +242,7 @@ def main(argv: list[str] | None = None) -> int:
             except ValueError as e:
                 print(f"error: {e}")
                 return 2
-            Path(a.out).write_text(_json.dumps(out, indent=1))
+            Path(a.out).write_text(_json.dumps(out, indent=1), encoding="utf-8")
             print(f"{len(out['points'])} load and {len(out['idle_points'])} idle points used -> {a.out}")
             for x in out["excluded"]:
                 print(f"  left out {x['name']}: {x['reason']}")
@@ -321,7 +321,7 @@ def main(argv: list[str] | None = None) -> int:
             except ValueError as e:
                 print(f"error: {e}")
                 return 2
-            Path(a.out).write_text(_json.dumps(out, indent=1))
+            Path(a.out).write_text(_json.dumps(out, indent=1), encoding="utf-8")
             print(f"{len(dirs)} sessions -> {a.out}")
             cr = out["clock_reference"]
             if cr["f_ref_MHz"]:

@@ -12,8 +12,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 HERE = ROOT / "experiments"
-vf = json.loads((ROOT / "data" / "calibration" / "M001_vf_fit.json").read_text())
-m001 = json.loads((ROOT / "data" / "calibration" / "M001_calibration.json").read_text())
+vf = json.loads((ROOT / "data" / "calibration" / "M001_vf_fit.json").read_text(encoding="utf-8"))
+m001 = json.loads((ROOT / "data" / "calibration" / "M001_calibration.json").read_text(encoding="utf-8"))
 WORLDS = {"registry": {},
           "rtx5070": {**{k: v["value"] for k, v in m001["overrides"].items()}, "kappa_leak": 0.02,
                       "p_leak_ref": vf["fit"]["p_leak_ref"], "v_min_ratio": vf["fit"]["v_min_ratio"],
@@ -81,11 +81,11 @@ spec = {
     "design": {"scenarios": ["S1_moderate"], "policies": ["joint_fb"], "seeds": [0, 1, 2, 3, 4], "timeseries_seeds": [0],
                "variants": variants},
 }
-base = json.loads((HERE / "E001_policy_benchmark.json").read_text())
+base = json.loads((HERE / "E001_policy_benchmark.json").read_text(encoding="utf-8"))
 for k in ("data_collection", "statistics", "practical_significance_threshold"):
     if k in base:
         spec[k] = base[k]
 
 if __name__ == "__main__":
-    (HERE / "E021_heat_reuse.json").write_text(json.dumps(spec, indent=2))
+    (HERE / "E021_heat_reuse.json").write_text(json.dumps(spec, indent=2), encoding="utf-8")
     print(f"wrote E021_heat_reuse.json: {len(variants)} variants, {len(variants) * 5} runs")

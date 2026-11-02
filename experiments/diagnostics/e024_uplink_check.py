@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from ueic.facility.experiment import expand, run_cell  # noqa: E402
 
-spec = json.loads((ROOT / "experiments" / "E024_integrated_ablation.json").read_text())
+spec = json.loads((ROOT / "experiments" / "E024_integrated_ablation.json").read_text(encoding="utf-8"))
 cells = expand(spec)
 for lab in ("S0V0T0D0", "S0V0T1D0"):
     cell = [c for c in cells if c["scenario"] == lab and c["seed"] == 1][0]

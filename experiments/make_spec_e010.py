@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 HERE = Path(__file__).resolve().parent
 
-e009 = json.loads((HERE / "E009_matched_leakage.json").read_text())
+e009 = json.loads((HERE / "E009_matched_leakage.json").read_text(encoding="utf-8"))
 betas = e009["design"]["param_overrides"]
 leak = next(v["param_overrides"] for v in e009["design"]["variants"] if v["label"] == "matched_k0.02")
 
@@ -75,11 +75,11 @@ spec = {
                "seeds": [0, 1, 2, 3, 4], "timeseries_seeds": [0], "param_overrides": {**betas, **leak},
                "variants": variants},
 }
-base = json.loads((HERE / "E001_policy_benchmark.json").read_text())
+base = json.loads((HERE / "E001_policy_benchmark.json").read_text(encoding="utf-8"))
 for k in ("data_collection", "statistics", "practical_significance_threshold"):
     if k in base:
         spec[k] = base[k]
 
 if __name__ == "__main__":
-    (HERE / "E010_thermal_safety.json").write_text(json.dumps(spec, indent=2))
+    (HERE / "E010_thermal_safety.json").write_text(json.dumps(spec, indent=2), encoding="utf-8")
     print(f"wrote E010_thermal_safety.json: {len(variants)} conditions x 3 policies x 5 seeds = {len(variants) * 15} runs")

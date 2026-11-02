@@ -33,7 +33,7 @@ HUMANEVAL_INSTRUCTION = "Complete the following Python function. Return only the
 
 
 def load_items(path: str | Path, limit: int | None = None, offset: int = 0) -> list[dict[str, Any]]:
-    rows = [json.loads(x) for x in Path(path).read_text().splitlines() if x.strip()]
+    rows = [json.loads(x) for x in Path(path).read_text(encoding="utf-8").splitlines() if x.strip()]
     for r in rows:
         missing = {"id", "task", "prompt", "reference"} - set(r)
         if missing:

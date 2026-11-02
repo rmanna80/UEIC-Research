@@ -80,5 +80,5 @@ spec = {
               "thermal and power protection stay active.",
 }
 out = Path(__file__).with_name("E017_real_llm_energy.json")
-out.write_text(json.dumps(spec, indent=1))
+out.write_text(json.dumps(spec, indent=1), encoding="utf-8")
 print(out)

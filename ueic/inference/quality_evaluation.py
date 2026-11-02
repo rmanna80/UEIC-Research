@@ -105,7 +105,7 @@ def score_humaneval(output: str, item: dict[str, Any], allow_code_execution: boo
     program = f"{code}\n\n{item['test']}\n\ncheck({item['entry_point']})\n"
     with tempfile.TemporaryDirectory() as d:
         path = os.path.join(d, "prog.py")
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(program)
         try:
             r = subprocess.run([sys.executable, "-I", path], cwd=d, capture_output=True, timeout=timeout_s,

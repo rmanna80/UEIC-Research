@@ -50,7 +50,7 @@ def load(name_or_path: str) -> Cluster:
     p = Path(name_or_path)
     if not p.exists():
         p = TOPOLOGY_DIR / f"{name_or_path}.json"
-    return from_dict(json.loads(p.read_text()))
+    return from_dict(json.loads(p.read_text(encoding="utf-8")))
 
 
 def make_topology(n_racks: int = 1, nodes_per_rack: int = 1, gpus_per_node: int = 8, chain: int = 1,

@@ -15,7 +15,7 @@ import json
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-e011 = json.loads((HERE / "E011_lag_aware.json").read_text())
+e011 = json.loads((HERE / "E011_lag_aware.json").read_text(encoding="utf-8"))
 d = e011["design"]
 PLANTS = {"dyn40": (40.0, 1.0), "dyn150": (150.0, 0.25)}          # true loop mass (kg) and ramp (K/min), as E011
 ERRORS = {"exact": (1.0, 1.0), "mass_x0.25": (0.25, 1.0), "mass_x4": (4.0, 1.0),
@@ -72,11 +72,11 @@ spec = {
     "design": {"scenarios": d["scenarios"], "policies": ["joint_lag", "joint_meas"], "seeds": d["seeds"],
                "timeseries_seeds": d["timeseries_seeds"], "param_overrides": d["param_overrides"], "variants": variants},
 }
-base = json.loads((HERE / "E001_policy_benchmark.json").read_text())
+base = json.loads((HERE / "E001_policy_benchmark.json").read_text(encoding="utf-8"))
 for k in ("data_collection", "statistics", "practical_significance_threshold"):
     if k in base:
         spec[k] = base[k]
 
 if __name__ == "__main__":
-    (HERE / "E014_loop_model.json").write_text(json.dumps(spec, indent=2))
+    (HERE / "E014_loop_model.json").write_text(json.dumps(spec, indent=2), encoding="utf-8")
     print(f"wrote E014_loop_model.json: {len(variants)} variants, {n_runs} runs")

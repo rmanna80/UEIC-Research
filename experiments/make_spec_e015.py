@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-e011 = json.loads((HERE / "E011_lag_aware.json").read_text())
+e011 = json.loads((HERE / "E011_lag_aware.json").read_text(encoding="utf-8"))
 BASE = {**e011["design"]["param_overrides"], "warm_start": 1.0}           # M001 clock sensitivity, matched leakage
 MOD = {"r_cond": 0.040, "r_conv_ref": 0.0225}
 SEV = {"r_cond": 0.045, "r_conv_ref": 0.030}
@@ -119,11 +119,11 @@ spec = {
                                                                   "mpc", "mpc_robust"],
                "seeds": [0, 1, 2, 3, 4], "timeseries_seeds": [0], "param_overrides": BASE, "variants": variants},
 }
-base = json.loads((HERE / "E001_policy_benchmark.json").read_text())
+base = json.loads((HERE / "E001_policy_benchmark.json").read_text(encoding="utf-8"))
 for k in ("data_collection", "statistics", "practical_significance_threshold"):
     if k in base:
         spec[k] = base[k]
 
 if __name__ == "__main__":
-    (HERE / "E015_thermal_futures.json").write_text(json.dumps(spec, indent=2))
+    (HERE / "E015_thermal_futures.json").write_text(json.dumps(spec, indent=2), encoding="utf-8")
     print(f"wrote E015_thermal_futures.json: {len(variants)} variants, {n_runs} runs")

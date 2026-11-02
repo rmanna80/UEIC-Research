@@ -15,7 +15,7 @@ from ueic.calibrate import apply_calibration  # noqa: E402
 HERE = Path(__file__).resolve().parent
 CALIB = ROOT / "data" / "calibration" / "M001_calibration.json"
 
-base = json.loads((HERE / "E001_policy_benchmark.json").read_text())
+base = json.loads((HERE / "E001_policy_benchmark.json").read_text(encoding="utf-8"))
 raw = CALIB.read_bytes()
 spec = apply_calibration(base, json.loads(raw), hashlib.sha256(raw).hexdigest())
 over = {k: v["value"] for k, v in spec["calibration_source"]["overrides"].items()}
@@ -57,5 +57,5 @@ spec["disclosure"] = (
 
 if __name__ == "__main__":
     out = HERE / "E001C_calibrated.json"
-    out.write_text(json.dumps(spec, indent=2))
+    out.write_text(json.dumps(spec, indent=2), encoding="utf-8")
     print("wrote", out.name, "with overrides", over)

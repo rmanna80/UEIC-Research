@@ -84,5 +84,5 @@ spec = {
     "practical_significance_threshold": 0.01,
 }
 out = Path(__file__).with_name("E019_fault_robustness.json")
-out.write_text(json.dumps(spec, indent=1))
+out.write_text(json.dumps(spec, indent=1), encoding="utf-8")
 print(out)

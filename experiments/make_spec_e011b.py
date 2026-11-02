@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-e011 = json.loads((HERE / "E011_lag_aware.json").read_text())
+e011 = json.loads((HERE / "E011_lag_aware.json").read_text(encoding="utf-8"))
 d = e011["design"]
 JOINT_OVERHEATED = ["moderate|amb40|dyn40", "severe|amb40|dyn40", "moderate|amb40|dyn150", "severe|amb40|dyn150"]
 dyn = [v["label"] for v in d["variants"] if not v["label"].endswith("quasi")]
@@ -66,12 +66,12 @@ spec = {
         "T_ret_mean_C metrics after E011 ran; they change no other output (H5 checks this)."),
     "design": {**d, "policies": ["joint", "joint_fb", "joint_lag"]},
 }
-base = json.loads((HERE / "E001_policy_benchmark.json").read_text())
+base = json.loads((HERE / "E001_policy_benchmark.json").read_text(encoding="utf-8"))
 for k in ("data_collection", "statistics", "practical_significance_threshold"):
     if k in base:
         spec[k] = base[k]
 
 if __name__ == "__main__":
-    (HERE / "E011B_fallback_ablation.json").write_text(json.dumps(spec, indent=2))
+    (HERE / "E011B_fallback_ablation.json").write_text(json.dumps(spec, indent=2), encoding="utf-8")
     print(f"wrote E011B_fallback_ablation.json: {len(d['variants'])} conditions x 3 policies x 5 seeds = "
           f"{len(d['variants']) * 15} runs; benign dynamic conditions: {len(benign_dyn)}")

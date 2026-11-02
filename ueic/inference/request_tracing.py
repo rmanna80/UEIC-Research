@@ -96,13 +96,13 @@ class TraceWriter:
 
     def write(self, tr: RequestTrace) -> None:
         line = json.dumps(asdict(tr), default=float)
-        with self._lock, open(self.path, "a") as f:
+        with self._lock, open(self.path, "a", encoding="utf-8") as f:
             f.write(line + "\n")
 
 
 def read_traces(path: str | Path) -> list[RequestTrace]:
     out = []
-    for line in Path(path).read_text().splitlines():
+    for line in Path(path).read_text(encoding="utf-8").splitlines():
         if line.strip():
             out.append(RequestTrace(**json.loads(line)))
     return out

@@ -57,7 +57,7 @@ for tag, t in (("low", target - half), ("high", target + half)):
     variants.append({"label": f"matched_k0.02_{tag}", "param_overrides": {"kappa_leak": 0.02,
                                                                           "p_leak_ref": match_p_leak(betas, 0.02, t, s_op, T_op)}})
 
-base = json.loads((HERE / "E001_policy_benchmark.json").read_text())
+base = json.loads((HERE / "E001_policy_benchmark.json").read_text(encoding="utf-8"))
 spec = {
     "key": "E009",
     "title": "Joint vs independent control with leakage matched to a real GPU's measured temperature slope",
@@ -115,5 +115,5 @@ if __name__ == "__main__":
             cfg = make_config({**betas, **v["param_overrides"]})
             print(f"{v['label']:20s} {v['param_overrides']}  rel slope {100 * rel_slope(cfg, s_op, T_op):.4f}%/K")
     print(f"target {100 * target:.4f}%/K at s={s_op:.3f}, {T_op} C; registry {100 * registry_rel:.4f}%/K")
-    (HERE / "E009_matched_leakage.json").write_text(json.dumps(spec, indent=2))
+    (HERE / "E009_matched_leakage.json").write_text(json.dumps(spec, indent=2), encoding="utf-8")
     print("wrote E009_matched_leakage.json")

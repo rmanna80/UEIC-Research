@@ -211,7 +211,7 @@ class _FakeLogger:
     def _run(self):
         import csv
         from ueic.telemetry import FIELDS
-        with open(self.path, "w", newline="") as f:
+        with open(self.path, "w", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=FIELDS); w.writeheader()
             E = 0.0
             while not self._stop.is_set():
@@ -253,7 +253,7 @@ def test_clock_guard_and_prometheus_parser():
 
 
 def test_e017_is_a_preregistered_protocol_and_not_simulated():
-    spec = json.loads((ROOT / "experiments" / "E017_real_llm_energy.json").read_text())
+    spec = json.loads((ROOT / "experiments" / "E017_real_llm_energy.json").read_text(encoding="utf-8"))
     assert spec["kind"] == "hardware_protocol" and spec["status"] == "pending_hardware"
     from ueic.__main__ import main
     assert main(["run", str(ROOT / "experiments" / "E017_real_llm_energy.json")]) == 2
@@ -265,4 +265,4 @@ def test_e017_is_a_preregistered_protocol_and_not_simulated():
 def test_inference_package_never_sets_hardware_state():
     forbidden = re.compile(r"nvmlDeviceSet|subprocess\.[a-z_]+\(\s*\[?\s*['\"]nvidia-smi")
     for p in (ROOT / "ueic" / "inference").rglob("*.py"):
-        assert not forbidden.search(p.read_text()), p
+        assert not forbidden.search(p.read_text(encoding="utf-8")), p

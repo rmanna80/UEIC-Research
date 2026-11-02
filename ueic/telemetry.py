@@ -145,7 +145,7 @@ class Logger:
 
     def _run(self, duration_s: float | None):
         t0 = time.perf_counter()
-        with open(self.path, "w", newline="") as f:
+        with open(self.path, "w", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=FIELDS)
             w.writeheader()
             next_t = t0
@@ -172,7 +172,7 @@ class Logger:
         if self._thread:
             self._thread.join()
         meta = self.metadata()
-        self.path.with_suffix(".meta.json").write_text(json.dumps(meta, indent=1))
+        self.path.with_suffix(".meta.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
         self.nv.close()
         return meta
 
@@ -199,7 +199,7 @@ class Logger:
 
 def read_csv(path: str | Path) -> list[dict[str, Any]]:
     rows = []
-    with open(path, newline="") as f:
+    with open(path, newline="", encoding="utf-8") as f:
         for r in csv.DictReader(f):
             out = {}
             for k, v in r.items():

@@ -25,7 +25,7 @@ class CsvIngestSensor:
 
     def read(self) -> dict[str, Any] | None:
         """Newest complete row appended since the last read (None if nothing new)."""
-        with open(self.path, newline="") as f:
+        with open(self.path, newline="", encoding="utf-8") as f:
             rows = list(csv.DictReader(f))
         if len(rows) <= self._pos:
             return None

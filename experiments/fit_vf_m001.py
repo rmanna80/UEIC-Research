@@ -18,8 +18,8 @@ sys.path.insert(0, str(ROOT))
 from ueic import physics as ph  # noqa: E402
 from ueic.params import make_config  # noqa: E402
 
-calib = json.loads((ROOT / "data" / "calibration" / "M001_calibration.json").read_text())
-e009 = json.loads((ROOT / "experiments" / "E009_matched_leakage.json").read_text())
+calib = json.loads((ROOT / "data" / "calibration" / "M001_calibration.json").read_text(encoding="utf-8"))
+e009 = json.loads((ROOT / "experiments" / "E009_matched_leakage.json").read_text(encoding="utf-8"))
 base = {**e009["design"]["param_overrides"],
         **next(v["param_overrides"] for v in e009["design"]["variants"] if v["label"] == "matched_k0.02")}
 pts = calib["energy_per_work"]["compute"]["points"]
@@ -88,7 +88,7 @@ out = {
                for si, yi, fi, ri in zip(s, y, shape(fit), shape({"v_min_ratio": 0.70}))],
 }
 if __name__ == "__main__":
-    (ROOT / "data" / "calibration" / "M001_vf_fit.json").write_text(json.dumps(out, indent=1))
+    (ROOT / "data" / "calibration" / "M001_vf_fit.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
     print(json.dumps({k: out[k] for k in ("fit", "iterations", "leakage_slope_at_match_point", "rms_error_rel_top",
                                           "registry_linear_rms", "best_linear")}, indent=1))
     for p in out["points"]:

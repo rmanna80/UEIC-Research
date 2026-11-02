@@ -966,8 +966,8 @@ def build_report(store, root: Path) -> str:
     if R.get("E015"):
         fig_e015(R, figs)
     docs = root / "docs"
-    (docs / "RESULTS.md").write_text(md_results(R))
-    (docs / "04_assumptions_register.md").write_text(md_assumptions(R))
-    (docs / "research_log.md").write_text(md_log(R))
-    (root / "results" / "results_summary.json").write_text(json.dumps(R, indent=1, default=str))
+    (docs / "RESULTS.md").write_text(md_results(R), encoding="utf-8")
+    (docs / "04_assumptions_register.md").write_text(md_assumptions(R), encoding="utf-8")
+    (docs / "research_log.md").write_text(md_log(R), encoding="utf-8")
+    (root / "results" / "results_summary.json").write_text(json.dumps(R, indent=1, default=str), encoding="utf-8")
     return str(docs / "RESULTS.md")

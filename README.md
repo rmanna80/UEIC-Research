@@ -29,7 +29,7 @@ py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
-python -m pytest                                   # 234 tests, several minutes
+python -m pytest                                   # 236 tests, several minutes
 python -m ueic verify                              # check the results database has not been altered
 python -m ueic params                              # print the assumptions register
 ```
@@ -62,6 +62,8 @@ python -m ueic serve                               # then open http://127.0.0.1:
 The lab has six views: a cooling system bound to the physics model, facility playback of stored runs with before/after comparison, an exploded accelerator package, a conceptual photonic accelerator, an energy-flow diagram per run, and an experiment manager that registers and runs new experiments through the same append-only store. Three.js r185.1 is vendored in `web/vendor/three/` (MIT licence), so the lab works offline; fonts fall back to system fonts without a connection.
 
 To test your own idea, copy a spec in `experiments\`, change the `design` block (scenarios, policies, seeds, `param_overrides`, `variants`), give it a new `key`, and run it. The hypothesis and evaluation criteria are frozen in the database when the run starts. On macOS/Linux, use `/` paths and `source .venv/bin/activate`.
+
+Windows PowerShell 5.1 does not accept `&&` between commands; run them one per line (as above) or use `;`. Every file UEIC reads or writes is UTF-8, set explicitly in the code (`tests/test_encoding.py` enforces it), because Python on Windows otherwise defaults to cp1252 and fails on characters like `→` and `°`. For your own scripts, `$env:PYTHONUTF8 = 1` makes UTF-8 the default for the session.
 
 ## How the code is organised (suggested reading order)
 

@@ -17,7 +17,7 @@ from ueic.sim import simulate
 from ueic.workload import SCENARIOS, ambient, generate, offered_load
 
 ROOT = Path(__file__).resolve().parents[1]
-E011 = json.loads((ROOT / "experiments" / "E011_lag_aware.json").read_text())
+E011 = json.loads((ROOT / "experiments" / "E011_lag_aware.json").read_text(encoding="utf-8"))
 
 
 def _cfg(**kw):

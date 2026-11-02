@@ -11,8 +11,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 HERE = ROOT / "experiments"
-vf = json.loads((ROOT / "data" / "calibration" / "M001_vf_fit.json").read_text())
-m001 = json.loads((ROOT / "data" / "calibration" / "M001_calibration.json").read_text())
+vf = json.loads((ROOT / "data" / "calibration" / "M001_vf_fit.json").read_text(encoding="utf-8"))
+m001 = json.loads((ROOT / "data" / "calibration" / "M001_calibration.json").read_text(encoding="utf-8"))
 
 WORLDS = {
     "registry": {},
@@ -76,11 +76,11 @@ spec = {
     "design": {"scenarios": ["S1_moderate", "S3_hot", "S4_cool"], "policies": ["independent", "joint", "joint_lag"],
                "seeds": [0, 1, 2, 3, 4], "timeseries_seeds": [0], "variants": variants},
 }
-base = json.loads((HERE / "E001_policy_benchmark.json").read_text())
+base = json.loads((HERE / "E001_policy_benchmark.json").read_text(encoding="utf-8"))
 for k in ("data_collection", "statistics", "practical_significance_threshold"):
     if k in base:
         spec[k] = base[k]
 
 if __name__ == "__main__":
-    (HERE / "E012_warm_water.json").write_text(json.dumps(spec, indent=2))
+    (HERE / "E012_warm_water.json").write_text(json.dumps(spec, indent=2), encoding="utf-8")
     print(f"wrote E012_warm_water.json: {len(variants)} variants x 3 scenarios x 3 policies x 5 seeds = {len(variants) * 45} runs")

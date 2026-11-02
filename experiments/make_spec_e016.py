@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-e011 = json.loads((HERE / "E011_lag_aware.json").read_text())
+e011 = json.loads((HERE / "E011_lag_aware.json").read_text(encoding="utf-8"))
 BASE = {**e011["design"]["param_overrides"], "warm_start": 1.0, "r_cond": 0.035, "r_conv_ref": 0.015}   # clean plates
 DRIFT = {"none": {}, "slow": {"r_fouling_per_h": 0.005, "r_fouling_start_s": 3600.0},
          "fast": {"r_fouling_per_h": 0.015, "r_fouling_start_s": 3600.0},
@@ -67,11 +67,11 @@ spec = {
     "design": {"scenarios": ["S6_degraded_cooling"], "policies": POL, "seeds": [0, 1, 2, 3, 4], "timeseries_seeds": [0],
                "param_overrides": BASE, "variants": variants},
 }
-base = json.loads((HERE / "E001_policy_benchmark.json").read_text())
+base = json.loads((HERE / "E001_policy_benchmark.json").read_text(encoding="utf-8"))
 for k in ("data_collection", "statistics", "practical_significance_threshold"):
     if k in base:
         spec[k] = base[k]
 
 if __name__ == "__main__":
-    (HERE / "E016_adaptive_identification.json").write_text(json.dumps(spec, indent=2))
+    (HERE / "E016_adaptive_identification.json").write_text(json.dumps(spec, indent=2), encoding="utf-8")
     print(f"wrote E016_adaptive_identification.json: {len(variants)} variants, {len(variants) * len(POL) * 5} runs")
