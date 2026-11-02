@@ -194,7 +194,9 @@ def guard_problems(rows: list[dict], label: str, kind: str) -> list[str]:
     clk=N  -> the SM clock must be within CLOCK_HELD_TOL of N (is the lock active?)
     fan=N  -> the reported fan speed must be within FAN_TOL_PCT of N (did the fan tool apply it?);
               for load sessions of a fan sweep, power must also stay below the GPU's limit, since
-              at the limit power is held constant and cannot rise with temperature."""
+              at the limit power is held constant and cannot rise with temperature, and the GPU must be in
+              performance state P0: in M003 attempt 2 two sessions ran in P1 (lower memory clock, less work
+              per second), which makes their power incomparable (check added 2026-11-02)."""
     probs: list[str] = []
     m_clk, m_fan = re.search(r"clk=(\d+)", label or ""), _FAN_RE.search(label or "")
     rows = [r for r in rows if r.get("power_W") is not None]
@@ -212,6 +214,12 @@ def guard_problems(rows: list[dict], label: str, kind: str) -> list[str]:
         if abs(fan - want) > FAN_TOL_PCT:
             probs.append(f"the label says fan={want:.0f} but the GPU reports {fan:.0f}%: the fan speed was not applied "
                          "(set a fixed speed in your fan tool and wait until it shows it)")
+    ps = med("pstate")
+    if m_fan and kind != "idle" and ps is not None and ps > 0:
+        probs.append(f"the GPU is in performance state P{ps:.0f}, not P0 (memory clock {med('mem_clock_MHz') or 0:.0f} MHz), "
+                     "so it does less work per second than the other sweep points. In NVIDIA Control Panel set "
+                     "Manage 3D settings > Power management mode to 'Prefer maximum performance', close other GPU "
+                     "programs, and run this step again")
     if m_fan and kind != "idle" and pw is not None and lim and pw >= 0.98 * lim:
         probs.append(f"power is at the GPU's limit ({pw:.0f} of {lim:.0f} W): at the limit power cannot rise with "
                      "temperature, so this point cannot measure leakage. Lock a lower clock")
@@ -583,7 +591,12 @@ def sweep_point(sess: Session, settle_frac: float = 0.5, clock_tol_MHz: float = 
     lim = [r.get("power_limit_W") for r in tel if r.get("power_limit_W") is not None] or \
         ([sess.power_limit_W] if sess.power_limit_W else [])
     lim_W = float(np.median(lim)) if lim else None
+    mem = [r.get("mem_clock_MHz") for r, k in zip(tel, keep) if k and r.get("mem_clock_MHz") is not None]
+    thr = None
+    if sess.kind != "idle" and len(work) >= 3:
+        thr = float(np.median(work[np.clip(np.searchsorted(work[:, 0], tk), 0, len(work) - 1), 1]))
     return {**base, "ok": True, "n": int(keep.sum()), "clock_MHz": float(np.median(clk[keep])),
+            "mem_clock_MHz": float(np.median(mem)) if mem else None, "throughput": thr,
             "power_limit_W": lim_W, "at_power_limit": bool(lim_W and float(np.median(P)) >= 0.98 * lim_W),
             "guard_failed": sess.guard_failed,
             "fan_pct": fan, "fan_source": "telemetry" if np.isfinite(F).any() else ("label" if fan is not None else None),
@@ -607,6 +620,38 @@ def _ols(x, y) -> dict[str, Any]:
         out.update({"se": se, "ci95": [float(b - tq * se), float(b + tq * se)],
                     "rel_ci95": [float((b - tq * se) / y.mean()), float((b + tq * se) / y.mean())]})
     return out
+
+
+SWEEP_LOAD_TOL = 0.02     # same tolerance as the within-session steady-load rule (load_tol)
+
+
+def _same_load(loads: list[dict[str, Any]], tol: float = SWEEP_LOAD_TOL) -> tuple[list[dict], list[dict]]:
+    """Keep only load points that ran the same work: the most common memory clock, and throughput within
+    `tol` of the largest group of points that agree with each other. Power at one SM clock also depends on
+    the work done per second, so a lighter session looks like a chip that leaks less. Added after M003
+    attempt 2 (2026-11-02), in which one session dropped to a lower memory clock (P1) and three ran 6-9%
+    slower than the other two at the same SM clock; the within-session rule had not caught this."""
+    out = []
+    mems = [p["mem_clock_MHz"] for p in loads if p.get("mem_clock_MHz") is not None]
+    if mems:
+        vals, counts = np.unique(np.round(mems), return_counts=True)
+        m0 = float(vals[np.argmax(counts)])
+        for p in list(loads):
+            if p.get("mem_clock_MHz") is not None and abs(p["mem_clock_MHz"] - m0) > 3.0:
+                out.append({"name": p["name"], "reason": f"memory clock {p['mem_clock_MHz']:.0f} MHz, not the sweep's "
+                            f"{m0:.0f} MHz: the GPU was in a different performance state, so the load differs"})
+                loads.remove(p)
+    thr = [(p, p["throughput"]) for p in loads if p.get("throughput")]
+    if len(thr) >= 2:
+        groups = [[q for q, y in thr if abs(y / x - 1.0) <= tol] for _, x in thr]
+        best = max(groups, key=lambda g: (len(g), -np.ptp([q["throughput"] for q in g])))
+        ref = float(np.median([q["throughput"] for q in best]))
+        for p, y in thr:
+            if p not in best:
+                out.append({"name": p["name"], "reason": f"throughput {y:.1f}, {100 * (y / ref - 1):+.1f}% from the sweep's "
+                            f"{ref:.1f}: not the same load, so its power is not comparable"})
+                loads.remove(p)
+    return loads, out
 
 
 def fit_leakage_sweep(session_dirs: Iterable[str | Path], device: str | None = None) -> dict[str, Any]:
@@ -644,6 +689,8 @@ def fit_leakage_sweep(session_dirs: Iterable[str | Path], device: str | None = N
             if abs(p["clock_MHz"] - c0) > 3.0:
                 excluded.append({"name": p["name"], "reason": f"clock {p['clock_MHz']:.0f} MHz, not the sweep's {c0:.0f} MHz"})
         loads = [p for p in loads if abs(p["clock_MHz"] - c0) <= 3.0]
+    loads, cross = _same_load(loads)
+    excluded += cross
     for p in list(loads):
         why = []
         if not p["settled"]:
@@ -697,24 +744,30 @@ def plan_leakage_sweep(clock_MHz: int, fans: list[int], gpu: int = 0, seconds: i
              "# UEIC only records. YOU set the clock (nvidia-smi) and the fan speed (your card maker's tool,",
              "# e.g. MSI Afterburner: fixed fan curve / manual speed). The GPU's own thermal protection stays on.",
              "# Safety: start at the highest fan speed and step down; do not go below your card's minimum; stop",
-             "# and restore automatic fan control if the GPU passes 85 C. Close other GPU and heavy CPU work.",
+             "# and restore automatic fan control if the GPU passes 85 C. Close other GPU and heavy CPU work",
+             "# (browsers, video, games) and leave the PC alone while it runs: every step must do the same work.",
+             "# In NVIDIA Control Panel > Manage 3D settings, set Power management mode to 'Prefer maximum",
+             "# performance', so the GPU stays in P0 with its full memory clock (attempt 2 dropped to P1).",
              f"# If you stop partway: nvidia-smi -i {gpu} -rgc  and restore automatic fan control.",
              f"python -m ueic calib check --gpu {gpu}",
              f"nvidia-smi -i {gpu} -lgc {clock_MHz},{clock_MHz}    # must print 'GPU clocks set to ...'; needs Administrator", "",
              f"# 1) Load at each fan speed ({seconds // 60} min each; only the last half is used, once settled)."]
     lines += ["#    Each step below pauses (Read-Host) until you press Enter, so pasting the whole block is safe.",
-              "#    Each run checks itself after 30 s and stops with an ERROR if the clock lock or fan speed is",
-              "#    not what its label says. If that happens, fix it and run that step again."]
+              "#    Each run checks itself after 30 s and stops with an ERROR if the clock lock, fan speed or",
+              "#    performance state (P0) is not what the sweep needs. If that happens, fix it and run that step",
+              "#    again. `calib leak` also leaves out steps whose throughput differs by more than 2%."]
     for f in fs:
         lines += [f"Read-Host \"Set the fan to {f}% in your fan tool, wait until it shows {f}%, then press Enter\"",
                   f"python -m ueic calib run --kind compute --seconds {seconds} --gpu {gpu} --label \"sweep fan={f} clk={clock_MHz}\""]
     lines += ["", f"# 2) Idle at the same fan speeds ({idle_seconds // 60} min each), to measure the fans' own power.",
               "#    Clocks back to default first, so the idle chip sits at its lowest clock and voltage and its",
-              "#    own leakage barely changes between fan speeds.",
+              "#    own leakage barely changes between fan speeds. Each step waits 60 s before recording, so the",
+              "#    GPU has settled into its idle power state (attempt 2's first idle step stayed in P0 throughout).",
               f"nvidia-smi -i {gpu} -rgc    # reset clocks"]
     for f in fs:
         lines += [f"Read-Host \"Set the fan to {f}%, wait until it shows {f}%, then press Enter\"",
-                  f"python -m ueic calib run --kind idle --seconds {idle_seconds} --gpu {gpu} --label \"sweep fan={f}\""]
+                  f"python -m ueic calib run --kind idle --seconds {idle_seconds} --idle-before 60 --gpu {gpu} "
+                  f"--label \"sweep fan={f}\""]
     lines += ["", "# restore automatic fan control in your fan tool", "",
               "python -m ueic calib leak data\\calibration\\* --out data\\calibration\\M003_leakage_sweep.json"]
     return "\n".join(lines)
