@@ -36,7 +36,7 @@
 | E021 | Heat-reuse economics with an approach-dependent dry cooler | simulation | 480 | completed; H2, H5, H6, H7 supported; H1, H3, H4 not. First attempt interrupted (infrastructure), aborted with its reason; second record superseded it and was resumed twice under checks (§1) |
 | E022 | Demand-response cap: capping, deferral, cold storage; energy vs cost vs carbon | simulation (facility) | 50 | completed; H1, H2, H5 supported; H3, H4 not |
 | E023 | Equivalent kernels: time vs GPU energy vs estimated facility energy | hardware protocol | – | **pending hardware**; ATLAS/KernelSmith sources pending access |
-| E024 | 2⁴ factorial integrated ablation on 128 GPUs with a grid cap | simulation (facility) | 80 | see PHASE_REPORT |
+| E024 | 2⁴ factorial integrated ablation on 128 GPUs with a grid cap | simulation (facility) | 80 | completed; H1–H4 not supported (warm supply × thermal-credit conflict; overshoot at cap release). Resumed once under checks (§1) |
 | M003 | Leakage over a wide temperature window at fixed clock | hardware (user) | – | **pending hardware** (guarded procedure ready) |
 
 Earlier experiments (E001–E014, M001, M002) are unchanged and documented in `PHASE_REPORT.md` and `RESULTS.md`.

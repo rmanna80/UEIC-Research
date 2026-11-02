@@ -108,15 +108,18 @@ The downstream plate's inlet is warmer by the upstream heat divided by ṁc_p. A
 * Online resistance estimation eliminated time above the limit under gradual fouling.
 * It did not remove it after an abrupt step at 35 °C ambient (−33%), because the estimator needs several intervals to move. That motivated a direct residual-based fault layer (E019).
 
-**18. What are E018–E024 testing?**
-* E018: thermal-credit placement against four standard policies, including a condition where no benefit is expected.
-* E019: nominal vs fault-aware supervision under 13 faults.
-* E020: joint supply, valve and placement control from 1 to 16 nodes.
-* E021: heat reuse with an approach-dependent dry cooler.
-* E022: grid caps, with energy vs cost vs carbon kept separate.
-* E024: a 2⁴ factorial ablation.
+**18. What did E018–E024 show?** (all simulated; every verdict is in `PHASE_REPORT.md`)
+* **E018:** thermal-credit placement cut time above target 3–6×. The gain came from reduced clocks and holds, not placement, and it cost deadlines. Lower energy per on-time job than every baseline held only with heterogeneous nodes.
+* **E019:** the fault-aware supervisor caught 85% of window faults within 180 s, was never worse than the nominal stack, and cost nothing without a fault. A pump degraded from t = 0 went undetected.
+* **E020:** joint control won only on one node. At 16 nodes the illustrative network model was congested, which an exploratory diagnostic confirmed.
+* **E021:** a better dry-cooler model moved the optimum *colder*. Warm water is justified by heat reuse, not by cooling savings.
+* **E022:** capping with deferral held the cap and beat plain capping. The storage effect was too small to test.
+* **E024:** the integrated system lost to the baseline on every hypothesis. Warm supply and thermal credits interfere, and a measured-state warm supply overshoots when a grid cap lifts.
 
-Each has numeric criteria in its spec. Results and verdicts are in `PHASE_REPORT.md` and `25_research_findings.md`.
+**18b. Which result surprised you most, and what did you do about it?**
+* The 16-node congestion in E020.
+* The registered verdicts stand as computed. I added an exploratory diagnostic, kept separate from the store and disclosed as such, which showed that removing the uplink limit restores on-time completion.
+* The fix (a network-aware placement rule) is a new experiment, not a reinterpretation.
 
 **19. How do you avoid fooling yourself with simulations?**
 * Pre-registration.
@@ -126,7 +129,8 @@ Each has numeric criteria in its spec. Results and verdicts are in `PHASE_REPORT
 * Provenance labels.
 * Bitwise reproduction tests.
 * Conservation and analytic checks on every new simulator.
-* Disclosure of every exploratory run made before registration.
+* Disclosure of every exploratory run made before registration, and of dry-runs made after it.
+* Checked resumption: an interrupted experiment continues in its own record only if its code, configurations and a re-simulated sample of completed runs match exactly.
 
 ## E. Limitations and judgement
 

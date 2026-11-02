@@ -102,6 +102,14 @@ Record `E020-20261102T022118-3ee654`: 120 runs, 0 failed, one session. Full tabl
 * An exploratory re-run of one seed without the uplink limit (`experiments/diagnostics/e020_uplink_check.py`, not stored) gave on-time 1.000 instead of 0.491.
 * The scale comparison is therefore confounded by congestion, and a placement rule that ignores the network is a poor partner for joint cooling control at that scale.
 
-### E024
+### E024 (simulated)
 
-Filled in after its run.
+Record `E024-20261102T024830-ede9a3`: 80 runs, 0 failed, resumed once under checks. Full tables are in `PHASE_REPORT.md`. **No hypothesis was supported.**
+
+* **The full system:** warm supply, valves, thermal-credit and deferral together were +13.6% worse than the baseline (CI includes 0). On-time fell from 0.618 to 0.470, and time above target rose from 0 to 1,159 chip-s.
+* **Leave-one-out:** removing the warm supply *improved* energy by 37% (CI below 0).
+* **Factorial:**
+  * main effects: S +19.4%, T −14.9%, V +3.7%, D +1.0%;
+  * the S×T interaction (+21.4%) is the key: a warm supply removes the headroom that thermal-credit budgets need.
+* **Cap release:** warm supply under the cap overshoots when the cap ends. The measured-state rule warms the supply while clocks are capped, and the chips reach 83.8 °C at release (seed 0).
+* **Congestion:** thermal-credit's large gain at a fixed supply is mostly relief of uplink congestion. In an exploratory re-run of one seed without the limit (`experiments/diagnostics/e024_uplink_check.py`, not stored), it fell from −55% to −1.9%.

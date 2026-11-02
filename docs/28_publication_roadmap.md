@@ -8,8 +8,8 @@
 |---|---|---|---|
 | A. Measured energy per useful LLM result on consumer GPUs | How J/token, J/request and J per correct, on-time answer rank model × clock × concurrency choices differently | E017 sessions on ≥ 2 GPUs and ≥ 2 task families; a wall-meter boundary | Workshop on sustainable or efficient ML systems |
 | B. Safety-filtered predictive control of liquid cooling with lagged plants | A filter independent of the optimiser keeps junction limits under lag, delay and forecast error, at no energy cost | A physical loop (thermal test vehicle); comparison with published MPC baselines; an ablation of the decision rule (E015 H3) | Building or data-centre energy conference |
-| C. Thermal power budgets for placement under shared coolant | Closed-form horizon budget with downstream inlet coupling; when it helps and when it doesn't (E018) | Real multi-GPU telemetry or validated traces; sensitivity over the hand-set parameters; comparison with TAPAS-style policies | Systems or HPC workshop |
-| D. Reproducible negative results in joint compute–cooling control | Pre-registered null and negative results (E012 design error, E014, E015 H2–H4, E016) and what they teach | Mostly ready; needs a careful related-work section and a clear-scope statement | Negative-results or reproducibility track |
+| C. Thermal power budgets for placement under shared coolant | Closed-form horizon budget with downstream inlet coupling; when it helps and when it doesn't (E018: through clocks and holds, at a cost in deadlines; E024: conflicts with warm supply) | Real multi-GPU telemetry or validated traces; sensitivity over the hand-set parameters; a network-aware placement rule (E020, E024 were congested); comparison with TAPAS-style policies | Systems or HPC workshop |
+| D. Reproducible negative results in joint compute–cooling control | Pre-registered null and negative results (E012 design error, E014, E015 H2–H4, E016, E018 H1/H3, E020, E021 H1, E022 H3/H4, E024) and what they teach, including component interference | Mostly ready; needs a careful related-work section and a clear-scope statement | Negative-results or reproducibility track |
 
 ## 2. Order of work
 

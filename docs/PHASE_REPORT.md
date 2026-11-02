@@ -557,6 +557,66 @@ Record `E020-20261102T022118-3ee654`.
 * The supply-temperature component alone behaved as E021 predicts: −4 to −5% at 30 °C, a small penalty at 20 °C.
 * A fair test of joint control at scale needs a network-aware placement rule, or a topology where the uplink does not saturate. That is a new experiment, not a reinterpretation of this one.
 
+### E024 · Integrated 2⁴ ablation on 128 GPUs with a grid cap (80 runs, 0 failed)
+
+Record `E024-20261102T024830-ede9a3`.
+* **Setup:** 16 nodes (4 racks × 4, 8 GPUs each), series pairs, load 0.75, ambient 30 °C, NTU plant, a 60 kW grid cap from 16:00 to 16:30 in every arm, 5 seeds.
+* **Factors:**
+  * S: warmest-safe supply vs fixed 25 °C;
+  * V: heat-proportional vs equal valves;
+  * T: thermal-credit vs least-loaded;
+  * D: deferral during the cap or not.
+* **Details:** `19_multi_node_facility.md` §9.
+* **Run history:** the first queue segment stopped at its time budget with 42 of 80 runs done. The record was resumed once (03:01 UTC) under the checks in docs/24 §1: core hash `f0274eb299ad` matched, 2 completed runs were re-simulated and matched exactly, and the package hash was unchanged (`7f9f80817862`). The analysis was committed with the spec (`2c1b9fe`) before any E024 run. No E024 dry-run was made.
+
+| Hypothesis | Verdict | What happened |
+|---|---|---|
+| H1 full system ≥ 5% lower energy per on-time job than baseline | **not supported** | +13.6% [−14.4, +41.7] (worse on the mean) |
+| H2 removing any component raises energy | **not supported** | Leave-one-out vs full: without S −37.3% [−62.1, −12.5]; without V −5.2%; without T −7.0%; without D 0.0% (identical runs) |
+| H3 on-time within 1 point of baseline | **not supported** | 0.470 vs 0.618 |
+| H4 no more time above target than baseline | **not supported** | 1,159 vs 0 chip-s |
+
+**Factorial effects** (effect coding on seed-mean energy per on-time job, relative to the grand mean):
+
+| Effect | Value |
+|---|---|
+| S (warm supply) | +19.4% |
+| V (valves) | +3.7% |
+| T (thermal-credit) | −14.9% |
+| D (deferral) | +1.0% |
+| S×T interaction | +21.4% |
+| Other two-way interactions | within ±2.4% |
+
+**Descriptive.**
+* **Warm supply and thermal credits conflict.**
+  * At a fixed 25 °C supply, thermal-credit raised the on-time fraction from 0.618 to 0.831, with energy per on-time job 531 vs 797 kJ.
+  * With the warmest-safe supply it lowered the on-time fraction to 0.515. The warm supply removes the headroom that the credit budgets need, so jobs are held.
+* **Warm supply under a cap overshoots.**
+  * Every warm-supply arm spent 778–1,536 chip-s above target; the fixed-supply arms spent 0–120.
+  * In the seed-0 time series the excursion comes when the cap ends. During the cap the warmest-safe rule raised the supply to ~42.5 °C over the capped, cooler chips. When the cap lifted at 16:30, grid power jumped from 60 to 88 kW while the supply was still warm, and the hottest chip reached 83.8 °C before the supply came back down to ~29 °C.
+* **Deferral changed nothing in the full system** (identical results), and little elsewhere.
+* **Cap compliance:** ≤ 0.002 kWh above the cap in every arm.
+* **Cost and CO₂:** the thermal-credit arms were cheapest (38.3–40.0 vs 41.5–43.0) and had the lowest CO₂ (63.2–67.8 vs 69.9–72.6 kg).
+* **Best arm (post hoc, not a confirmatory claim):** S0V0T1D1 (fixed supply, equal valves, thermal-credit, deferral): 516 kJ per on-time job, on-time 0.858, no time above target.
+
+**Congestion again (exploratory diagnostic, not stored).** Seed 1 of S0V0T0D0 and S0V0T1D0 was re-run with and without the rack-uplink limit; with the limit, both reproduced the stored on-time fractions (0.470, 0.918).
+
+| Arm (seed 1) | With uplink limit: on-time / kJ per on-time job | Without the limit: on-time / kJ per on-time job |
+|---|---|---|
+| Baseline (least-loaded) | 0.470 / 1,061 | 1.000 / 370 |
+| Thermal-credit | 0.918 / 473 | 1.000 / 363 |
+
+Without the limit, thermal-credit's advantage in this seed shrank from −55% to −1.9%. Its large gain at 16 nodes is mostly relief of network congestion, not a thermal effect.
+
+**Interpretation.**
+* The integrated system as registered was worse than the baseline on every hypothesis.
+* The factorial explains why: components that help in isolation interfere.
+  * Warm supply saved energy on its own in E020 (−4% at 30 °C). Here it takes away the thermal headroom thermal-credit needs.
+  * Under a grid cap, the measured-state warm-supply rule is caught out when the cap lifts.
+* Integration has to be designed around these interactions. One example: a supply rule that knows when the cap ends (the MPC of E015 is the natural candidate).
+* The ranking of components is specific to this congested topology. Thermal-credit's value here is mostly network relief.
+* Everything rests on class F/G parameters and an instant plant. A lagging plant would make the cap-release overshoot worse, not better.
+
 ## Definition of done (charter §16), initial platform
 
 | # | Criterion | Status |

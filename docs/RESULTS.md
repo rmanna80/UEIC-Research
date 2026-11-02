@@ -1,6 +1,6 @@
 # UEIC · Simulation results (generated)
 
-Generated 2026-10-27T04:14:02+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `c2182f4aeb4c1582…`. Hash-chain check: **OK** (5443 finalised runs verified).
+Generated 2026-11-02T03:16:05+00:00 by `python -m ueic report` from `results/ueic.sqlite`. Code SHA-256 `7f9f80817862e079…`. Hash-chain check: **OK** (8543 finalised runs verified).
 
 > **Every number on this page is a simulator output** (provenance `simulator_output`) and is conditional on the parameter registry (`04_assumptions_register.md`), most of which is class E/F. E001C uses two parameters measured on a real GPU (M001); every other parameter is still a placeholder. The measurements themselves are reported in `10_calibration_results.md`. Energy boundary: grid → conversion → accelerators + pump + fans + chiller (see `00_problem_statement.md`).
 
@@ -56,6 +56,50 @@ Generated 2026-10-27T04:14:02+00:00 by `python -m ueic report` from `results/uei
 | E014 H3 | **supported** | Model-free joint_meas: chip-s above 80 C summed 0, throttled 0. |
 | E014 H4 | **supported** | joint_meas vs joint_lag energy +0.00% to +0.00%; outside +/-1% or late tasks off by > 1 in 0. |
 | E014 H5 | **supported** | Wrong-model vs exact-model joint_lag energy +0.00% to +0.00%; CI outside +/-1% in 0. |
+| E015 H1 | **supported** | MPC arms above 80 C in 0 condition-arms; conditions with any fallback decision: 0. |
+| E015 H2 | **not supported** | Burst, slow loops, late tasks joint_meas -> mpc(oracle), energy: loop40|d0 1.2 -> 0.8, -0.50% (fails); loop40|d180 1.2 -> 0.8, -0.46% (fails); loop150|d0 1.2 -> 0.8, -3.06% (fails); loop150|d180 1.2 -> 0.8, -3.07% (fails). Passing: 0/4 (needed 3). |
+| E015 H3 | **not supported** | Instant plant, no delay, late tasks joint_meas / mpc(oracle), energy: burst 1.2 / 0.8, -0.40% (fails); ambient_ramp 0.2 / 0.2, -1.54% (fails); overload 179.6 / 179.2, +0.52%; degraded 0.2 / 0.2, -3.23% (fails). |
+| E015 H4 | **not supported** | Late tasks summed over the 4 slow-loop burst conditions: oracle 3.2, noisy 8.0, base 4.8, blind 56.0 (base = persistence). |
+| E015 H5 | **supported** | Overload: arms with no late tasks 0; conditions where mpc(oracle) differs from joint_meas by > 15%: 0. |
+| E015 H6 | **supported** | mpc_robust(oracle) less safe or > +3% energy vs mpc(oracle) in 0 conditions. |
+| E016 H1 | **supported** | No-drift harm checks failing: none. |
+| E016 H2 | **supported** | joint_fixed above 80 C in 4/6 drift conditions: slow|amb35, fast|amb25, fast|amb35, step|amb35. |
+| E016 H3 | **not supported** | chip-s above 80 C, fixed/recal/adaptive: none|amb25 0/0/0; none|amb35 0/0/0; slow|amb25 0/0/0; slow|amb35 15/0/0; fast|amb25 49/15/0; fast|amb35 778/325/182; step|amb25 0/0/0; step|amb35 1444/1169/969. Adaptive not >= 80% lower in: fast|amb35, step|amb35. |
+| E016 H4 | **not supported** | Adaptive not better than periodic after a step in: step|amb25. |
+| E016 H5 | **not supported** | Peak-temperature MAE fixed/adaptive (K): slow|amb25 2.31/1.50; slow|amb35 2.36/1.54; fast|amb25 5.23/2.08; fast|amb35 5.27/2.07; step|amb25 4.46/2.02; step|amb35 4.54/2.03. |
+| E016 H6 | **supported** | Adaptive > +2% energy where fixed was safe in none. |
+| E016 H7 | **not supported** | Step conditions with a late or missed alarm: step|amb25, step|amb35; false alarms without drift: none|amb25, none|amb35. |
+| E018 H1 | **not supported** | thermal_credit energy per on-time job vs baselines: C2: round_robin -14.4% [-34.3%, +5.6%], least_loaded +5.4% [-45.9%, +56.7%], power_aware +7.3% [-29.9%, +44.4%], temperature_aware +17.3% [-26.9%, +61.5%]; C3: round_robin -31.3% [-40.9%, -21.7%], least_loaded -14.4% [-53.5%, +24.8%], power_aware -13.4% [-24.9%, -1.9%], temperature_aware -4.6% [-27.9%, +18.6%]; C5: round_robin -26.5% [-42.7%, -10.2%], least_loaded -10.3% [-14.3%, -6.4%], power_aware -18.2% [-35.5%, -0.8%], temperature_aware -8.3% [-12.3%, -4.2%]. |
+| E018 H2 | **supported** | chip-s above t_target: C1 TC/TA/LL 0/0/0; C2 TC/TA/LL 8757/28864/31721; C3 TC/TA/LL 20875/71800/83898; C4 TC/TA/LL 199/926/2581; C5 TC/TA/LL 13696/76815/84416. |
+| E018 H3 | **not supported** | on-time fraction: C1 TC 1.000 best baseline 1.000; C2 TC 0.797 best baseline 0.954; C3 TC 0.868 best baseline 0.951; C4 TC 0.947 best baseline 0.963; C5 TC 0.953 best baseline 0.996. |
+| E018 H4 | **supported** | C1 thermal_credit vs least_loaded energy -0.2%. |
+| E018 H5 | **supported** | C4 on-time thermal_credit vs power_aware. |
+| E019 H1 | **supported** | no-fault: no alarms and energy within 0.5%: joint_meas +0.00%; mpc +0.00%. |
+| E019 H2 | **supported** | window faults detected within 180 s of onset in 85% of fault-aware runs (needed 80%). |
+| E019 H3 | **supported** | chip-s above t_target nominal -> fault-aware (nonzero only): F4_clock_stuck|joint_meas: 103 -> 15; F4_clock_stuck|mpc: 245 -> 27; F8_supply_bias_low|mpc: 193 -> 67; P2_fouling_step|joint_meas: 1068 -> 224; P2_fouling_step|mpc: 1436 -> 266; P3_pump_degraded|joint_meas: 605 -> 605; P3_pump_degraded|mpc: 389 -> 353; P4_wrong_model|joint_meas: 398 -> 0; P4_wrong_model|mpc: 709 -> 0. |
+| E019 H4 | **supported** | clock stuck, aware/nominal chip-s: joint_meas 15/103; mpc 27/245. |
+| E019 H5 | **supported** | back to NORMAL within 300 s after the window in 94% of runs that left NORMAL. |
+| E019 H6 | **not supported** | degradation alarm in 70% of fault-aware runs with fouling, a degraded pump or a wrong model. |
+| E020 H1 | **not supported** | joint vs independent, energy per on-time job: n16|amb20: +16.4% [-10.0%, +42.9%]; n16|amb30: +8.4% [-15.8%, +32.7%]; n1|amb20: -7.3% [-14.2%, -0.5%]; n1|amb30: -16.4% [-23.7%, -9.1%]; n4|amb20: +22.0% [-35.0%, +79.0%]; n4|amb30: +11.1% [-42.4%, +64.7%]. |
+| E020 H2 | **not supported** | on-time fraction joint vs independent: n16|amb20: 0.475 vs 0.615; n16|amb30: 0.475 vs 0.615; n1|amb20: 0.919 vs 0.972; n1|amb30: 0.919 vs 0.972; n4|amb20: 0.823 vs 0.995; n4|amb30: 0.823 vs 0.995. |
+| E020 H3 | **not supported** | benefit at 16 nodes vs 1 node (see H1 values). |
+| E020 H4 | **not supported** | 16 nodes, heat-proportional valves vs equal: amb20: +2.8% [-2.5%, +8.1%]; amb30: +1.8% [-3.3%, +6.8%]. |
+| E021 H1 | **not supported** | Mean supply NTU minus legacy, no floor: registry/8 C -0.8 K; registry/20 C -1.9 K; registry/30 C -1.9 K; rtx5070/8 C -0.8 K; rtx5070/20 C -1.3 K; rtx5070/30 C -1.4 K. |
+| E021 H2 | **supported** | Mean supply with the NTU plant, no floor: registry/8 C 12.2 C; registry/20 C 23.1 C; rtx5070/8 C 12.2 C; rtx5070/20 C 23.7 C. |
+| E021 H3 | **not supported** | Warming RTX vs registry world: 8 C -0.8 vs -0.8 K; 20 C -1.3 vs -1.9 K. |
+| E021 H4 | **not supported** | 40 C floor cost NTU vs legacy: registry/8 C 12.77% vs 12.86%; registry/20 C 7.81% vs 7.70%; rtx5070/8 C 4.41% vs 4.48%; rtx5070/20 C 2.71% vs 2.74%. |
+| E021 H5 | **supported** | Mean supply fan 0.04 / 0.02 / 0.01: registry/8 C 12.4/12.2/12.0; registry/20 C 23.9/23.1/22.6; rtx5070/8 C 12.8/12.2/12.0; rtx5070/20 C 24.6/23.7/23.0. |
+| E021 H6 | **supported** | RTX world, 44 C floor: kWh_el per kWh_th of reusable heat gained: ntu/8 C 0.054; ntu/20 C 0.037; legacy/8 C 0.055; legacy/20 C 0.038 (needed < 0.10). |
+| E021 H7 | **supported** | Warm loop vs heat pump (kWh_el per kWh_th): ntu/8 C 0.054 vs 0.226; ntu/20 C 0.037 vs 0.154; legacy/8 C 0.055 vs 0.221; legacy/20 C 0.038 vs 0.147. |
+| E022 H1 | **supported** | cap: energy above cap / event energy (kWh): amb20 0.000/7.343; amb30 0.000/7.438. |
+| E022 H2 | **supported** | on-time fraction cap_defer vs cap: amb20 0.983 vs 0.972; amb30 0.983 vs 0.969. |
+| E022 H3 | **not supported** | work during the event, storage vs cap: 30 C +0.7% [-0.8%, +2.1%]; 20 C -0.0%. |
+| E022 H4 | **not supported** | 30 C energy cap_storage/cap 39.395/40.068 kWh; cost 8.352/8.637. |
+| E022 H5 | **supported** | uncapped arm exceeds the cap in every seed: amb20 1.051 kWh above; amb30 1.894 kWh above. |
+| E024 H1 | **not supported** | full vs baseline energy per on-time job +13.6% [-14.4%, +41.7%]. |
+| E024 H2 | **not supported** | leave-one-out vs full: without S -37.3%; without V -5.2%; without T -7.0%; without D +0.0%. |
+| E024 H3 | **not supported** | on-time fraction full 0.4702922643320354 vs baseline 0.6175853781800177. |
+| E024 H4 | **not supported** | chip-s above target full 1159.2 vs baseline 0.0. |
 
 ## E004 · Time-step convergence
 
@@ -677,6 +721,54 @@ Experiment `E014-20261027T034608-cc32d7`: 180 runs, 0 failed. `joint_lag` with i
 | dyn150 | moderate | 0 / 0 / 0 / 0 / 0 | 0 | 2.0 / 2.0 | +0.00% [+0.00%, +0.00%] | +0.00% to +0.00% |
 | dyn150 | severe | 0 / 0 / 0 / 0 / 0 | 0 | 7.6 / 7.6 | +0.00% [+0.00%, +0.00%] | +0.00% to +0.00% |
 
+## E015 · Thermal futures (multi-step MPC)
+
+Experiment `E015-20261101T190855-b96873`: 1320 runs, 0 failed. Late tasks are seed means; energy is paired against joint_meas (the measured-state rule) within each condition. All simulated.
+
+![E015](../results/figures/e015_thermal_futures.png)
+
+| Scenario | Plant | Delay | late: meas / joint / indep / MPC pers / MPC oracle / robust oracle | MPC oracle energy vs meas | chip·s > 80 °C: joint / MPC oracle |
+|---|---|---|---|---|---|
+| burst | instant | d0 | 1.2 / 1.2 / 1.2 / 1.2 / 0.8 / 0.8 | -0.40% [-1.87%, +1.07%] | 0 / 0 |
+| burst | instant | d180 | 1.2 / 1.2 / 1.2 / 1.2 / 0.8 / 0.8 | -0.40% [-1.87%, +1.07%] | 0 / 0 |
+| burst | loop40 | d0 | 1.2 / 1.2 / 1.2 / 1.2 / 0.8 / 0.8 | -0.50% [-1.97%, +0.97%] | 0 / 0 |
+| burst | loop40 | d180 | 1.2 / 1.2 / 1.2 / 1.2 / 0.8 / 0.8 | -0.46% [-1.92%, +1.00%] | 0 / 0 |
+| burst | loop150 | d0 | 1.2 / 1.2 / 1.2 / 1.2 / 0.8 / 0.8 | -3.06% [-4.28%, -1.84%] | 0 / 0 |
+| burst | loop150 | d180 | 1.2 / 1.2 / 1.2 / 1.2 / 0.8 / 0.8 | -3.07% [-4.26%, -1.88%] | 0 / 0 |
+| ambient_ramp | instant | d0 | 0.2 / 0.2 / 0.2 / 0.2 / 0.2 / 0.2 | -1.54% [-3.54%, +0.46%] | 0 / 0 |
+| ambient_ramp | instant | d180 | 0.2 / 0.2 / 0.2 / 0.2 / 0.2 / 0.2 | -1.65% [-3.63%, +0.33%] | 56 / 0 |
+| ambient_ramp | loop40 | d0 | 0.2 / 0.2 / 0.2 / 0.2 / 0.2 / 0.2 | -1.00% [-3.11%, +1.10%] | 51 / 0 |
+| ambient_ramp | loop40 | d180 | 0.2 / 0.2 / 0.2 / 0.2 / 0.2 / 0.2 | -1.21% [-3.34%, +0.92%] | 64 / 0 |
+| ambient_ramp | loop150 | d0 | 0.2 / 0.2 / 0.2 / 0.2 / 0.2 / 0.2 | -2.04% [-4.05%, -0.04%] | 32 / 0 |
+| ambient_ramp | loop150 | d180 | 0.2 / 0.2 / 0.2 / 0.2 / 0.2 / 0.2 | -2.12% [-4.10%, -0.14%] | 29 / 0 |
+| overload | instant | d0 | 179.6 / 179.6 / 179.6 / 179.6 / 179.2 / 179.2 | +0.52% [+0.04%, +1.00%] | 0 / 0 |
+| overload | instant | d180 | 179.6 / 179.6 / 179.6 / 179.6 / 179.2 / 179.2 | +0.52% [+0.04%, +1.00%] | 0 / 0 |
+| overload | loop40 | d0 | 179.6 / 179.6 / 179.6 / 179.8 / 179.2 / 179.2 | +0.54% [+0.06%, +1.01%] | 0 / 0 |
+| overload | loop40 | d180 | 179.6 / 179.6 / 179.6 / 179.6 / 179.2 / 179.2 | +0.65% [+0.19%, +1.12%] | 0 / 0 |
+| overload | loop150 | d0 | 179.6 / 179.6 / 179.6 / 179.6 / 179.2 / 179.2 | +0.80% [+0.29%, +1.30%] | 0 / 0 |
+| overload | loop150 | d180 | 179.6 / 179.6 / 179.6 / 179.6 / 179.2 / 179.2 | +1.05% [+0.55%, +1.56%] | 0 / 0 |
+| degraded | instant | d0 | 0.2 / 0.2 / 0.2 / 0.2 / 0.2 / 0.2 | -3.23% [-4.51%, -1.96%] | 0 / 0 |
+| degraded | instant | d180 | 0.2 / 0.2 / 0.2 / 0.2 / 0.2 / 1.2 | -3.12% [-4.34%, -1.89%] | 713 / 0 |
+| degraded | loop40 | d0 | 0.2 / 0.2 / 0.2 / 1.4 / 0.2 / 0.2 | -3.91% [-5.21%, -2.60%] | 352 / 0 |
+| degraded | loop40 | d180 | 0.2 / 0.2 / 0.2 / 2.4 / 1.6 / 1.6 | -4.12% [-5.57%, -2.66%] | 610 / 0 |
+| degraded | loop150 | d0 | 0.2 / 0.2 / 0.2 / 0.2 / 0.2 / 0.2 | -4.90% [-6.37%, -3.43%] | 641 / 0 |
+| degraded | loop150 | d180 | 0.2 / 0.2 / 0.2 / 0.2 / 0.2 / 0.2 | -4.40% [-5.88%, -2.92%] | 723 / 0 |
+
+## E016 · Adaptive system identification under cold-plate drift
+
+Experiment `E016-20261101T201837-840772`: 160 runs, 0 failed. Drift exists only in the simulated plant. Seed means; energy paired against joint_fixed.
+
+| Drift | Ambient | chip·s > 80 °C (fixed / recal / adaptive / robust) | peak-T MAE K (fixed / adaptive) | final ΔR K/W (adaptive) | adaptive energy vs fixed | fixed alarm times (s) |
+|---|---|---|---|---|---|---|
+| none | 25 °C | 0 / 0 / 0 / 0 | 1.26 / 1.32 | 0.0004 | +0.00% [+0.00%, +0.00%] | 1380, 13080, 6840, 8640, 1140 |
+| none | 35 °C | 0 / 0 / 0 / 0 | 1.28 / 1.36 | 0.0004 | +0.00% [-0.00%, +0.00%] | 1380, 13080, 6840, 9000, 1140 |
+| slow | 25 °C | 0 / 0 / 0 / 0 | 2.31 / 1.50 | 0.0133 | +0.00% [-0.00%, +0.00%] | 1380, 7080, 5640, 5760, 1140 |
+| slow | 35 °C | 15 / 0 / 0 / 15 | 2.36 / 1.54 | 0.0132 | +0.01% [-0.00%, +0.02%] | 1380, 7080, 5700, 5700, 1140 |
+| fast | 25 °C | 49 / 15 / 0 / 52 | 5.23 / 2.08 | 0.0406 | +0.05% [-0.01%, +0.12%] | 1380, 5100, 4620, 4620, 1140 |
+| fast | 35 °C | 778 / 325 / 182 / 535 | 5.27 / 2.07 | 0.0402 | +0.20% [+0.06%, +0.34%] | 1380, 4860, 4620, 4740, 1140 |
+| step | 25 °C | 0 / 0 / 0 / 0 | 4.46 / 2.02 | 0.0197 | +0.00% [-0.00%, +0.00%] | 1380, 5520, 5520, 5580, 1140 |
+| step | 35 °C | 1444 / 1169 / 969 / 811 | 4.54 / 2.03 | 0.0196 | +0.10% [+0.04%, +0.17%] | 1380, 5520, 5520, 5520, 1140 |
+
 ## Experiment register (including superseded and failed)
 
 | Id | Status | Runs | Title |
@@ -704,3 +796,12 @@ Experiment `E014-20261027T034608-cc32d7`: 180 runs, 0 failed. `joint_lag` with i
 | `E012-20261027T032027-7b1f8c` | completed | {"failed": 0, "runs": 360} | Warm water on real silicon: does energy-optimal control make AI waste heat reusable, and what does a heat-reuse supply floor cost? |
 | `E013-20261027T033335-e7198c` | completed | {"failed": 0, "runs": 300} | Fixed thermal margin vs lag-aware planning under slow coolant loops |
 | `E014-20261027T034608-cc32d7` | completed | {"failed": 0, "runs": 180} | Robustness of lag-aware control to loop-model error, and a model-free ablation |
+| `E015-20261101T190855-b96873` | completed | {"failed": 0, "runs": 1320} | Thermal futures: when does multi-step predictive control help, and what does it need? |
+| `E016-20261101T201837-840772` | completed | {"failed": 0, "runs": 160} | Adaptive system identification vs fixed and periodically recalibrated models under cold-plate drift |
+| `E021-20261101T202413-b92693` | failed | {"aborted": "Runner process stopped by the session's 30-minute background time limit after ~120 of 480 runs (infrastructure, not a simulation failure). Completed runs are kept; unfinished runs are marked failed. Re-run as a new E021 experiment with the same, unchanged spec.", "unfinished_runs": 348} | Heat-reuse economics with an approach-dependent dry cooler |
+| `E021-20261101T212421-8b3d80` | completed | {"failed": 0, "resumed_sessions": 2, "runs": 480} | Heat-reuse economics with an approach-dependent dry cooler |
+| `E019-20261102T013052-4c3e48` | completed | {"failed": 0, "runs": 260} | Fault robustness: nominal vs fault-aware supervision under identical injected failures |
+| `E022-20261102T013819-2b1ccf` | completed | {"failed": 0, "runs": 50} | Grid-to-inference coordination: a demand-response cap with IT capping, job deferral and cold storage |
+| `E018-20261102T014828-72b80b` | completed | {"failed": 0, "runs": 150} | Thermal-credit scheduling vs round-robin, least-loaded, power-aware and temperature-aware placement |
+| `E020-20261102T022118-3ee654` | completed | {"failed": 0, "runs": 120} | Multi-node joint optimisation: supply temperature, flow distribution and placement, 1 to 16 nodes |
+| `E024-20261102T024830-ede9a3` | completed | {"failed": 0, "resumed_sessions": 1, "runs": 80} | Integrated ablation: warm supply, flow balancing, thermal-credit placement and grid deferral, 2^4 factorial |

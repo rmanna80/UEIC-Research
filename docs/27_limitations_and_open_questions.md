@@ -23,7 +23,8 @@
 * The MPC knows the loop model exactly (E015). Model error is studied separately (E014, E016, E019), not jointly with forecasting error.
 * Thermal-credit parameters (2 K margin, 600 s horizon cap, clock set, 60 s hold) were set by hand and are untuned. A different setting may change E018's verdicts.
 * The fault-aware supervisor's thresholds are stated, not tuned. Its false-alarm rate was measured only on synthetic Gaussian residuals. Faults present from t = 0 are learned as its baseline (E019: a degraded pump was detected in 1 of 10 runs).
-* Placement rules (least-loaded, thermal-credit) ignore the network. E020 shows this matters more than cooling at 16 nodes in this model.
+* Placement rules (least-loaded, thermal-credit) ignore the network. E020 and E024 show this matters more than cooling at 16 nodes in this model.
+* The warmest-safe supply rule uses measured state only. Under a grid cap it warms the supply while clocks are held down, and the chips overshoot when the cap lifts (E024, 83.8 °C). With a lagging plant this would be worse.
 * The independent safety filter shares the steady chip model with the optimiser. A shared-model error is caught only by the simulated hardware throttle.
 
 ## 4. Statistics

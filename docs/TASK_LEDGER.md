@@ -26,7 +26,7 @@ Branch `research/ueic-next-generation`. Status values: **done** (code, tests, do
 | 8 | Fault injection, sensor validation, CUSUM, degradation, recovery modes, fault-aware supervisor | done (software) | docs/22 |
 | 8 | E019 fault robustness | done | pre-registered (692b375); 260 runs, 0 failed; H1–H5 supported; H6 not |
 | 9 | Hardware adapters with mocks, modes, grants, guarded writes, replay; instrumentation document | done (software) | docs/23; no real actuator driver by design; no instrument connected |
-| 10 | E024 integrated ablation | in progress | pre-registered (2c1b9fe); running, continued by checked resumption |
-| 10 | Docs 12–29 | in progress | 25 (findings), 20 (heat reuse) and 29 (interview guide) written after the runs |
+| 10 | E024 integrated ablation | done | pre-registered (2c1b9fe); 80 runs, 0 failed; H1–H4 not supported; resumed once under checks (`ueic/resume.py`) |
+| 10 | Docs 12–29 | done | all written; results sections (17, 19, 20, 21, 22, 25), limitations (27), roadmap (28) and interview guide (29) updated after the runs |
 | 13 | ATLAS / KernelSmith adapters | blocked | no repository visible to this account (checked 2026-11-01); interface-only adapters raise PendingIntegration |
 | 13 | Equivalent-kernel energy harness; E023 | pending hardware | harness tested with synthetic samples; protocol pre-registered |

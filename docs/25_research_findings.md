@@ -1,6 +1,6 @@
 # 25 · Research findings (next generation)
 
-**Status:** E015, E016, E018–E022 are complete and summarised below. E024 is running in simulation; its section is filled in only after it finishes and its pre-registered analysis has been run. E017, E023 and M003 are pending hardware. Every finding here is **simulated** unless it says otherwise. Hypotheses were committed before each experiment's first run and have not been changed; "not supported" verdicts are reported as such.
+**Status:** all simulated next-generation experiments (E015, E016, E018–E022, E024) are complete and summarised below. E017, E023 and M003 are pending hardware. Every finding here is **simulated** unless it says otherwise. Hypotheses were committed before each experiment's first run and have not been changed; "not supported" verdicts are reported as such.
 
 Per-experiment detail, with every number, is in `PHASE_REPORT.md` and `RESULTS.md`; limits are in `27_limitations_and_open_questions.md`.
 
@@ -93,11 +93,22 @@ Per-experiment detail, with every number, is in `PHASE_REPORT.md` and `RESULTS.m
   * The 16-node cells were congested by the illustrative rack-uplink model. An exploratory re-run without the limit raised on-time from 0.49 to 1.00.
 * **Reading:** joint cooling control at scale has to be tested with network-aware placement or an uncongested topology. That is a new experiment.
 
-## 2. Running (simulation)
+### E024 · Integrated 2⁴ ablation (80 runs)
 
-| ID | Question | Section filled after |
-|---|---|---|
-| E024 | Integrated 2⁴ ablation | its 80 runs finish |
+* **Not supported:** H1–H4. The full system (warm supply, valves, thermal-credit, deferral) was worse than the baseline on energy per on-time job (+13.6%, CI includes 0), on-time fraction (0.470 vs 0.618) and time above target (1,159 vs 0 chip-s).
+* **Descriptive:**
+  * Warm supply and thermal-credit conflict (S×T interaction +21%).
+  * Warm supply under a grid cap overshoots when the cap lifts.
+  * Thermal-credit at a fixed supply was the best arm (post hoc), but mostly through relief of network congestion (exploratory diagnostic).
+* **Reading:** components that help alone interfere when combined. Integration has to be designed around their interactions, not stacked.
+
+## 2. Across the experiments (simulated)
+
+* **Warm water** saves energy only where it avoids chiller work (E020 at 30 °C, −4%). Otherwise it costs leakage (E021, E020 at 20 °C). Its strongest justification is reusable heat (E021).
+* **Thermal-aware scheduling** works through clocks and holds, not placement (E018). It costs deadlines when cooling headroom is tight, and it conflicts with warm supply (E024).
+* **At 16 nodes in this model, network congestion dominates cooling** (E020, E024). Placement rules that ignore the network confound every facility-scale comparison.
+* **Safety layers pay for themselves:** the safety filter (E015) and the fault-aware supervisor (E019) never made temperatures worse. Their blind spots are forecasts that hide demand (E015) and faults present from the start (E019).
+* **Grid coordination:** capping with deferral works (E022). A storage benefit was not shown.
 
 ## 3. Pending hardware
 
