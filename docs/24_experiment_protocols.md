@@ -7,7 +7,14 @@
    * every run is sealed into a SHA-256 hash chain (`python -m ueic verify`);
    * config and code hashes are stored per run;
    * failed and aborted runs are kept with their reason;
-   * a re-run *supersedes* the old record and never deletes it (E021 was interrupted and re-run this way).
+   * a re-run *supersedes* the old record and never deletes it (E021 was interrupted and re-run this way);
+   * an experiment that was registered but not finished can instead be **resumed in its own record** (`python -m ueic resume EXP_ID`, or `ueic queue`). `ueic/resume.py` refuses unless all of these hold:
+     1. the experiment is still `running`, never finalised or aborted;
+     2. the simulation-core hash equals the one stored at registration;
+     3. every stored run (cell, seed, config hash, model-config hash) is regenerated exactly from the stored spec;
+     4. re-simulating some of the completed runs (`--check`, spread evenly) reproduces their stored metrics and time-series hash exactly. Host wall-clock timings are the exception, since they are physical measurements and differ on every run.
+
+     Each resumption is logged in the research log with both hashes, and the finished summary counts `resumed_sessions`. Only pending runs are executed. Nothing already stored is rewritten.
 3. **Pairing.** Every arm sees the same workload realisation per seed. Effects are paired relative differences d = (A − B)/B with two-sided 95% Student-t intervals over seeds.
 4. **Practical significance.** Each spec states a threshold (1–10%). "CI excludes 0" alone is never called success.
 5. **Exploratory vs confirmatory.** Exploratory runs (smoke tests, dry-runs in scratch databases) are disclosed in the spec or the write-up, and are never stored as confirmatory results.
