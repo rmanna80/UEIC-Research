@@ -56,9 +56,9 @@ def _sessions(root: str | Path) -> list[dict[str, Any]]:
     out = []
     for sj in sorted(Path(root).rglob("summary.json")):
         d = sj.parent
-        meta = json.loads((d / "session.json").read_text())
-        summ = json.loads(sj.read_text())
-        traces = [json.loads(x) for x in (d / "traces.jsonl").read_text().splitlines() if x.strip()]
+        meta = json.loads((d / "session.json").read_text(encoding="utf-8"))
+        summ = json.loads(sj.read_text(encoding="utf-8"))
+        traces = [json.loads(x) for x in (d / "traces.jsonl").read_text(encoding="utf-8").splitlines() if x.strip()]
         out.append({"dir": str(d), "label": parse_label(meta.get("label", "")), "summary": summ, "traces": traces})
     return out
 

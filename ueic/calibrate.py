@@ -267,7 +267,7 @@ def run_session(kind: str, seconds: float, out_root: str | Path, label: str = ""
         time.sleep(min(1.0, interval_s * 5))
     finally:
         meta = log.stop()
-    with open(d / "workload.csv", "w") as f:
+    with open(d / "workload.csv", "w", encoding="utf-8") as f:
         f.write("t_unix,throughput\n")
         for t, v in rows:
             f.write(f"{t:.6f},{v:.6g}\n")
@@ -276,7 +276,7 @@ def run_session(kind: str, seconds: float, out_root: str | Path, label: str = ""
     (d / "session.json").write_text(json.dumps({
         "kind": kind, "label": label, "seconds": seconds, "gpu": gpu, "throughput_unit": unit,
         "idle_before_s": idle_before_s, "device": meta["devices"][0], "telemetry_sha256": meta["csv_sha256"],
-        "provenance": "physical_measurement", **({"guard_failed": failed} if failed else {})}, indent=1))
+        "provenance": "physical_measurement", **({"guard_failed": failed} if failed else {})}, indent=1), encoding="utf-8")
     if failed:
         raise GuardError(d, failed)
     return d
@@ -310,7 +310,7 @@ def device_label(dev: dict[str, Any] | None) -> str:
 
 def load_session(d: str | Path) -> Session:
     d = Path(d)
-    meta = json.loads((d / "session.json").read_text())
+    meta = json.loads((d / "session.json").read_text(encoding="utf-8"))
     work = np.loadtxt(d / "workload.csv", delimiter=",", skiprows=1, ndmin=2)
     return Session(d, meta["kind"], meta.get("label", ""), float(meta["device"]["max_sm_clock_MHz"] or np.nan),
                    read_csv(d / "telemetry.csv"), work, meta["device"].get("power_limit_W"), meta["device"],
@@ -752,7 +752,7 @@ def devices_in(root: str | Path) -> dict[str, int]:
     out: dict[str, int] = {}
     for d in Path(root).glob("*"):
         if (d / "session.json").exists():
-            lab = device_label(json.loads((d / "session.json").read_text()).get("device"))
+            lab = device_label(json.loads((d / "session.json").read_text(encoding="utf-8")).get("device"))
             out[lab] = out.get(lab, 0) + 1
     return out
 
@@ -779,7 +779,7 @@ def calibrate(session_dirs: Iterable[str | Path], cfg=None, device: str | None =
     by = lambda k: [x for x in summ if x["kind"] == k]
     out: dict[str, Any] = {
         "kind": "ueic_calibration", "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "device": json.loads((sessions[0].path / "session.json").read_text())["device"] if sessions else None,
+        "device": json.loads((sessions[0].path / "session.json").read_text(encoding="utf-8"))["device"] if sessions else None,
         "sessions": summ, "fits": {}, "overrides": {}, "notes": [],
     }
     notes = out["notes"]

@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from ueic.facility.experiment import expand, run_cell  # noqa: E402
 
-spec = json.loads((ROOT / "experiments" / "E020_multinode_joint.json").read_text())
+spec = json.loads((ROOT / "experiments" / "E020_multinode_joint.json").read_text(encoding="utf-8"))
 cell = [c for c in expand(spec) if c["scenario"] == "n16|amb20|independent" and c["seed"] == 1][0]
 cell["record_timeseries"] = False
 for up in (4, 10 ** 6):

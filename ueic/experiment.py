@@ -36,7 +36,7 @@ from .workload import SCENARIOS
 
 
 def load_spec(path: str | Path) -> dict[str, Any]:
-    return json.loads(Path(path).read_text())
+    return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
 def expand_cells(spec: dict[str, Any]) -> list[dict[str, Any]]:

@@ -345,7 +345,7 @@ def main():
         "* The kernels are synthetic. LLM prefill and decode mix compute and memory traffic.",
         "* A consumer card is not a data-centre accelerator. Only dimensionless shapes are transferred.",
     ]
-    DOC.write_text("\n".join(L) + "\n")
+    DOC.write_text("\n".join(L) + "\n", encoding="utf-8")
     print("wrote", DOC.relative_to(ROOT), "and figures m001_power_energy.png, m001_warmup.png")
 
 

@@ -18,7 +18,7 @@ class TelemetryBus:
     def collect(self, n: int, interval_s: float = 0.0, advance=None) -> int:
         """Poll every device n times. ``advance(dt)`` steps simulated devices; None for live/replay."""
         rows = 0
-        with open(self.path, "w", newline="") as f:
+        with open(self.path, "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f)
             w.writerow(["t_poll", "device", "quantity", "value"])
             for _ in range(n):
@@ -36,5 +36,5 @@ class TelemetryBus:
                             w.writerow([t, d.capabilities.device_id, q, r[q]]); rows += 1
         meta = {"devices": [{k: (v if not hasattr(v, "value") else v.value) for k, v in asdict(d.capabilities).items()
                              if k != "modes"} for d in self.devices], "rows": rows}
-        self.path.with_suffix(".meta.json").write_text(json.dumps(meta, indent=1, default=str))
+        self.path.with_suffix(".meta.json").write_text(json.dumps(meta, indent=1, default=str), encoding="utf-8")
         return rows

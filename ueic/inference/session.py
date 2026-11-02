@@ -87,7 +87,7 @@ def run_session(adapter, items: list[dict], out_dir: str | Path, *, mode: str = 
                        "expect_clock_MHz": expect_clock_MHz, "facility_factor": facility_factor,
                        "facility_factor_source": facility_factor_source, "price_per_kWh": price_per_kWh, "seed": seed},
             "items": [it["id"] for it in items]}
-    (out / "session.json").write_text(json.dumps(meta, indent=1))
+    (out / "session.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
     scorer = make_scorer(task_cfg)
     if warmup:
         run_closed_loop(adapter, items[:warmup], 1, max_tokens=max_tokens, timeout_s=timeout_s, max_retries=0,
@@ -119,7 +119,7 @@ def run_session(adapter, items: list[dict], out_dir: str | Path, *, mode: str = 
         prom_samples = prom.stop() if prom else None
     summary: dict[str, Any] = {"provenance": meta["provenance"], "latency": summarize_latency(traces)}
     if prom_samples is not None:
-        (out / "server_metrics.json").write_text(json.dumps(prom_samples))
+        (out / "server_metrics.json").write_text(json.dumps(prom_samples), encoding="utf-8")
     t0 = min(t.t_scheduled for t in traces) if traces else 0.0
     t1 = max(t.t_end for t in traces) if traces else 0.0
     energy: dict[str, Any] = {}
@@ -152,5 +152,5 @@ def run_session(adapter, items: list[dict], out_dir: str | Path, *, mode: str = 
     summary["energy"] = energy
     summary["guard_problems"] = guard
     summary["guard_failed"] = bool(guard)
-    (out / "summary.json").write_text(json.dumps(summary, indent=1, default=float))
+    (out / "summary.json").write_text(json.dumps(summary, indent=1, default=float), encoding="utf-8")
     return summary

@@ -87,9 +87,9 @@ def test_exports_and_bundle(store, tmp_path):
     exp_id = ex.run_experiment(SPEC, store, workers=1)
     csv_p = store.export_csv(exp_id, tmp_path / "r.csv")
     json_p = store.export_json(exp_id, tmp_path / "r.json")
-    assert csv_p.read_text().count("\n") == 5
-    assert '"provenance"' not in csv_p.read_text()  # wide CSV, provenance lives in JSON
-    assert "simulator_output" in json_p.read_text()
+    assert csv_p.read_text(encoding="utf-8").count("\n") == 5
+    assert '"provenance"' not in csv_p.read_text(encoding="utf-8")  # wide CSV, provenance lives in JSON
+    assert "simulator_output" in json_p.read_text(encoding="utf-8")
     b = store.bundle(exp_id, tmp_path / "b.zip")
     names = zipfile.ZipFile(b).namelist()
     for need in ("spec.json", "results.csv", "results.json", "parameter_registry.json", "REPRODUCE.md",

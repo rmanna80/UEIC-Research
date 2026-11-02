@@ -47,7 +47,7 @@ def fake_nvml(state):
 
 
 def test_telemetry_module_never_calls_an_nvml_setter():
-    src = Path(telemetry.__file__).read_text() + Path(cal.__file__).read_text()
+    src = Path(telemetry.__file__).read_text(encoding="utf-8") + Path(cal.__file__).read_text(encoding="utf-8")
     # no call, and no getattr-by-name, of any NVML setter/reset/clear function
     assert not re.search(r"nvmlDevice(Set|Reset|Clear)\w*\s*\(", src)
     assert not re.search(r"['\"]nvmlDevice(Set|Reset|Clear)", src)
@@ -60,7 +60,7 @@ def test_logger_writes_csv_and_metadata_with_hash(tmp_path):
     assert len(rows) >= 5 and rows[0]["power_W"] == pytest.approx(123.4)
     assert rows[0]["energy_J"] is None and rows[0]["fan_pct"] is None      # unsupported -> None, not a crash
     assert rows[0]["power_limit_W"] == pytest.approx(300.0)                 # enforced limit, every sample
-    side = json.loads((tmp_path / "t.meta.json").read_text())
+    side = json.loads((tmp_path / "t.meta.json").read_text(encoding="utf-8"))
     assert side["provenance"] == "physical_measurement" and "excludes" in side["measurement_boundary"]
     import hashlib
     assert side["csv_sha256"] == hashlib.sha256((tmp_path / "t.csv").read_bytes()).hexdigest()
@@ -132,7 +132,7 @@ def _write_session(root, kind, clk, rng, seconds=60.0, warm=False, f_top=MAXCLK,
     if clk_step:                               # (t_at, new_clock, power_drop): driver drops one clock step
         clks[t >= clk_step[0]] = clk_step[1]
         P[t >= clk_step[0]] -= clk_step[2]
-    with open(d / "telemetry.csv", "w") as f:
+    with open(d / "telemetry.csv", "w", encoding="utf-8") as f:
         f.write(",".join(telemetry.FIELDS) + "\n")
         for ti, Ti, Pi, ci in zip(t, T, P, clks):
             fan = f"{30 + 50 * (1 - np.exp(-ti / 150.0)):.0f}" if fan_ramp else ""
@@ -145,7 +145,7 @@ def _write_session(root, kind, clk, rng, seconds=60.0, warm=False, f_top=MAXCLK,
     np.savetxt(d / "workload.csv", np.column_stack([1000 + tw, thr]), delimiter=",", header="t_unix,throughput", comments="")
     label = "default-clocks" if kind == "probe" else f"clk={label_clk or clk}"   # probes run unlocked
     (d / "session.json").write_text(json.dumps({"kind": kind, "label": label, "device": {
-        "index": 0, "name": name, "uuid": uuid, "max_sm_clock_MHz": nvml_max, "power_limit_W": power_limit}}))
+        "index": 0, "name": name, "uuid": uuid, "max_sm_clock_MHz": nvml_max, "power_limit_W": power_limit}}), encoding="utf-8")
     return d
 
 
@@ -182,7 +182,7 @@ def test_fit_refuses_when_temperature_barely_moves(tmp_path):
 
 def test_apply_and_ingest_calibration(sessions, tmp_path):
     calib = cal.calibrate(sessions)
-    spec = json.loads((Path(__file__).resolve().parents[1] / "experiments" / "E001_policy_benchmark.json").read_text())
+    spec = json.loads((Path(__file__).resolve().parents[1] / "experiments" / "E001_policy_benchmark.json").read_text(encoding="utf-8"))
     s2 = cal.apply_calibration(spec, calib, "abc")
     assert s2["key"] == "E001C" and s2["design"]["param_overrides"]["kappa_leak"] == calib["overrides"]["kappa_leak"]["value"]
     st = Store(tmp_path / "m.sqlite")
@@ -513,7 +513,7 @@ def _write_sweep(root, kind, fan, rng, clk=2017, slope=0.25, seconds=480.0, ramp
         P = 180.0 + slope * (T - 60.0) + _fan_power(fan) + rng.normal(0, 0.8, t.size)
         clks = np.full(t.size, float(clk))
     T = np.round(T)                                           # NVML reports whole degrees
-    with open(d / "telemetry.csv", "w") as f:
+    with open(d / "telemetry.csv", "w", encoding="utf-8") as f:
         f.write(",".join(telemetry.FIELDS) + "\n")
         for ti, Ti, Pi, ci in zip(t, T, P, clks):
             f.write(f"{1000 + ti},0,{Pi},,{Ti},{ci:g},9000,99,50,0,{reasons},{fan if report_fan else ''},{kind},250\n")
@@ -521,7 +521,7 @@ def _write_sweep(root, kind, fan, rng, clk=2017, slope=0.25, seconds=480.0, ramp
     np.savetxt(d / "workload.csv", np.column_stack([1000 + t, thr]), delimiter=",", header="t_unix,throughput", comments="")
     lab = label or (f"sweep fan={fan}" + ("" if kind == "idle" else f" clk={clk}"))
     (d / "session.json").write_text(json.dumps({"kind": kind, "label": lab, "device": {
-        "index": 0, "name": "Synthetic", "uuid": None, "max_sm_clock_MHz": 3000, "power_limit_W": 250}}))
+        "index": 0, "name": "Synthetic", "uuid": None, "max_sm_clock_MHz": 3000, "power_limit_W": 250}}), encoding="utf-8")
     return d
 
 
@@ -575,7 +575,7 @@ def test_idle_session_needs_no_pytorch(tmp_path, monkeypatch):
     monkeypatch.setattr(cal, "torch_workload", lambda *a, **k: (_ for _ in ()).throw(AssertionError("torch used")))
     state = {"P": 25.0, "T": 40, "clk": 210}
     d = cal.run_session("idle", 0.3, tmp_path, label="sweep fan=70", interval_s=0.02, nvml=fake_nvml(state))
-    meta = json.loads((d / "session.json").read_text())
+    meta = json.loads((d / "session.json").read_text(encoding="utf-8"))
     assert meta["kind"] == "idle" and meta["throughput_unit"] == "-"
 
 
@@ -599,7 +599,7 @@ def test_run_stops_early_when_the_clock_lock_is_not_active(tmp_path):
     assert time.time() - t0 < 5.0
     msg = " ".join(ei.value.reasons)
     assert "clock lock is not active" in msg and "-lgc 2347,2347" in msg
-    meta = json.loads((ei.value.path / "session.json").read_text())
+    meta = json.loads((ei.value.path / "session.json").read_text(encoding="utf-8"))
     assert meta["guard_failed"] and cal.load_session(ei.value.path).guard_failed
 
 
@@ -616,16 +616,16 @@ def test_run_with_a_held_lock_is_not_stopped(tmp_path):
     state = {"P": 168.0, "T": 60, "clk": 2340}
     d = cal.run_session("compute", 0.6, tmp_path, label="sweep fan=60 clk=2347", interval_s=0.02,
                         nvml=fake_nvml(state), workload=lambda budget: 42.0, guard_after_s=0.2)
-    assert "guard_failed" not in json.loads((d / "session.json").read_text())
+    assert "guard_failed" not in json.loads((d / "session.json").read_text(encoding="utf-8"))
 
 
 def test_sweep_fit_leaves_out_power_limited_points_and_unapplied_fan_speeds(tmp_path):
     rng = np.random.default_rng(7)
     ds = [_write_sweep(tmp_path, "compute", f, rng) for f in (100, 85, 70)]
     d = _write_sweep(tmp_path, "compute", 55, rng)
-    tel = (d / "telemetry.csv").read_text().splitlines()
+    tel = (d / "telemetry.csv").read_text(encoding="utf-8").splitlines()
     hdr, body = tel[0], [r.rsplit(",", 1)[0] + ",180" for r in tel[1:]]                      # limit 180 W: at the limit
-    (d / "telemetry.csv").write_text("\n".join([hdr] + body) + "\n")
+    (d / "telemetry.csv").write_text("\n".join([hdr] + body) + "\n", encoding="utf-8")
     ds.append(d)
     ds.append(_write_sweep(tmp_path, "compute", 40, rng, label="sweep fan=60 clk=2017"))      # reports 40%, labelled 60%
     r = cal.fit_leakage_sweep(ds)

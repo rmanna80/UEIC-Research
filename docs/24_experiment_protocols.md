@@ -44,13 +44,19 @@ Earlier experiments (E001–E014, M001, M002) are unchanged and documented in `P
 ## 3. How to reproduce
 
 ```bash
-git checkout research/ueic-next-generation
+git checkout main                                           # the next-generation branch is merged (PR #1)
 pip install -r requirements.txt
 python -m pytest -q                                         # full suite
 python -m ueic run experiments/E015_thermal_futures.json --workers 2      # any simulated experiment
-python -m ueic verify && python -m ueic report && python -m ueic dashboard
+python -m ueic verify
+python -m ueic report
+python -m ueic dashboard
 python experiments/make_spec_e0XX.py                        # regenerates a spec byte-identically from its script
 ```
+
+Commands are listed one per line because Windows PowerShell 5.1 does not accept `&&`.
+
+**Core hash change (2026-11-02).** All text I/O now names UTF-8 explicitly. Before this fix, Windows Python decoded specs as cp1252, so the same spec could be read as different text there than on Linux, and `ueic report` crashed writing `docs/RESULTS.md`. One core module (`experiment.py`, the spec loader) changed, so the simulation-core hash moved from `f0274eb299ad` to `d1582b117db4`. On Linux, where every stored run was produced, the change is a no-op: the bitwise E001 reproduction test passes, and no stored record is affected. Records made before the fix carry the old hash. Resuming one of them under the new code would be refused by check 2, which is the intended behaviour; none is unfinished.
 
 Each run's config hash and the simulation-core hash identify what produced it (`python -m ueic hash`). Results reproduce bitwise per seed on the same platform, as the E001 reproduction test checks.
 

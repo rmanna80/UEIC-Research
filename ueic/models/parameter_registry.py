@@ -186,7 +186,7 @@ def from_registry() -> ParameterSet:
 def with_calibration(ps: ParameterSet, calibration_json: str | Path) -> ParameterSet:
     """Overlay accepted measurements from a ``calib fit`` file (e.g. M001) with their standard errors,
     hardware identity, date and measured domain (clock ratios of the sweep)."""
-    c = json.loads(Path(calibration_json).read_text())
+    c = json.loads(Path(calibration_json).read_text(encoding="utf-8"))
     dev = c.get("device") or {}
     hw = f"{dev.get('name', 'unknown GPU')} {dev.get('uuid', '')}".strip()
     date = c.get("created_utc")

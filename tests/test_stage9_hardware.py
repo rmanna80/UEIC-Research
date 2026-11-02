@@ -81,11 +81,11 @@ def test_simulated_bus_and_replay(tmp_path):
 
 def test_csv_ingest_reads_only_new_rows(tmp_path):
     p = tmp_path / "meter.csv"
-    with open(p, "w", newline="") as f:
+    with open(p, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f); w.writerow(["t_unix", "power_W"]); w.writerow([1.0, 300.0])
     m = create("csv_power_meter", Mode.READ_ONLY, path=str(p))
     assert m.read()["power_W"] == 300.0 and m.read() is None
-    with open(p, "a", newline="") as f:
+    with open(p, "a", newline="", encoding="utf-8") as f:
         csv.writer(f).writerow([2.0, 310.0])
     assert m.read()["power_W"] == 310.0
     assert m.capabilities.writes == {}
@@ -94,4 +94,4 @@ def test_csv_ingest_reads_only_new_rows(tmp_path):
 def test_no_gpu_setters_anywhere_in_hardware_package():
     bad = re.compile(r"nvmlDeviceSet|nvidia-smi\s+-(lgc|pl|rgc)|subprocess")
     for p in (ROOT / "ueic" / "hardware").rglob("*.py"):
-        assert not bad.search(p.read_text()), p
+        assert not bad.search(p.read_text(encoding="utf-8")), p

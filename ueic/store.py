@@ -377,7 +377,7 @@ class Store:
         r = self.db.execute("SELECT timeseries_path FROM runs WHERE id=?", (run_id,)).fetchone()
         if not r or not r[0]:
             return {}
-        with gzip.open(self.path.parent / r[0], "rt") as f:
+        with gzip.open(self.path.parent / r[0], "rt", encoding="utf-8") as f:
             rows = list(csv.reader(f))
         keys = rows[0]
         cols = list(zip(*rows[1:])) if len(rows) > 1 else [[] for _ in keys]
@@ -389,7 +389,7 @@ class Store:
         names = sorted({n for r in runs for n in r["metrics"]})
         cell_keys = sorted({k for r in runs for k in r if k not in ("metrics", "warnings")})
         path = Path(path)
-        with open(path, "w", newline="") as f:
+        with open(path, "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f)
             w.writerow(cell_keys + names)
             for r in runs:
@@ -403,7 +403,7 @@ class Store:
                "corrections": [dict(zip(["id", "utc", "table", "target", "field", "new_value", "reason"], r))
                                for r in self.db.execute("SELECT * FROM corrections")]}
         path = Path(path)
-        path.write_text(json.dumps(doc, indent=1, default=str))
+        path.write_text(json.dumps(doc, indent=1, default=str), encoding="utf-8")
         return path
 
     def bundle(self, exp_id: str, path: str | Path, include_timeseries: bool = True) -> Path:

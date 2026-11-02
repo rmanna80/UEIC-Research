@@ -134,5 +134,5 @@ E008 = {
 if __name__ == "__main__":
     for spec, fname in ((E006, "E006_dynamic_loop.json"), (E007, "E007_move_suppression.json"),
                         (E008, "E008_robust_joint.json")):
-        (HERE / fname).write_text(json.dumps(spec, indent=2))
+        (HERE / fname).write_text(json.dumps(spec, indent=2), encoding="utf-8")
         print("wrote", fname)

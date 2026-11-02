@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-e011 = json.loads((HERE / "E011_lag_aware.json").read_text())
+e011 = json.loads((HERE / "E011_lag_aware.json").read_text(encoding="utf-8"))
 d = e011["design"]
 MARGINS = [0, 3, 6, 9]
 base_vars = [v for v in d["variants"] if not v["label"].endswith("quasi") and "amb20" not in v["label"]]
@@ -70,11 +70,11 @@ spec = {
     "design": {"scenarios": d["scenarios"], "policies": ["joint_fb", "joint_lag"], "seeds": d["seeds"],
                "timeseries_seeds": d["timeseries_seeds"], "param_overrides": d["param_overrides"], "variants": variants},
 }
-base = json.loads((HERE / "E001_policy_benchmark.json").read_text())
+base = json.loads((HERE / "E001_policy_benchmark.json").read_text(encoding="utf-8"))
 for k in ("data_collection", "statistics", "practical_significance_threshold"):
     if k in base:
         spec[k] = base[k]
 
 if __name__ == "__main__":
-    (HERE / "E013_margin_vs_lag.json").write_text(json.dumps(spec, indent=2))
+    (HERE / "E013_margin_vs_lag.json").write_text(json.dumps(spec, indent=2), encoding="utf-8")
     print(f"wrote E013_margin_vs_lag.json: {len(variants)} variants, {n_runs} runs")

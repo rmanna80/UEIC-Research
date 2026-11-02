@@ -56,7 +56,7 @@ def make_grant(operator: str, device: str, actuation: str, lo: float, hi: float,
     g = Grant(operator, device, actuation, float(lo), float(hi), now + 60 * minutes, typed, now)
     if store_dir:
         d = Path(store_dir); d.mkdir(parents=True, exist_ok=True)
-        (d / f"grant_{int(now)}_{device}_{actuation}.json").write_text(json.dumps(asdict(g), indent=1))
+        (d / f"grant_{int(now)}_{device}_{actuation}.json").write_text(json.dumps(asdict(g), indent=1), encoding="utf-8")
     return g
 
 

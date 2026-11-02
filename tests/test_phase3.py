@@ -159,7 +159,7 @@ def test_warm_start_removes_initial_condition_artifact_in_dynamic_loop():
 # ------------------------------------------------------------------ lag-aware joint control (E011)
 def _e010_cfg(dyn: bool):
     import json
-    spec = json.loads((Path(__file__).resolve().parents[1] / "experiments" / "E010_thermal_safety.json").read_text())
+    spec = json.loads((Path(__file__).resolve().parents[1] / "experiments" / "E010_thermal_safety.json").read_text(encoding="utf-8"))
     over = {**SCENARIOS["S6_degraded_cooling"].param_overrides, **spec["design"]["param_overrides"],
             "r_cond": 0.045, "r_conv_ref": 0.030, "warm_start": 1.0}
     if dyn:

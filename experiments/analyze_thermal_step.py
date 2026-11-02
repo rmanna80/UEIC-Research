@@ -51,7 +51,7 @@ for name, folder in SESSIONS.items():
     out["fits"][name] = fit
 if __name__ == "__main__":
     p = ROOT / "data" / "calibration" / "M001_M002_thermal_step.json"
-    p.write_text(json.dumps(out, indent=1))
+    p.write_text(json.dumps(out, indent=1), encoding="utf-8")
     for k, v in out["fits"].items():
         print(f"{k}: step {v['dP_W']:.0f} W, tau {v['tau_s']:.2f} +/- {v['se']['tau_s']:.2f} s, A {v['A_K']:.1f} K "
               f"(R_fast {v['R_fast_K_per_W']:.3f} K/W), slow drift {v['B_K_per_s']:.3f} K/s, fan on at {v['fan_first_on_s']} s, "

@@ -74,5 +74,5 @@ spec = {
     "practical_significance_threshold": 0.02,
 }
 out = Path(__file__).with_name("E018_thermal_scheduling.json")
-out.write_text(json.dumps(spec, indent=1))
+out.write_text(json.dumps(spec, indent=1), encoding="utf-8")
 print(out)

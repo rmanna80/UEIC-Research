@@ -115,7 +115,7 @@ def test_resume_refuses_when_completed_run_is_not_reproduced(stores, monkeypatch
 def test_queue_resumes_then_skips(stores, tmp_path):
     a, _ = stores
     p = tmp_path / "spec.json"
-    p.write_text(json.dumps(SPEC))
+    p.write_text(json.dumps(SPEC), encoding="utf-8")
     assert rs.queue([str(p)], a, workers=1, max_minutes=0, log=lambda s: None) is False
     assert rs.queue([str(p)], a, workers=1, log=lambda s: None) is True
     ids = [x["id"] for x in a.experiments()]
@@ -127,7 +127,7 @@ def test_queue_resumes_then_skips(stores, tmp_path):
 def test_queue_supersedes_an_aborted_attempt(stores, tmp_path):
     a, _ = stores
     p = tmp_path / "spec.json"
-    p.write_text(json.dumps(SPEC))
+    p.write_text(json.dumps(SPEC), encoding="utf-8")
     first = rs.start(SPEC, a, workers=1, max_minutes=0)["exp_id"]
     a.abort_experiment(first, "test interruption")
     assert rs.queue([str(p)], a, workers=1, log=lambda s: None) is True
