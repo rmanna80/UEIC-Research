@@ -50,6 +50,19 @@ python -m ueic run experiments/E022_grid_coordination.json --workers 2
 * Compliance numbers describe this simulated EMS.
 * Cost and carbon numbers describe how decisions respond to the shape of a signal, not real savings.
 
-## 7. Results (E022)
+## 7. Results (E022, simulated)
 
-Filled in after the run; see `PHASE_REPORT.md`.
+Record `E022-20261102T013819-2b1ccf`: 50 runs, 0 failed, one session. Full tables are in `PHASE_REPORT.md`.
+
+| Hypothesis | Verdict |
+|---|---|
+| H1 cap held | supported. 0.000 kWh above the cap; largest overshoot 2–12 W (one-step EMS lag) |
+| H2 deferral keeps on-time | supported. 0.983 vs 0.972 and 0.969 |
+| H3 storage adds ≥ 3% event work at 30 °C | **not supported**. +0.7% [−0.8, +2.1]. The null at 20 °C held |
+| H4 storage: more energy, less cost | **not supported**. The seed means show less energy (−1.7%) *and* less cost (−3.3%) |
+| H5 cap binds uncapped | supported. 1.05 and 1.89 kWh above, every seed |
+
+**What this shows.**
+* **H4:** the reasoning of §3 held per seed in 3 of 5 seeds: storage used 0.2–0.9 kWh more. In the other two, plain capping caused a backlog (on-time 0.947 and 0.918), which storage avoided, saving 2.1–3.0 kWh. The mean reflects that backlog, not storage thermodynamics. A fair test needs a store sized to the event's chiller duty (this one received 1.9 kWh_th) and more seeds.
+* **Deferral** beat plain capping on energy, cost and on-time fraction at both ambients.
+* **Enforcing the cap** cost 0.6–1.7% energy relative to ignoring it.

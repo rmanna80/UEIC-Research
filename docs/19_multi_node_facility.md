@@ -86,4 +86,22 @@ Results show how the coupled system behaves under these stated forms. They are n
 
 ## 9. Results (E020, E024)
 
-Filled in after the runs; see `PHASE_REPORT.md`.
+### E020 (simulated)
+
+Record `E020-20261102T022118-3ee654`: 120 runs, 0 failed, one session. Full tables are in `PHASE_REPORT.md`. **No hypothesis was supported.**
+
+* **H1:** joint vs independent energy per on-time job was −7.3% and −16.4% at 1 node (meeting the criterion), but +11% to +22% at 4 and 16 nodes, with wide CIs.
+* **H2:** on-time fell by 5–17 points.
+* **H3:** the benefit reversed above 1 node.
+* **H4:** heat-proportional valves were +1.8% and +2.8% vs equal valves at 16 nodes (CIs include 0). They added pump energy (1.39 → 2.30 kWh).
+
+**The supply-temperature component on its own** (`warm` vs `independent`, same jobs): −3.9% to −4.9% at 30 °C, where the 25 °C supply needs the chiller; +0.5% to +3.3% at 20 °C, where it does not. This agrees with E021.
+
+**Network congestion at 16 nodes.**
+* The 16-node cells were dominated by the rack-uplink model (§2: 4 cross-node jobs per rack, class G). Under `independent`, utilisation was 0.90 but only 61.5% of jobs were on time.
+* An exploratory re-run of one seed without the uplink limit (`experiments/diagnostics/e020_uplink_check.py`, not stored) gave on-time 1.000 instead of 0.491.
+* The scale comparison is therefore confounded by congestion, and a placement rule that ignores the network is a poor partner for joint cooling control at that scale.
+
+### E024
+
+Filled in after its run.

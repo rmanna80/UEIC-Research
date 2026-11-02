@@ -14,6 +14,8 @@
      3. every stored run (cell, seed, config hash, model-config hash) is regenerated exactly from the stored spec;
      4. re-simulating some of the completed runs (`--check`, spread evenly) reproduces their stored metrics and time-series hash exactly. Host wall-clock timings are the exception, since they are physical measurements and differ on every run.
 
+     The core hash covers the single-node simulator only. For facility experiments (E018, E020, E022, E024), check 4 is what detects a changed facility simulator. Extending the core hash to `ueic/facility`, `ueic/scheduling` and `ueic/grid` is open work. It has to be a new field, because changing the existing hash would invalidate every stored record.
+
      Each resumption is logged in the research log with both hashes, and the finished summary counts `resumed_sessions`. Only pending runs are executed. Nothing already stored is rewritten.
 3. **Pairing.** Every arm sees the same workload realisation per seed. Effects are paired relative differences d = (A − B)/B with two-sided 95% Student-t intervals over seeds.
 4. **Practical significance.** Each spec states a threshold (1–10%). "CI excludes 0" alone is never called success.
@@ -28,11 +30,11 @@
 | E015 | Multi-step MPC vs the measured-state rule across inertia, delay and forecast quality | simulation (single node) | 1,320 | completed; H1, H5, H6 supported; H2–H4 not |
 | E016 | Adaptive identification under cold-plate drift | simulation | 160 | completed; H1, H2, H6 supported; H3–H5, H7 not |
 | E017 | Real LLM energy per correct, on-time result: model × GPU clock × concurrency | hardware protocol | – | **pending hardware** (user's GPU, Ollama, GSM8K) |
-| E018 | Thermal-credit vs four placement baselines, 5 conditions | simulation (facility) | 150 | see PHASE_REPORT |
-| E019 | Nominal vs fault-aware supervision under 13 faults | simulation | 260 | see PHASE_REPORT |
-| E020 | Joint supply, valves and placement vs independent control, 1–16 nodes | simulation (facility) | 120 | see PHASE_REPORT |
+| E018 | Thermal-credit vs four placement baselines, 5 conditions | simulation (facility) | 150 | completed; H2, H4, H5 supported; H1, H3 not (H1 met only with heterogeneous nodes) |
+| E019 | Nominal vs fault-aware supervision under 13 faults | simulation | 260 | completed; H1–H5 supported; H6 not (degraded pump from t = 0 undetected) |
+| E020 | Joint supply, valves and placement vs independent control, 1–16 nodes | simulation (facility) | 120 | completed; H1–H4 not supported; 16-node cells congested by the uplink model (exploratory diagnostic) |
 | E021 | Heat-reuse economics with an approach-dependent dry cooler | simulation | 480 | completed; H2, H5, H6, H7 supported; H1, H3, H4 not. First attempt interrupted (infrastructure), aborted with its reason; second record superseded it and was resumed twice under checks (§1) |
-| E022 | Demand-response cap: capping, deferral, cold storage; energy vs cost vs carbon | simulation (facility) | 50 | see PHASE_REPORT |
+| E022 | Demand-response cap: capping, deferral, cold storage; energy vs cost vs carbon | simulation (facility) | 50 | completed; H1, H2, H5 supported; H3, H4 not |
 | E023 | Equivalent kernels: time vs GPU energy vs estimated facility energy | hardware protocol | – | **pending hardware**; ATLAS/KernelSmith sources pending access |
 | E024 | 2⁴ factorial integrated ablation on 128 GPUs with a grid cap | simulation (facility) | 80 | see PHASE_REPORT |
 | M003 | Leakage over a wide temperature window at fixed clock | hardware (user) | – | **pending hardware** (guarded procedure ready) |

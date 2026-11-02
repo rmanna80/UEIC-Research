@@ -374,6 +374,189 @@ Plan and stage status: `12_next_generation_architecture.md`, `TASK_LEDGER.md`. E
 * All of it scales with the leakage slope, so M003 decides how far this transfers to real silicon.
 * The pre-registered expectation behind H1 and H3–H4 was wrong. It came from a back-of-envelope estimate disclosed in the spec.
 
+### Run notes for E018, E019, E020, E022 and E024
+
+* **Queue.** All five ran from one queue (`python -m ueic queue …`, 2 workers, 110-minute segments). E019, E022, E018 and E020 each ran start to finish inside one segment, with no interruption and no resumption. E024 was continued by checked resumption (see its section).
+* **Simulator code after registration.** Two additions were made after some of these specs were committed and before any of their runs. Both are inert unless a spec turns them on:
+  * The Stage 7 grid features (caps, tariffs, carbon, deferral, storage) were added to the facility simulator in the E022 commit (`4c14a91`), after E018 and E020 were registered (`5e0b172`). E018 and E020 do not turn them on.
+  * The E019 supervisor stacks and fault parameters were registered in `0007bd9`, after the E019 spec (`692b375`). E019 cannot run without them, and their defaults leave every other policy unchanged (the bitwise E001 reproduction test passes). This changed the single-node core hash (`0c33547baa67` → `f0274eb299ad`). Every dry-run and every confirmatory run used `f0274eb299ad`.
+  * The core hash covers the single-node simulator only. The facility simulator (`ueic/facility`, `ueic/scheduling`, `ueic/grid`) is covered by the package hash and by git history, which shows no change to it after `4c14a91`.
+* **Dry-runs (exploratory, disclosed).** After registration and before the confirmatory runs, shortened dry-runs were run in a scratch database to check that each pipeline runs end to end:
+  * E018: 10-minute runs, 2 seeds, 60 runs;
+  * E019: 80-minute runs, 2 seeds, 104 runs;
+  * E020: 10-minute runs, 2 seeds, 32 runs;
+  * E022: 67-minute runs, 2 seeds, 20 runs.
+
+  They are not results and are not in `results/ueic.sqlite`.
+* **When the analysis code was written.** The analysis functions for E018, E019, E020 and E022 (`ueic/results_next.py`, commit `566cdb4`) were committed less than a minute after the last dry-run finished, so they were written with the dry-run outputs available. The hypotheses they implement were committed earlier, and each spec file has exactly one commit (`git log -- experiments/E0xx_*.json`). After the runs, the code was checked against the hypothesis text. One operational detail (E019 H5) is reported in that section.
+
+### E019 · Fault-aware vs nominal supervision under 13 faults (260 runs, 0 failed)
+
+Record `E019-20261102T013052-4c3e48`.
+* **Setup:** S6 at 38 °C ambient, load 0.6, 2 h, 40 kg loop, RTX-world parameters, 5 seeds.
+* **Arms:** `joint_meas` and `mpc`, each under a nominal supervisor (catches exceptions, holds the last action) and a fault-aware one.
+* **Faults:** 8 window faults (2,400–4,200 s), 4 physical faults, and none.
+* **Details:** `22_fault_tolerance.md` §8.
+
+| Hypothesis | Verdict | What happened |
+|---|---|---|
+| H1 no alarm and no cost without a fault | supported | No alarm in any of the 10 no-fault fault-aware runs; energy per success +0.00% for both controllers |
+| H2 window faults detected within 180 s | supported | 68 of 80 runs (85%; 80% needed). Every alarm came at or after onset. Late: clock stuck 7 of 10 (240–420 s), supply bias 3 of 10 (240–300 s), stale sensors 2 of 10 (240 s) |
+| H3 never worse than nominal (+1 chip-s) | supported | chip-s above t_target, nominal → fault-aware: clock stuck 103 → 15 (`joint_meas`) and 245 → 27 (`mpc`); supply bias (`mpc`) 193 → 67; fouling 1,068 → 224 and 1,436 → 266; wrong model 398 → 0 and 709 → 0; degraded pump 605 → 605 and 389 → 353. Every other cell 0 → 0 |
+| H4 clock stuck: at least 50% less time above target | supported | −85% (`joint_meas`), −89% (`mpc`) |
+| H5 back to NORMAL within 300 s of the window ending | supported | 66 of 70 runs that left NORMAL (94%). The 4 misses were junction-bias runs that left DEGRADED 420–540 s after the window |
+| H6 degradation detected | **not supported** | 21 of 30 runs (70%; 80% needed): fouling 10/10 (420–660 s after the step), wrong model 10/10 (180–240 s after the start), degraded pump 1/10 |
+
+**H5, an operational detail.**
+* The registered analysis uses the stored `diag_recovered_t`: the *first* return to NORMAL after the first alarm.
+* For controller crash and solver infeasibility (20 runs), the mode bookkeeping recorded that first return at 2,580 s, inside the window. Those runs therefore count as recovered on a return that was not after the window.
+* The seed-0 time series (it has no mode column, so SAFE is read from its action: flow 2.0, supply 12 °C) shows the SAFE action applied continuously from 2,460 to 4,200 s in all four crash and infeasibility stacks, and released at the next interval.
+* Leaving these 20 runs out gives 46 of 50 (92%), so the verdict does not depend on them.
+
+**Descriptive** (fault-aware vs nominal energy per success, seed means of paired ratios).
+* **SAFE mode while a fault lasts:**
+  * sensor dropout +21.9% (`joint_meas`) and +1.5% (`mpc`); the nominal MPC's own energy already rose 19% under dropout;
+  * crash and solver infeasibility +20.5% and +18.9% (identical, since both are injected as exceptions);
+  * clock stuck +12.2% and +11.6%;
+  * communication failure +1.3% and +1.1%.
+* **DEGRADED mode** (junction bias, stale sensors): 0.0%.
+* **Physical faults:** fouling −1.1% and −1.3%, wrong model −0.7% and −1.4%, supply bias −0.8% and −0.9%.
+* **No effect:** the 600 s valve delay had no effect on either stack.
+* **Late tasks:** crash and infeasibility 0.4 → 0; otherwise unchanged (0–0.4).
+
+**Interpretation.**
+* In this simulator, the fault-aware layer adds what E016 lacked: it reacts to the residual and to the actuation checks directly. A clock that ignores its commands, or a supply sensor that reads 8 K low, was caught within minutes, and the stack fell back to the conservative action.
+* It was never worse than the nominal stack on chip temperature, and it cost nothing without a fault.
+* Its price is energy while a fault lasts: SAFE mode (full flow, coldest supply) cost 11.6–21.9% per success during crashes, stuck clocks and, for `joint_meas`, sensor dropout.
+* Detection was slowest for faults whose evidence builds up over time (a stuck clock, a supply-sensor bias), not for faults that are visible at once (dropout, a crash).
+* **Blind spot: faults present from the start.**
+  * A pump degraded from t = 0 is learned as normal by the CUSUM baseline and does not change the identified resistance. It was detected in 1 of 10 runs, and fault-awareness did not reduce its time above target for `joint_meas`.
+  * The spec stated this as a limitation; the result shows that it matters.
+  * Catching it needs a reference that is not learned from the faulty plant, such as a commissioning baseline or a pump-curve check.
+
+### E022 · Demand-response cap: capping, deferral, cold storage (50 runs, 0 failed)
+
+Record `E022-20261102T013819-2b1ccf`.
+* **Setup:** 32 GPUs, load 0.75, supply 25 °C, NTU plant, ambient 20 and 30 °C, 5 seeds.
+* **Signals:** a 15 kW grid cap from 16:00 to 16:30; illustrative tariff and carbon shapes.
+* **Arms:** 5 (none, cap, cap_defer, cap_storage, cap_defer_storage) at each ambient.
+* **Details:** `21_grid_coordination.md` §7.
+
+| Hypothesis | Verdict | What happened |
+|---|---|---|
+| H1 cap held to ≤ 2% of event energy | supported | 0.000 kWh above the cap at both ambients (event energy 7.34 and 7.44 kWh). Grid power rode the cap; with the EMS's one-step lag the largest overshoot was 2–12 W |
+| H2 deferral keeps the on-time fraction | supported | `cap_defer` 0.983 vs `cap` 0.972 (20 °C) and 0.983 vs 0.969 (30 °C) |
+| H3 storage adds ≥ 3% work during the event at 30 °C, < 1% at 20 °C | **not supported** | 30 °C: +0.7% [−0.8, +2.1]. 20 °C: −0.0%, so the expected null held |
+| H4 at 30 °C storage uses more energy but costs less | **not supported** | Storage used *less* energy and cost less (seed means): 39.40 vs 40.07 kWh (−1.7%); 8.35 vs 8.64 (−3.3%) |
+| H5 the cap binds without enforcement | supported | Exceeded in every seed: 1.05 kWh (20 °C) and 1.89 kWh (30 °C) above, peaks 5.8 and 7.9 kW over |
+
+**Why H4 failed (descriptive).**
+* Per seed, storage minus cap in grid energy was −2.13, +0.19, +0.93, +0.62 and −2.97 kWh. In 3 of 5 seeds storage used more energy, as §3 of doc 21 expects.
+* The other two seeds dominate the mean. In those seeds, plain capping caused a backlog: on-time fraction 0.947 and 0.918, and energy per GPU-second of work 0.871 and 0.930 kJ (uncapped: 0.802 and 0.854). Storage left more of the cap to IT and avoided most of it.
+* The cost difference has mixed signs too: storage cost more in seeds 2 and 3.
+* So the seed-mean result reflects how much capping slows the work, which the hypothesis did not anticipate. It is not a property of storage thermodynamics.
+
+**Why H3 failed (descriptive).**
+* The store was small for this event. Charging at 4 kW_th for 30 minutes put 1.9 kWh_th into a 6 kWh_th store (5% loss).
+* At 30 °C, the chiller used 3.33 kWh over the whole run with plain capping, so storage could displace only a small share of non-IT power during the event.
+* At 20 °C the chiller never ran. The storage was charged (0.27 kWh_el) and never used.
+
+**Descriptive.**
+* **Holding the cap cost energy:** cap vs none, grid energy +1.7% (20 °C) and +0.6% (30 °C), cost +2.4% and +0.9%.
+* **Deferral beat plain capping at both ambients:**
+  * event energy fell (7.34 → 6.19 kWh at 20 °C, 7.44 → 6.63 at 30 °C);
+  * total energy fell 0.9% and 2.1%;
+  * cost fell 1.3% and 2.9%;
+  * the on-time fraction rose.
+* **Deferral counts:** `deferrals` counts per-step hold decisions (4,473 and 4,366), not jobs.
+
+**Interpretation.**
+* In this simulated EMS, converting a grid cap into an IT limit using the previous step's non-IT power held the cap to within a few watts.
+* Deferring jobs whose deadlines allow it improved every metric relative to plain capping.
+* The storage test was underpowered by design: the store was charged for half an hour at 4 kW_th, and the chiller was a small share of power. Its effect could not be separated from the backlog that plain capping created in two seeds.
+* "Energy is not cost" (H4) was not demonstrated. A test of it needs a store sized to the chiller duty during the event, and enough seeds to average over backlog effects.
+
+### E018 · Thermal-credit placement vs four baselines (150 runs, 0 failed)
+
+Record `E018-20261102T014828-72b80b`.
+* **Setup:** 32 GPUs (2 racks × 2 nodes × 8), 2 h of arrivals + 30 min drain, NTU plant, 5 seeds.
+* **Arms:** `thermal_credit`, four baselines (`round_robin`, `least_loaded`, `power_aware`, `temperature_aware`), and the `thermal_placement` ablation (placement rule only, full clock, never holds).
+* **Conditions:**
+  * C1 uniform cooling;
+  * C2 series pairs with unequal branches at 35 °C;
+  * C3 the same at 40 °C;
+  * C4 a 7 kW rack limit with bursts;
+  * C5 heterogeneous nodes.
+* **Details:** `17_thermal_credits.md` §8.
+
+| Hypothesis | Verdict | What happened |
+|---|---|---|
+| H1 lower energy per on-time job than every baseline in C2, C3, C5 (CI < 0, mean ≤ −2%) | **not supported** | **C5:** met against all four: −26.5% (round-robin), −10.3% (least-loaded), −18.2% (power-aware), −8.3% (temperature-aware), all CIs below 0. **C3:** below 0 only against round-robin (−31.3%) and power-aware (−13.4%); the CIs against least-loaded (−14.4% [−53.5, +24.8]) and temperature-aware (−4.6% [−27.9, +18.6]) include 0. **C2:** worse than three baselines on the mean (+5.4% to +17.3%); no CI excludes 0 |
+| H2 fewer chip-s above target (≤ temperature-aware everywhere; ≤ ½ least-loaded in C2, C3, C5) | supported | thermal-credit / temperature-aware / least-loaded: C2 8,757 / 28,864 / 31,721; C3 20,875 / 71,800 / 83,898; C4 199 / 926 / 2,581; C5 13,696 / 76,815 / 84,416; C1 all 0 |
+| H3 on-time fraction within 2 points of the best baseline in C2, C3, C5 | **not supported** | C2 0.797 vs 0.954 (−15.7 points); C3 0.868 vs 0.951 (−8.3); C5 0.953 vs 0.996 (−4.3) |
+| H4 no difference in C1 (expected null) | supported | −0.2% energy vs least-loaded; on-time 1.000 for both |
+| H5 C4 on-time at least power-aware's | supported | 0.947 vs 0.938 |
+
+**Descriptive.**
+* **Placement alone did nothing for energy or heat.** `thermal_placement` was within its CI of `temperature_aware` in every condition (+0.0% to +3.1%; every CI includes 0), with similar time above target (C2 27,293 vs 28,864 chip-s). Thermal-credit's thermal benefit therefore comes from starting jobs at reduced clocks (202–303 jobs per run in C2, C3 and C5) and from holding them, not from where it puts them.
+* **Thermal-credit used the least grid energy in C2–C5**, e.g. C2 39.8 vs 42.8 kWh (temperature-aware), C3 37.2 vs 43.5, C5 33.1 vs 37.8.
+* **Throttling:** in C3 and C5 the four baselines spent 42,500–89,600 GPU-s in hardware throttling; thermal-credit spent 10,356 and 12,540.
+* **The cost was waiting:** mean wait 234 s vs 60 s (C2), and fewer jobs on time.
+* **Why the energy metric and the other results disagree:** energy per on-time job divides by on-time jobs. The same holds that saved energy and heat cost deadlines, and the metric charges for both.
+* **Peak temperature:** the peak was not lower. The *time* above target was.
+
+**Interpretation.**
+* In this simulator, thermal credits do what they were designed to do thermally: 3–6× less time above target, much less hardware throttling, and the lowest grid energy.
+* Under tight thermal stress (series pairs at 35–40 °C supply), they pay for it with deadlines.
+* Under the registered metric, that trade was a net win only with heterogeneous nodes (C5).
+* The credit parameters were set by hand, not tuned. A less conservative setting might move the trade, but testing that needs a new experiment.
+
+### E020 · Joint supply, valves and placement vs independent control, 1–16 nodes (120 runs, 0 failed)
+
+Record `E020-20261102T022118-3ee654`.
+* **Setup:** 1, 4 and 16 nodes (8 GPUs each), series pairs, load 0.75, ambient 20 and 30 °C, NTU plant, 5 seeds.
+* **Arms:**
+  * `independent`: 25 °C supply, equal valves, least-loaded;
+  * `warm`: warmest-safe supply;
+  * `warm_valves`: + heat-proportional valves;
+  * `joint`: + thermal-credit.
+* **Details:** `19_multi_node_facility.md` §9.
+
+| Hypothesis | Verdict | What happened |
+|---|---|---|
+| H1 joint ≥ 3% lower energy per on-time job at every scale and ambient | **not supported** | **1 node:** met (−7.3% [−14.2, −0.5] at 20 °C; −16.4% [−23.7, −9.1] at 30 °C). **4 nodes:** +22.0% and +11.1%. **16 nodes:** +16.4% and +8.4%. The 4- and 16-node CIs are wide and include 0 |
+| H2 on-time within 1 point | **not supported** | joint vs independent: 0.919 vs 0.972 (1 node), 0.823 vs 0.995 (4), 0.475 vs 0.615 (16); identical at both ambients |
+| H3 benefit at 16 nodes ≥ 1-node benefit − 1 point | **not supported** | The benefit reversed sign above 1 node (H1 values) |
+| H4 heat-proportional valves beat equal valves at 16 nodes | **not supported** | +2.8% [−2.5, +8.1] (20 °C), +1.8% [−3.3, +6.8] (30 °C). The valves raised pump energy (1.39 → 2.30 kWh), lifted the warmest-safe supply by 1.0 K, and introduced time above target (0 → 18.8 chip-s) and throttling (0 → 9.6 GPU-s) |
+
+**The cooling component on its own** (`warm` vs `independent`; same scheduler, so the same jobs finish; ratios of seed means):
+
+| | 1 node | 4 nodes | 16 nodes |
+|---|---|---|---|
+| 30 °C ambient | −4.9% | −3.9% | −4.0% |
+| 20 °C ambient | +3.3% | +1.5% | +0.5% |
+
+* At 30 °C, a 25 °C supply needs the chiller (15.9 kWh at 16 nodes), and warm supply cut that to 5.8 kWh.
+* At 20 °C neither arm used the chiller, and warm supply only added leakage (IT energy +1.8% at 16 nodes).
+* This agrees with E021: warm water saves energy only when it avoids chiller work.
+
+**The 16-node cells were congested by the network model.**
+* With `independent` at 16 nodes, only 61.5% of jobs finished on time and 18% were unfinished at the end, yet utilisation was 0.90. Energy per GPU-second of work was 1.25 kJ, against 0.73 kJ at 4 nodes.
+* An exploratory diagnostic (not stored, script `experiments/diagnostics/e020_uplink_check.py`) re-ran seed 1 with and without the rack-uplink limit (4 cross-node jobs per rack, class G):
+  * with the registered limit it reproduced the stored result (on-time 0.491);
+  * without the limit: on-time 1.000, utilisation 0.61, energy per on-time job 342 instead of 988 kJ.
+* Least-loaded placement spreads jobs across nodes as the cluster fills, and the uplink limit then slows them.
+* So at 16 nodes, E020 measures network congestion as much as cooling, and the scale comparison (H3) is confounded by it.
+* The 4-node cells (one rack) were not congested under `independent` (on-time 0.995).
+
+**Interpretation.**
+* "Joint" control as registered did not beat independent control, except on one node.
+* Its losses came from two places:
+  * thermal-credit's holds, which cost on-time jobs as in E018;
+  * heat-proportional valves, which added pump work without enabling a materially warmer supply.
+* The supply-temperature component alone behaved as E021 predicts: −4 to −5% at 30 °C, a small penalty at 20 °C.
+* A fair test of joint control at scale needs a network-aware placement rule, or a topology where the uplink does not saturate. That is a new experiment, not a reinterpretation of this one.
+
 ## Definition of done (charter §16), initial platform
 
 | # | Criterion | Status |

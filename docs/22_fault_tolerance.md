@@ -82,6 +82,20 @@ python -m ueic run experiments/E019_fault_robustness.json --workers 2
 * SAFE mode is expensive (maximum flow, coldest supply). Fault-awareness costs energy during faults.
 * The power telemetry is assumed healthy. A fault in it would blind the residual and the actuation checks.
 
-## 8. Results (E019)
+## 8. Results (E019, simulated)
 
-Filled in after the run; see `PHASE_REPORT.md`.
+Record `E019-20261102T013052-4c3e48`: 260 runs, 0 failed, one session. Full tables are in `PHASE_REPORT.md`.
+
+| Hypothesis | Verdict |
+|---|---|
+| H1 no false alarm, no cost without a fault | supported (0 alarms; +0.00%) |
+| H2 window faults detected ≤ 180 s | supported (85%; late: stuck clock, supply bias, stale sensors) |
+| H3 never worse than nominal | supported (e.g. fouling 1,436 → 266 chip-s, wrong model 709 → 0) |
+| H4 stuck clock ≥ 50% less | supported (−85%, −89%) |
+| H5 back to NORMAL ≤ 300 s after the window | supported (94%; see the operational note on crash and infeasibility runs in `PHASE_REPORT.md`) |
+| H6 degradation detected ≥ 80% | **not supported** (70%: fouling 10/10, wrong model 10/10, degraded pump 1/10) |
+
+**What this shows.**
+* The supervisor catches window faults quickly and never made temperatures worse.
+* SAFE mode cost up to 22% energy per success while a fault lasted (crashes, stuck clocks, and dropout for `joint_meas`).
+* The §7 limitation is real: a pump degraded from t = 0 is learned as the baseline and goes undetected. A reference not learned from the running plant (a commissioning baseline, or a pump-curve check) is needed.

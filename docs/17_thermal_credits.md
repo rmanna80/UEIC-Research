@@ -83,6 +83,20 @@ python -m ueic run experiments/E018_thermal_scheduling.json --workers 2
 * The duration estimate is the remaining work at full clock. Badly wrong durations make H wrong (capped at 600 s).
 * Holding a job trades waiting time for thermal slack. With tight deadlines, holds turn into late jobs. E018's H3 checks this.
 
-## 8. Results (E018)
+## 8. Results (E018, simulated)
 
-Filled in after the run; see `PHASE_REPORT.md`.
+Record `E018-20261102T014828-72b80b`: 150 runs, 0 failed, one session. Dry-runs and analysis timing are disclosed in `PHASE_REPORT.md` ("Run notes").
+
+| Hypothesis | Verdict |
+|---|---|
+| H1 lower energy per on-time job than all four baselines in C2, C3, C5 | **not supported**. Met in C5 (−8.3% to −26.5%, all CIs below 0). Not in C3 (CIs vs least-loaded and temperature-aware include 0). Not in C2 (worse than three baselines on the mean) |
+| H2 less time above target | supported. 3–6× less than temperature-aware in C2–C5, e.g. C3 20,875 vs 71,800 chip-s |
+| H3 on-time within 2 points of the best baseline | **not supported**. 15.7, 8.3 and 4.3 points below in C2, C3, C5 |
+| H4 no difference under uniform cooling | supported (−0.2%) |
+| H5 rack-capped bursts: on-time ≥ power-aware | supported (0.947 vs 0.938) |
+
+**What this shows.**
+* **Mechanism:** the `thermal_placement` ablation (placement only) was indistinguishable from `temperature_aware`. Thermal credits work through reduced start clocks and holds, not through placement.
+* **Gains:** the holds cut time above target, hardware throttling and grid energy (C3: 37.2 vs 43.5 kWh).
+* **Costs:** waiting, and on-time jobs. Energy per on-time job charges for both, so under that metric the trade paid only with heterogeneous nodes.
+* **Parameters:** they were hand-set (§7). The H3 failure is the risk §7 named: with tight deadlines, holds become late jobs.

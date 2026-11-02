@@ -17,16 +17,16 @@ Branch `research/ueic-next-generation`. Status values: **done** (code, tests, do
 | 4 | Inference adapters (vLLM, Ollama, SGLang), tracing, energy accounting, quality evaluation, sessions, CLI | done (software) | docs/18; tested against mock HTTP servers and a synthetic engine; no live engine measured yet; SGLang adapter not exercised on a live server |
 | 4 | E017 real LLM energy per useful result | pending hardware | pre-registered as a hardware protocol; operator procedure `infer plan`; needs the user's GPU, Ollama and GSM8K |
 | 5 | Thermal capacity budgets, thermal-credit placement and admission, phase clocks, measured-quality router, batching | done (software) | docs/17; tested |
-| 5 | E018 thermal scheduling | in progress | pre-registered (5e0b172); queued |
+| 5 | E018 thermal scheduling | done | pre-registered (5e0b172); 150 runs, 0 failed; H2, H4, H5 supported; H1, H3 not |
 | 6 | Multi-node facility simulator (types, racks, manifold, series plates, caps, network) | done (software) | docs/19; validated against analytic cases, conservation, 1→4 scaling, dt |
-| 6 | E020 multi-node joint control | in progress | pre-registered (5e0b172); queued |
+| 6 | E020 multi-node joint control | done | pre-registered (5e0b172); 120 runs, 0 failed; H1–H4 not supported; 16-node congestion found by an exploratory diagnostic |
 | 7 | Grid modules: caps, compliance, deferral, cold storage, tariffs, carbon | done (software) | docs/21 |
 | 7 | E021 heat reuse | done | pre-registered (2aaa6b6); 480 runs, 0 failed; H2, H5, H6, H7 supported; H1, H3, H4 not. First attempt aborted after 132/480 (time limit, kept as failed); second record resumed twice under checks (`ueic/resume.py`) |
-| 7 | E022 grid coordination | in progress | pre-registered (4c14a91); queued |
+| 7 | E022 grid coordination | done | pre-registered (4c14a91); 50 runs, 0 failed; H1, H2, H5 supported; H3, H4 not |
 | 8 | Fault injection, sensor validation, CUSUM, degradation, recovery modes, fault-aware supervisor | done (software) | docs/22 |
-| 8 | E019 fault robustness | in progress | pre-registered (692b375); queued |
+| 8 | E019 fault robustness | done | pre-registered (692b375); 260 runs, 0 failed; H1–H5 supported; H6 not |
 | 9 | Hardware adapters with mocks, modes, grants, guarded writes, replay; instrumentation document | done (software) | docs/23; no real actuator driver by design; no instrument connected |
-| 10 | E024 integrated ablation | in progress | pre-registered; queued |
+| 10 | E024 integrated ablation | in progress | pre-registered (2c1b9fe); running, continued by checked resumption |
 | 10 | Docs 12–29 | in progress | 25 (findings), 20 (heat reuse) and 29 (interview guide) written after the runs |
 | 13 | ATLAS / KernelSmith adapters | blocked | no repository visible to this account (checked 2026-11-01); interface-only adapters raise PendingIntegration |
 | 13 | Equivalent-kernel energy harness; E023 | pending hardware | harness tested with synthetic samples; protocol pre-registered |
